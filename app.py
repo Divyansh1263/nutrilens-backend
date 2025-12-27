@@ -12,10 +12,12 @@ print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
 
 app = Flask(__name__)
 
-# -------------------------------
-# Firebase Init
-# -------------------------------
-cred = credentials.Certificate("serviceAccountKey.json")
+# Firebase Init (Render-safe)
+import json
+import os
+
+firebase_key = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT"])
+cred = credentials.Certificate(firebase_key)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
