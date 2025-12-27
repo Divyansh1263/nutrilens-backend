@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Secrets
+serviceAccountKey.json
+
+# OS files
+.DS_Store
