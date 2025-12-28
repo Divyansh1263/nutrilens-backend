@@ -17,10 +17,15 @@ app = Flask(__name__)
 # Firebase Init (Render-safe)
 import json
 import os
+firebase_env = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
 
-firebase_key = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT"])
+if not firebase_env:
+    raise RuntimeError("FIREBASE_SERVICE_ACCOUNT env var not set")
+
+firebase_key = json.loads(firebase_env)
 cred = credentials.Certificate(firebase_key)
 firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
 
@@ -30,10 +35,6 @@ db = firestore.client()
 knn_model = SmartSwapKNN()
 knn_model.load("models/knn_meal_swap.joblib")
 
-
-
-
-app = Flask(__name__)
 
 # ======================================================
 # 1. USER REGISTRATION / PROFILE API (UPGRADED)
@@ -392,71 +393,6 @@ def swap_meal():
     })
 
     return jsonify({"message": "Meal swapped successfully"})
-
-
-
-# ======================================================
-# 8. NLP MEAL LOGGING API
-# ======================================================
-from ai.nlp_logger import parse_text
-
-@app.route("/log-meal-nlp", methods=["POST"])
-def log_meal_nlp():
-    data = request.get_json(force=True)
-
-    user_id = data.get("userId")
-    date = data.get("date")
-    text = data.get("text")
-
-    if not all([user_id, date, text]):
-        return jsonify({"error": "Missing fields"}), 400
-
-    quantity, keywords = parse_text(text)
-
-    # Search matching meal
-    meal_doc = None
-    for word in keywords:
-        docs = db.collection("meals") \
-            .where("searchKeywords", "array_contains", word) \
-            .limit(1) \
-            .stream()
-        for d in docs:
-            meal_doc = d.to_dict()
-            break
-        if meal_doc:
-            break
-
-    if not meal_doc:
-        return jsonify({"error": "Meal not recognized"}), 404
-
-    # Scale nutrition
-    calories = meal_doc["calories"] * quantity
-    protein = meal_doc["protein"] * quantity
-    carbs = meal_doc["carbs"] * quantity
-    fat = meal_doc["fat"] * quantity
-
-    db.collection("meal_logs").add({
-        "userId": user_id,
-        "date": date,
-
-        "mealName": meal_doc["mealName"],
-        "mealType": meal_doc.get("category"),
-
-        "calories": calories,
-        "protein": protein,
-        "carbs": carbs,
-        "fat": fat,
-
-        "source": "nlp",
-        "rawText": text,
-        "timestamp": firestore.SERVER_TIMESTAMP
-    })
-
-    return jsonify({
-        "message": "Meal logged via NLP",
-        "meal": meal_doc["mealName"],
-        "quantity": quantity
-    })
 
 
 # ======================================================
