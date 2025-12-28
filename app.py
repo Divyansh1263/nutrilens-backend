@@ -55,6 +55,15 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 
+from ai.semantic_matcher import SemanticMealMatcher
+
+# Load meals once at startup
+meal_docs = db.collection("meals").stream()
+MEALS = [d.to_dict() for d in meal_docs]
+
+semantic_matcher = SemanticMealMatcher(MEALS)
+
+
 # -------------------------------
 # Load k-NN Smart Swap Model
 # -------------------------------
@@ -441,40 +450,23 @@ def log_meal_nlp_ml():
         category = predict_category(food)
         quantity = quantities.get(food, 1)
 
-        docs = db.collection("meals").stream()
-        meal = None
-
-        # -------- STAGE 3A: STRICT CANONICAL MATCH --------
-        preferred_names = CANONICAL_MEALS.get(food, [])
-
-        for pref in preferred_names:
-            for d in docs:
-                m = d.to_dict()
-                meal_name = m.get("mealName", "").lower()
-
-                # 🚫 avoid mixed dishes
-                if pref in meal_name and food == meal_name.split()[0]:
-                    meal = m
-                    break
-            if meal:
-                break
-
-        # ❌ DO NOT FALLBACK if canonical exists
-        if preferred_names and not meal:
-            continue
-
-        # -------- STAGE 3B: FALLBACK ONLY IF NO CANONICAL --------
-        if not meal:
-            docs = db.collection("meals").stream()
-            for d in docs:
-                m = d.to_dict()
-                meal_name = m.get("mealName", "").lower()
-                if food in meal_name:
-                    meal = m
-                    break
+        # -------- STAGE 3: SEMANTIC (EMBEDDING) MATCH --------
+        meal, score = semantic_matcher.find_best_match(food)
 
         if not meal:
+            print(f"❌ No semantic match for '{food}'")
             continue
+
+        print(f"✅ Semantic match: '{food}' → '{meal['mealName']}' (score={score})")
+
+        # -------- STAGE 4: CANONICAL SAFETY FILTER --------
+        if food in CANONICAL_MEALS:
+            allowed = CANONICAL_MEALS[food]
+            meal_name = meal["mealName"].lower()
+
+            if not any(c in meal_name for c in allowed):
+                print(f"⚠️ Rejected non-canonical match: {meal['mealName']}")
+                continue
 
         # -------- LOG TO FIRESTORE --------
         db.collection("meal_logs").add({
@@ -489,13 +481,15 @@ def log_meal_nlp_ml():
             "quantity": quantity,
             "source": "nlp_pipeline",
             "rawText": text,
+            "confidence": score,
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
         logged.append({
             "meal": meal["mealName"],
             "category": category,
-            "quantity": quantity
+            "quantity": quantity,
+            "confidence": score
         })
 
     return jsonify({
