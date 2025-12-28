@@ -2,25 +2,45 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 from ai.smart_swap_knn import SmartSwapKNN
+import os
 
-# Firebase init
+print("🔥 Training SmartSwap KNN Model 🔥")
+
+# ---------------------------------
+# Firebase Init (LOCAL SAFE)
+# ---------------------------------
 cred = credentials.Certificate("serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Fetch meals
+# ---------------------------------
+# Fetch ALL meals from Firestore
+# ---------------------------------
 meals = []
 docs = db.collection("meals").stream()
+
 for d in docs:
-    m = d.to_dict()
-    meals.append(m)
+    meal = d.to_dict()
 
-print(f"Loaded {len(meals)} meals")
+    # Safety check: must have numeric features
+    if all(k in meal for k in ["calories", "protein", "carbs", "fat", "mealName"]):
+        meals.append(meal)
 
-# Train model
+print(f"✅ Loaded {len(meals)} meals from Firestore")
+
+if len(meals) < 10:
+    raise Exception("❌ Not enough meals to train KNN")
+
+# ---------------------------------
+# Train KNN Model
+# ---------------------------------
 model = SmartSwapKNN()
 model.fit(meals)
 
-# Save model
+# ---------------------------------
+# Save Model
+# ---------------------------------
+os.makedirs("models", exist_ok=True)
 model.save("models/knn_meal_swap.joblib")
-print("✅ k-NN model trained and saved")
+
+print("✅ KNN model retrained and saved successfully")

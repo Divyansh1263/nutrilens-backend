@@ -7,6 +7,8 @@ from ai.smart_swap_knn import SmartSwapKNN
 from ai.meal_plan_generator import generate_full_meal_plan
 import os
 from datetime import date
+from ai.nlp_model import extract_meals_from_text
+
 
 print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
 
@@ -201,7 +203,6 @@ def generate_meal_plan():
 
     return jsonify(meal_plan)
 
-
 # ======================================================
 # 4. MEAL LOGGING API
 # ======================================================
@@ -221,7 +222,7 @@ def log_meal():
         "carbs": data.get("carbs"),
         "fat": data.get("fat"),
 
-        "source": data.get("source", "manual"),  # ai | knn_swap | manual
+        "source": data.get("source", "manual"),  # manual | ai | nlp | knn_swap
         "timestamp": firestore.SERVER_TIMESTAMP
     }
 
@@ -284,11 +285,9 @@ def replace_meal():
 @app.route("/routes", methods=["GET"])
 def routes():
     return jsonify([str(r) for r in app.url_map.iter_rules()])
-
-#======================================================
-# 6. Tracker Summary API
-#======================================================
-
+# ======================================================
+# 6. TRACKER SUMMARY API
+# ======================================================
 @app.route("/tracker-summary", methods=["GET"])
 def tracker_summary():
     user_id = request.args.get("userId")
@@ -328,7 +327,7 @@ def tracker_summary():
         targets = target_doc.to_dict()
 
     # -------------------------------
-    # Final response
+    # Final tracker response
     # -------------------------------
     return jsonify({
         "date": date,
@@ -347,6 +346,184 @@ def tracker_summary():
         "logs": logs
     })
 
+
+# ======================================================
+# 7. SWAP MEAL API (Frontend-safe)
+# ======================================================
+@app.route("/swap-meal", methods=["POST"])
+def swap_meal():
+    data = request.get_json(force=True)
+
+    user_id = data.get("userId")
+    date = data.get("date")  # YYYY-MM-DD
+
+    old_meal_name = data.get("oldMealName")
+    new_meal = data.get("newMeal")  # full meal object
+
+    if not all([user_id, date, old_meal_name, new_meal]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # 1️⃣ Delete old meal log
+    logs = db.collection("meal_logs") \
+        .where("userId", "==", user_id) \
+        .where("date", "==", date) \
+        .where("mealName", "==", old_meal_name) \
+        .limit(1) \
+        .stream()
+
+    for log in logs:
+        db.collection("meal_logs").document(log.id).delete()
+
+    # 2️⃣ Log new meal
+    db.collection("meal_logs").add({
+        "userId": user_id,
+        "date": date,
+
+        "mealName": new_meal["mealName"],
+        "mealType": new_meal.get("mealType"),
+
+        "calories": new_meal["calories"],
+        "protein": new_meal["protein"],
+        "carbs": new_meal["carbs"],
+        "fat": new_meal["fat"],
+
+        "source": "knn_swap",
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+
+    return jsonify({"message": "Meal swapped successfully"})
+
+
+
+# ======================================================
+# 8. NLP MEAL LOGGING API
+# ======================================================
+from ai.nlp_logger import parse_text
+
+@app.route("/log-meal-nlp", methods=["POST"])
+def log_meal_nlp():
+    data = request.get_json(force=True)
+
+    user_id = data.get("userId")
+    date = data.get("date")
+    text = data.get("text")
+
+    if not all([user_id, date, text]):
+        return jsonify({"error": "Missing fields"}), 400
+
+    quantity, keywords = parse_text(text)
+
+    # Search matching meal
+    meal_doc = None
+    for word in keywords:
+        docs = db.collection("meals") \
+            .where("searchKeywords", "array_contains", word) \
+            .limit(1) \
+            .stream()
+        for d in docs:
+            meal_doc = d.to_dict()
+            break
+        if meal_doc:
+            break
+
+    if not meal_doc:
+        return jsonify({"error": "Meal not recognized"}), 404
+
+    # Scale nutrition
+    calories = meal_doc["calories"] * quantity
+    protein = meal_doc["protein"] * quantity
+    carbs = meal_doc["carbs"] * quantity
+    fat = meal_doc["fat"] * quantity
+
+    db.collection("meal_logs").add({
+        "userId": user_id,
+        "date": date,
+
+        "mealName": meal_doc["mealName"],
+        "mealType": meal_doc.get("category"),
+
+        "calories": calories,
+        "protein": protein,
+        "carbs": carbs,
+        "fat": fat,
+
+        "source": "nlp",
+        "rawText": text,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+
+    return jsonify({
+        "message": "Meal logged via NLP",
+        "meal": meal_doc["mealName"],
+        "quantity": quantity
+    })
+
+
+# ======================================================
+# NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
+# ======================================================
+@app.route("/log-meal-nlp-ml", methods=["POST"])
+def log_meal_nlp_ml():
+    data = request.get_json(force=True)
+
+    user_id = data.get("userId")
+    date = data.get("date")
+    text = data.get("text")
+
+    if not all([user_id, date, text]):
+        return jsonify({"error": "Missing fields"}), 400
+
+    extracted = extract_meals_from_text(text)
+
+    if not extracted:
+        return jsonify({"error": "No meal detected"}), 400
+
+    logged = []
+
+    for item in extracted:
+        # Confidence threshold
+        if item["confidence"] < 0.50:
+            continue
+
+        # Fetch meal from Firestore
+        docs = db.collection("meals") \
+            .where("mealName", "==", item["meal"]) \
+            .limit(1) \
+            .stream()
+
+        meal = None
+        for d in docs:
+            meal = d.to_dict()
+
+        if not meal:
+            continue
+
+        db.collection("meal_logs").add({
+            "userId": user_id,
+            "date": date,
+
+            "mealName": meal["mealName"],
+            "mealType": meal.get("category"),
+
+            "calories": meal["calories"] * item["quantity"],
+            "protein": meal["protein"] * item["quantity"],
+            "carbs": meal["carbs"] * item["quantity"],
+            "fat": meal["fat"] * item["quantity"],
+
+            "source": "nlp_ml",
+            "rawText": text,
+            "quantity": item["quantity"],
+            "confidence": item["confidence"],
+
+            "timestamp": firestore.SERVER_TIMESTAMP
+        })
+
+        logged.append(item)
+
+    return jsonify({
+        "message": "Meal logged using ML-based NLP",
+        "items": logged
+    })
 
 
 
