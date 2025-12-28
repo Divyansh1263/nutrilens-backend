@@ -283,9 +283,7 @@ def replace_meal():
         "aiSuggestions": replacements
     })
 
-@app.route("/routes", methods=["GET"])
-def routes():
-    return jsonify([str(r) for r in app.url_map.iter_rules()])
+
 # ======================================================
 # 6. TRACKER SUMMARY API
 # ======================================================
@@ -462,6 +460,9 @@ def log_meal_nlp_ml():
     })
 
 
+@app.route("/routes", methods=["GET"])
+def routes():
+    return jsonify([str(r) for r in app.url_map.iter_rules()])
 
 # RUN SERVER (LOCAL + CLOUD RUN SAFE)
 # ======================================================
