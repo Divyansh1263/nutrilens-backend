@@ -416,20 +416,26 @@ def log_meal_nlp_ml():
 
     for item in extracted:
         # Confidence threshold
-        if item["confidence"] < 0.50:
-            continue
+        ##if item["confidence"] < 0.50:
+         ##   continue
 
-        # Fetch meal from Firestore
-        docs = db.collection("meals") \
-            .where("mealName", "==", item["meal"]) \
-            .limit(1) \
-            .stream()
+        # Normalize predicted meal name
+        predicted_name = item["meal"].strip().lower()
 
+        # Fetch all meals and match manually (case-insensitive)
         meal = None
+        docs = db.collection("meals").stream()
+
         for d in docs:
-            meal = d.to_dict()
+            m = d.to_dict()
+            db_name = m.get("mealName", "").lower()
+            # Exact OR partial match
+            if predicted_name == db_name or predicted_name in db_name:
+                meal = m
+                break
 
         if not meal:
+            print("❌ No Firestore match for:", item["meal"])
             continue
 
         db.collection("meal_logs").add({
