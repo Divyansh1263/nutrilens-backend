@@ -8,6 +8,9 @@ from ai.meal_plan_generator import generate_full_meal_plan
 import os
 from datetime import date
 from ai.nlp_model import extract_meals_from_text
+from ai.food_entity_extractor import extract_food_entities
+from ai.food_category_model import predict_category
+
 
 
 print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
@@ -407,61 +410,47 @@ def log_meal_nlp_ml():
     if not all([user_id, date, text]):
         return jsonify({"error": "Missing fields"}), 400
 
-    extracted = extract_meals_from_text(text)
-
-    if not extracted:
-        return jsonify({"error": "No meal detected"}), 400
-
+    entities = extract_food_entities(text)
     logged = []
 
-    for item in extracted:
-        # Confidence threshold
-        ##if item["confidence"] < 0.50:
-         ##   continue
+    for food in entities:
+        category = predict_category(food)
 
-        # Normalize predicted meal name
-        predicted_name = item["meal"].strip().lower()
+        docs = db.collection("meals") \
+            .where("category", "==", category) \
+            .stream()
 
-        # Fetch all meals and match manually (case-insensitive)
         meal = None
-        docs = db.collection("meals").stream()
-
         for d in docs:
             m = d.to_dict()
-            db_name = m.get("mealName", "").lower()
-            # Exact OR partial match
-            if predicted_name == db_name or predicted_name in db_name:
+            if food in m.get("mealName", "").lower():
                 meal = m
                 break
 
         if not meal:
-            print("❌ No Firestore match for:", item["meal"])
             continue
 
         db.collection("meal_logs").add({
             "userId": user_id,
             "date": date,
-
             "mealName": meal["mealName"],
             "mealType": meal.get("category"),
-
-            "calories": meal["calories"] * item["quantity"],
-            "protein": meal["protein"] * item["quantity"],
-            "carbs": meal["carbs"] * item["quantity"],
-            "fat": meal["fat"] * item["quantity"],
-
-            "source": "nlp_ml",
+            "calories": meal["calories"],
+            "protein": meal["protein"],
+            "carbs": meal["carbs"],
+            "fat": meal["fat"],
+            "source": "nlp_pipeline",
             "rawText": text,
-            "quantity": item["quantity"],
-            "confidence": item["confidence"],
-
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
-        logged.append(item)
+        logged.append({
+            "meal": meal["mealName"],
+            "category": category
+        })
 
     return jsonify({
-        "message": "Meal logged using ML-based NLP",
+        "message": "Meal logged using multi-stage NLP",
         "items": logged
     })
 
