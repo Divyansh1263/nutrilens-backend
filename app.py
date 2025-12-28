@@ -21,6 +21,20 @@ CANONICAL_MEALS = {
 }
 
 
+def extract_quantities(text, entities):
+    text = text.lower().split()
+    quantities = {e: 1 for e in entities}
+
+    for i, token in enumerate(text):
+        if token.isdigit() and i + 1 < len(text):
+            next_word = text[i + 1]
+            for e in entities:
+                if e in next_word:
+                    quantities[e] = int(token)
+
+    return quantities
+
+
 
 print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
 
@@ -420,29 +434,36 @@ def log_meal_nlp_ml():
 
     # -------- STAGE 1: ENTITY EXTRACTION --------
     entities = extract_food_entities(text)
+    quantities = extract_quantities(text, entities)
     logged = []
 
     for food in entities:
-        # -------- STAGE 2: CATEGORY PREDICTION (ML) --------
         category = predict_category(food)
+        quantity = quantities.get(food, 1)
 
         docs = db.collection("meals").stream()
         meal = None
 
-        # -------- STAGE 3A: CANONICAL PRIORITY --------
+        # -------- STAGE 3A: STRICT CANONICAL MATCH --------
         preferred_names = CANONICAL_MEALS.get(food, [])
 
         for pref in preferred_names:
             for d in docs:
                 m = d.to_dict()
                 meal_name = m.get("mealName", "").lower()
-                if pref in meal_name:
+
+                # 🚫 avoid mixed dishes
+                if pref in meal_name and food == meal_name.split()[0]:
                     meal = m
                     break
             if meal:
                 break
 
-        # -------- STAGE 3B: FALLBACK MATCH --------
+        # ❌ DO NOT FALLBACK if canonical exists
+        if preferred_names and not meal:
+            continue
+
+        # -------- STAGE 3B: FALLBACK ONLY IF NO CANONICAL --------
         if not meal:
             docs = db.collection("meals").stream()
             for d in docs:
@@ -455,15 +476,7 @@ def log_meal_nlp_ml():
         if not meal:
             continue
 
-        # -------- STAGE 4: QUANTITY EXTRACTION --------
-        # Simple heuristic (safe for demo)
-        quantity = 1
-        for token in text.split():
-            if token.isdigit():
-                quantity = int(token)
-                break
-
-        # -------- STAGE 5: LOG TO FIRESTORE --------
+        # -------- LOG TO FIRESTORE --------
         db.collection("meal_logs").add({
             "userId": user_id,
             "date": date,
