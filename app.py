@@ -12,6 +12,15 @@ from ai.food_entity_extractor import extract_food_entities
 from ai.food_category_model import predict_category
 
 
+CANONICAL_MEALS = {
+    "roti": ["plain roti", "chapati", "tandoori roti"],
+    "dal": ["dal tadka", "dal fry", "plain dal"],
+    "rice": ["steamed rice", "plain rice"],
+    "curd": ["curd"],
+    "milk": ["milk"]
+}
+
+
 
 print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
 
@@ -395,7 +404,6 @@ def swap_meal():
 
     return jsonify({"message": "Meal swapped successfully"})
 
-
 # ======================================================
 # NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
 # ======================================================
@@ -410,34 +418,62 @@ def log_meal_nlp_ml():
     if not all([user_id, date, text]):
         return jsonify({"error": "Missing fields"}), 400
 
+    # -------- STAGE 1: ENTITY EXTRACTION --------
     entities = extract_food_entities(text)
     logged = []
 
     for food in entities:
+        # -------- STAGE 2: CATEGORY PREDICTION (ML) --------
         category = predict_category(food)
 
         docs = db.collection("meals").stream()
-        
         meal = None
-        for d in docs:
-            m = d.to_dict()
-            name = m.get("mealName", "").lower()
-            if food in name:
-                meal = m
+
+        # -------- STAGE 3A: CANONICAL PRIORITY --------
+        preferred_names = CANONICAL_MEALS.get(food, [])
+
+        for pref in preferred_names:
+            for d in docs:
+                m = d.to_dict()
+                meal_name = m.get("mealName", "").lower()
+                if pref in meal_name:
+                    meal = m
+                    break
+            if meal:
                 break
+
+        # -------- STAGE 3B: FALLBACK MATCH --------
+        if not meal:
+            docs = db.collection("meals").stream()
+            for d in docs:
+                m = d.to_dict()
+                meal_name = m.get("mealName", "").lower()
+                if food in meal_name:
+                    meal = m
+                    break
 
         if not meal:
             continue
 
+        # -------- STAGE 4: QUANTITY EXTRACTION --------
+        # Simple heuristic (safe for demo)
+        quantity = 1
+        for token in text.split():
+            if token.isdigit():
+                quantity = int(token)
+                break
+
+        # -------- STAGE 5: LOG TO FIRESTORE --------
         db.collection("meal_logs").add({
             "userId": user_id,
             "date": date,
             "mealName": meal["mealName"],
             "mealType": meal.get("category"),
-            "calories": meal["calories"],
-            "protein": meal["protein"],
-            "carbs": meal["carbs"],
-            "fat": meal["fat"],
+            "calories": meal["calories"] * quantity,
+            "protein": meal["protein"] * quantity,
+            "carbs": meal["carbs"] * quantity,
+            "fat": meal["fat"] * quantity,
+            "quantity": quantity,
             "source": "nlp_pipeline",
             "rawText": text,
             "timestamp": firestore.SERVER_TIMESTAMP
@@ -445,7 +481,8 @@ def log_meal_nlp_ml():
 
         logged.append({
             "meal": meal["mealName"],
-            "category": category
+            "category": category,
+            "quantity": quantity
         })
 
     return jsonify({
