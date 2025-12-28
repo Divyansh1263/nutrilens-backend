@@ -416,14 +416,13 @@ def log_meal_nlp_ml():
     for food in entities:
         category = predict_category(food)
 
-        docs = db.collection("meals") \
-            .where("category", "==", category) \
-            .stream()
-
+        docs = db.collection("meals").stream()
+        
         meal = None
         for d in docs:
             m = d.to_dict()
-            if food in m.get("mealName", "").lower():
+            name = m.get("mealName", "").lower()
+            if food in name:
                 meal = m
                 break
 
