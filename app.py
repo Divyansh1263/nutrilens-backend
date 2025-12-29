@@ -314,7 +314,7 @@ def log_meal():
 
     return jsonify({"message": "Meal logged successfully"})
 
-# ======================================================
+## ======================================================
 # NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
 # ======================================================
 @app.route("/log-meal-nlp-ml", methods=["POST"])
@@ -355,12 +355,18 @@ def log_meal_nlp_ml():
                 print(f"⚠️ Rejected non-canonical match: {meal['mealName']}")
                 continue
 
-        # -------- STAGE 4: CANONICAL COLLAPSE (IMPORTANT FIX) --------
+        # -------- STAGE 4: CANONICAL COLLAPSE (FINAL FIX) --------
         CANONICAL_COLLAPSE = {
+            # Default assumptions
+            "roti": "Plain Wheat Roti",
+            "dal": "Plain Dal",
+
+            # Explicit variants
             "jolada roti": "Plain Jowar Roti",
             "jowar roti": "Plain Jowar Roti",
             "ragi roti": "Plain Ragi Roti",
             "bajra roti": "Plain Bajra Roti",
+
             "kadala curry": "Plain Dal",
             "chana dal": "Plain Dal",
             "moong dal": "Plain Dal",
@@ -368,17 +374,16 @@ def log_meal_nlp_ml():
         }
 
         collapsed_name = CANONICAL_COLLAPSE.get(
-            meal["mealName"].lower(),
+            food,   # IMPORTANT: use normalized entity
             meal["mealName"]
         )
 
-        # If collapse is needed, fetch canonical meal
+        # Fetch canonical meal if needed
         if collapsed_name != meal["mealName"]:
             docs = db.collection("meals") \
                 .where("mealName", "==", collapsed_name) \
                 .limit(1) \
                 .stream()
-
             for d in docs:
                 meal = d.to_dict()
 
@@ -410,6 +415,7 @@ def log_meal_nlp_ml():
         "message": "Meal logged using multi-stage NLP",
         "items": logged
     })
+
 
 
 
