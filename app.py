@@ -497,6 +497,7 @@ def tracker_summary():
 
     for doc in logs_ref.stream():
         log = doc.to_dict()
+        log["logId"] = doc.id   # 🔑 IMPORTANT
         logs.append(log)
 
         total_cal += log.get("calories", 0)
@@ -537,50 +538,72 @@ def tracker_summary():
 
 
 # ======================================================
-# 7. SWAP MEAL API (Frontend-safe)
+# SWAP MEAL API — ID BASED (PRODUCTION GRADE)
 # ======================================================
 @app.route("/swap-meal", methods=["POST"])
 def swap_meal():
     data = request.get_json(force=True)
 
-    user_id = data.get("userId")
-    date = data.get("date")  # YYYY-MM-DD
+    meal_log_id = data.get("mealLogId")
+    new_meal_name = data.get("newMeal")
 
-    old_meal_name = data.get("oldMealName")
-    new_meal = data.get("newMeal")  # full meal object
+    if not meal_log_id or not new_meal_name:
+        return jsonify({
+            "error": "mealLogId and newMeal are required"
+        }), 400
 
-    if not all([user_id, date, old_meal_name, new_meal]):
-        return jsonify({"error": "Missing required fields"}), 400
+    # -------------------------------
+    # 1️⃣ Fetch existing meal log
+    # -------------------------------
+    log_ref = db.collection("meal_logs").document(meal_log_id)
+    log_doc = log_ref.get()
 
-    # 1️⃣ Delete old meal log
-    logs = db.collection("meal_logs") \
-        .where("userId", "==", user_id) \
-        .where("date", "==", date) \
-        .where("mealName", "==", old_meal_name) \
+    if not log_doc.exists:
+        return jsonify({
+            "error": "Meal log not found"
+        }), 404
+
+    old_log = log_doc.to_dict()
+
+    # -------------------------------
+    # 2️⃣ Fetch new meal from meals collection
+    # -------------------------------
+    meal_query = db.collection("meals") \
+        .where("mealName", "==", new_meal_name) \
         .limit(1) \
         .stream()
 
-    for log in logs:
-        db.collection("meal_logs").document(log.id).delete()
+    new_meal = None
+    for d in meal_query:
+        new_meal = d.to_dict()
 
-    # 2️⃣ Log new meal
-    db.collection("meal_logs").add({
-        "userId": user_id,
-        "date": date,
+    if not new_meal:
+        return jsonify({
+            "error": "New meal not found in meals database"
+        }), 404
 
+    quantity = old_log.get("quantity", 1)
+
+    # -------------------------------
+    # 3️⃣ Update existing log (NO DELETE)
+    # -------------------------------
+    log_ref.update({
         "mealName": new_meal["mealName"],
-        "mealType": new_meal.get("mealType"),
-
-        "calories": new_meal["calories"],
-        "protein": new_meal["protein"],
-        "carbs": new_meal["carbs"],
-        "fat": new_meal["fat"],
-
-        "source": "knn_swap",
-        "timestamp": firestore.SERVER_TIMESTAMP
+        "mealType": new_meal.get("category"),
+        "calories": new_meal["calories"] * quantity,
+        "protein": new_meal["protein"] * quantity,
+        "carbs": new_meal["carbs"] * quantity,
+        "fat": new_meal["fat"] * quantity,
+        "source": "swap_ai",
+        "updated_at": firestore.SERVER_TIMESTAMP
     })
 
-    return jsonify({"message": "Meal swapped successfully"})
+    return jsonify({
+        "message": "Meal swapped successfully",
+        "oldMeal": old_log.get("mealName"),
+        "newMeal": new_meal["mealName"]
+    })
+
 
 
 
