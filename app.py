@@ -7,7 +7,6 @@ from ai.smart_swap_knn import SmartSwapKNN
 from ai.meal_plan_generator import generate_full_meal_plan
 import os
 from datetime import date
-from ai.nlp_model import extract_meals_from_text
 from ai.food_entity_extractor import extract_food_entities
 from ai.food_category_model import predict_category
 
@@ -75,13 +74,12 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 
-from ai.semantic_matcher import SemanticMealMatcher
 
 # Load meals once at startup
 meal_docs = db.collection("meals").stream()
 MEALS = [d.to_dict() for d in meal_docs]
 
-semantic_matcher = SemanticMealMatcher(MEALS)
+
 
 
 # -------------------------------
@@ -286,6 +284,87 @@ def log_meal():
 
     return jsonify({"message": "Meal logged successfully"})
 
+
+# ======================================================
+# NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
+# ======================================================
+@app.route("/log-meal-nlp-ml", methods=["POST"])
+def log_meal_nlp_ml():
+    data = request.get_json(force=True)
+
+    user_id = data.get("userId")
+    date = data.get("date")
+    text = data.get("text")
+
+    if not all([user_id, date, text]):
+        return jsonify({"error": "Missing fields"}), 400
+
+    # -------- STAGE 1: ENTITY EXTRACTION --------
+    entities = extract_food_entities(text)
+    quantities = extract_quantities(text, entities)
+    logged = []
+
+    for food in entities:
+        
+        quantity = quantities.get(food, 1)
+        category = predict_category(food)
+
+
+
+        # -------- STAGE 2: FUZZY SEMANTIC MATCH --------
+        meal, score = fuzzy_match_meal(food, MEALS)
+
+        if not meal:
+            print(f"❌ No match for '{food}'")
+            continue
+     
+
+        # -------- STAGE 3: CANONICAL SAFETY FILTER --------
+        if food in CANONICAL_MEALS:
+            allowed = CANONICAL_MEALS[food]
+            meal_name = meal["mealName"].lower()
+
+            if not any(c in meal_name for c in allowed):
+                print(f"⚠️ Rejected non-canonical match: {meal['mealName']}")
+                continue
+
+        # -------- LOG TO FIRESTORE --------
+        db.collection("meal_logs").add({
+            "userId": user_id,
+            "date": date,
+            "mealName": meal["mealName"],
+            "mealType": meal.get("category"),
+            "calories": meal["calories"] * quantity,
+            "protein": meal["protein"] * quantity,
+            "carbs": meal["carbs"] * quantity,
+            "fat": meal["fat"] * quantity,
+            "quantity": quantity,
+            "source": "nlp_pipeline",
+            "rawText": text,
+            "confidence": score,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        })
+
+        logged.append({
+            "meal": meal["mealName"],
+            "category": category,
+            "quantity": quantity,
+            "confidence": score
+        })
+
+        meal, score = fuzzy_match_meal(food, MEALS)
+        if not meal:
+            continue
+
+
+    return jsonify({
+        "message": "Meal logged using multi-stage NLP",
+        "items": logged
+    })
+
+
+
+
 # ======================================================
 # 5. USER PROFILE FETCH API
 # ======================================================
@@ -447,73 +526,6 @@ def swap_meal():
 
     return jsonify({"message": "Meal swapped successfully"})
 
-# ======================================================
-# NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
-# ======================================================
-@app.route("/log-meal-nlp-ml", methods=["POST"])
-def log_meal_nlp_ml():
-    data = request.get_json(force=True)
-
-    user_id = data.get("userId")
-    date = data.get("date")
-    text = data.get("text")
-
-    if not all([user_id, date, text]):
-        return jsonify({"error": "Missing fields"}), 400
-
-    # -------- STAGE 1: ENTITY EXTRACTION --------
-    entities = extract_food_entities(text)
-    quantities = extract_quantities(text, entities)
-    logged = []
-
-    for food in entities:
-        category = predict_category(food)
-        quantity = quantities.get(food, 1)
-
-     
-
-        # -------- STAGE 4: CANONICAL SAFETY FILTER --------
-        if food in CANONICAL_MEALS:
-            allowed = CANONICAL_MEALS[food]
-            meal_name = meal["mealName"].lower()
-
-            if not any(c in meal_name for c in allowed):
-                print(f"⚠️ Rejected non-canonical match: {meal['mealName']}")
-                continue
-
-        # -------- LOG TO FIRESTORE --------
-        db.collection("meal_logs").add({
-            "userId": user_id,
-            "date": date,
-            "mealName": meal["mealName"],
-            "mealType": meal.get("category"),
-            "calories": meal["calories"] * quantity,
-            "protein": meal["protein"] * quantity,
-            "carbs": meal["carbs"] * quantity,
-            "fat": meal["fat"] * quantity,
-            "quantity": quantity,
-            "source": "nlp_pipeline",
-            "rawText": text,
-            "confidence": score,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        })
-
-        logged.append({
-            "meal": meal["mealName"],
-            "category": category,
-            "quantity": quantity,
-            "confidence": score
-        })
-
-        meal, score = fuzzy_match_meal(food, MEALS)
-        if not meal:
-            continue
-
-
-    return jsonify({
-        "message": "Meal logged using multi-stage NLP",
-        "items": logged
-    })
 
 
 @app.route("/routes", methods=["GET"])
