@@ -54,6 +54,19 @@ def fuzzy_match_meal(query, meals, threshold=80):
     return None, 0.0
 
 
+def normalize_entity(entity):
+    NORMALIZATION = {
+        "rotis": "roti",
+        "roti": "roti",
+        "chapati": "roti",
+        "phulka": "roti",
+        "lentils": "dal",
+        "dals": "dal",
+        "dal": "dal"
+    }
+    return NORMALIZATION.get(entity.lower(), entity.lower())
+
+
 
 print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
 
