@@ -34,6 +34,26 @@ def extract_quantities(text, entities):
 
     return quantities
 
+from rapidfuzz import fuzz
+
+def fuzzy_match_meal(query, meals, threshold=80):
+    query = query.lower()
+    best = None
+    best_score = 0
+
+    for meal in meals:
+        names = [meal["mealName"]] + meal.get("searchKeywords", [])
+        for name in names:
+            score = fuzz.partial_ratio(query, name.lower())
+            if score > best_score:
+                best_score = score
+                best = meal
+
+    if best_score >= threshold:
+        return best, best_score / 100.0
+
+    return None, 0.0
+
 
 
 print("🔥 THIS IS THE APP.PY BEING RUN 🔥")
@@ -450,14 +470,7 @@ def log_meal_nlp_ml():
         category = predict_category(food)
         quantity = quantities.get(food, 1)
 
-        # -------- STAGE 3: SEMANTIC (EMBEDDING) MATCH --------
-        meal, score = semantic_matcher.find_best_match(food)
-
-        if not meal:
-            print(f"❌ No semantic match for '{food}'")
-            continue
-
-        print(f"✅ Semantic match: '{food}' → '{meal['mealName']}' (score={score})")
+     
 
         # -------- STAGE 4: CANONICAL SAFETY FILTER --------
         if food in CANONICAL_MEALS:
@@ -491,6 +504,11 @@ def log_meal_nlp_ml():
             "quantity": quantity,
             "confidence": score
         })
+
+        meal, score = fuzzy_match_meal(food, MEALS)
+        if not meal:
+            continue
+
 
     return jsonify({
         "message": "Meal logged using multi-stage NLP",

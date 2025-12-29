@@ -6,6 +6,5 @@ numpy
 pandas
 scikit-learn
 joblib
-sentence-transformers
-torch
+
 rapidfuzz
