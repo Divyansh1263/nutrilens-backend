@@ -11,13 +11,30 @@ from ai.food_entity_extractor import extract_food_entities
 from ai.food_category_model import predict_category
 
 
+
 CANONICAL_MEALS = {
-    "roti": ["plain roti", "chapati", "tandoori roti"],
-    "dal": ["dal tadka", "dal fry", "plain dal"],
-    "rice": ["steamed rice", "plain rice"],
-    "curd": ["curd"],
-    "milk": ["milk"]
+    "roti": [
+        "plain roti",
+        "jolada roti",
+        "jowar roti",
+        "ragi roti",
+        "bajra roti"
+    ],
+    "dal": [
+        "plain dal",
+        "dal tadka",
+        "kadala curry",
+        "chana dal",
+        "moong dal"
+    ],
+    "rice": [
+        "plain rice",
+        "steamed rice",
+        "sona masuri rice"
+    ]
+    
 }
+
 
 
 def extract_quantities(text, entities):
