@@ -314,7 +314,6 @@ def log_meal():
 
     return jsonify({"message": "Meal logged successfully"})
 
-
 # ======================================================
 # NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
 # ======================================================
@@ -333,13 +332,14 @@ def log_meal_nlp_ml():
     raw_entities = extract_food_entities(text)
     entities = list(map(normalize_entity, raw_entities))
     quantities = extract_quantities(text, entities)
+
     logged = []
 
     for food in entities:
         quantity = quantities.get(food, 1)
         category = predict_category(food)
 
-        # -------- STAGE 2: FUZZY SEMANTIC MATCH --------
+        # -------- STAGE 2: FUZZY MATCH --------
         meal, score = fuzzy_match_meal(food, MEALS)
 
         if not meal:
@@ -354,6 +354,33 @@ def log_meal_nlp_ml():
             if not any(c in meal_name for c in allowed):
                 print(f"⚠️ Rejected non-canonical match: {meal['mealName']}")
                 continue
+
+        # -------- STAGE 4: CANONICAL COLLAPSE (IMPORTANT FIX) --------
+        CANONICAL_COLLAPSE = {
+            "jolada roti": "Plain Jowar Roti",
+            "jowar roti": "Plain Jowar Roti",
+            "ragi roti": "Plain Ragi Roti",
+            "bajra roti": "Plain Bajra Roti",
+            "kadala curry": "Plain Dal",
+            "chana dal": "Plain Dal",
+            "moong dal": "Plain Dal",
+            "dal tadka": "Plain Dal"
+        }
+
+        collapsed_name = CANONICAL_COLLAPSE.get(
+            meal["mealName"].lower(),
+            meal["mealName"]
+        )
+
+        # If collapse is needed, fetch canonical meal
+        if collapsed_name != meal["mealName"]:
+            docs = db.collection("meals") \
+                .where("mealName", "==", collapsed_name) \
+                .limit(1) \
+                .stream()
+
+            for d in docs:
+                meal = d.to_dict()
 
         # -------- LOG TO FIRESTORE --------
         db.collection("meal_logs").add({
@@ -383,6 +410,7 @@ def log_meal_nlp_ml():
         "message": "Meal logged using multi-stage NLP",
         "items": logged
     })
+
 
 
 
