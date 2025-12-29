@@ -314,7 +314,6 @@ def log_meal():
 
     return jsonify({"message": "Meal logged successfully"})
 
-## ======================================================
 # ======================================================
 # NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
 # ======================================================
@@ -331,14 +330,20 @@ def log_meal_nlp_ml():
 
     # -------- STAGE 1: ENTITY EXTRACTION --------
     raw_entities = extract_food_entities(text)
-    entities = list(map(normalize_entity, raw_entities))
+
+    # Normalize + safety filter
+    entities = [
+        e for e in map(normalize_entity, raw_entities)
+        if e is not None
+    ]
+
     quantities = extract_quantities(text, entities)
 
     logged = []
 
-    # -------- CANONICAL COLLAPSE MAP (GLOBAL LOGIC) --------
+    # -------- CANONICAL COLLAPSE RULES --------
     CANONICAL_COLLAPSE = {
-        # DEFAULT ASSUMPTIONS (IMPORTANT)
+        # DEFAULTS
         "roti": "Plain Wheat Roti",
         "dal": "Plain Dal",
 
@@ -358,7 +363,7 @@ def log_meal_nlp_ml():
         quantity = quantities.get(food, 1)
         category = predict_category(food)
 
-        # -------- STAGE 2: FUZZY MATCH (ONLY FOR CONFIDENCE) --------
+        # -------- STAGE 2: FUZZY MATCH (CONFIDENCE ONLY) --------
         meal, score = fuzzy_match_meal(food, MEALS)
 
         if not meal:
@@ -412,7 +417,6 @@ def log_meal_nlp_ml():
         "message": "Meal logged using multi-stage NLP",
         "items": logged
     })
-
 
 
 
