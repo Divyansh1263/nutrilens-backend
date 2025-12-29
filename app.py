@@ -315,6 +315,7 @@ def log_meal():
     return jsonify({"message": "Meal logged successfully"})
 
 ## ======================================================
+# ======================================================
 # NLP MEAL LOGGING — ML BASED (PRODUCTION READY)
 # ======================================================
 @app.route("/log-meal-nlp-ml", methods=["POST"])
@@ -335,57 +336,53 @@ def log_meal_nlp_ml():
 
     logged = []
 
+    # -------- CANONICAL COLLAPSE MAP (GLOBAL LOGIC) --------
+    CANONICAL_COLLAPSE = {
+        # DEFAULT ASSUMPTIONS (IMPORTANT)
+        "roti": "Plain Wheat Roti",
+        "dal": "Plain Dal",
+
+        # EXPLICIT VARIANTS
+        "jolada roti": "Plain Jowar Roti",
+        "jowar roti": "Plain Jowar Roti",
+        "ragi roti": "Plain Ragi Roti",
+        "bajra roti": "Plain Bajra Roti",
+
+        "kadala curry": "Plain Dal",
+        "chana dal": "Plain Dal",
+        "moong dal": "Plain Dal",
+        "dal tadka": "Plain Dal"
+    }
+
     for food in entities:
         quantity = quantities.get(food, 1)
         category = predict_category(food)
 
-        # -------- STAGE 2: FUZZY MATCH --------
+        # -------- STAGE 2: FUZZY MATCH (ONLY FOR CONFIDENCE) --------
         meal, score = fuzzy_match_meal(food, MEALS)
 
         if not meal:
             print(f"❌ No match for '{food}'")
             continue
 
-        # -------- STAGE 3: CANONICAL SAFETY FILTER --------
-        if food in CANONICAL_MEALS:
-            allowed = CANONICAL_MEALS[food]
-            meal_name = meal["mealName"].lower()
+        # -------- STAGE 3: FORCE CANONICAL DEFAULTS --------
+        if food in CANONICAL_COLLAPSE:
+            canonical_name = CANONICAL_COLLAPSE[food]
 
-            if not any(c in meal_name for c in allowed):
-                print(f"⚠️ Rejected non-canonical match: {meal['mealName']}")
-                continue
-
-        # -------- STAGE 4: CANONICAL COLLAPSE (FINAL FIX) --------
-        CANONICAL_COLLAPSE = {
-            # Default assumptions
-            "roti": "Plain Wheat Roti",
-            "dal": "Plain Dal",
-
-            # Explicit variants
-            "jolada roti": "Plain Jowar Roti",
-            "jowar roti": "Plain Jowar Roti",
-            "ragi roti": "Plain Ragi Roti",
-            "bajra roti": "Plain Bajra Roti",
-
-            "kadala curry": "Plain Dal",
-            "chana dal": "Plain Dal",
-            "moong dal": "Plain Dal",
-            "dal tadka": "Plain Dal"
-        }
-
-        collapsed_name = CANONICAL_COLLAPSE.get(
-            food,   # IMPORTANT: use normalized entity
-            meal["mealName"]
-        )
-
-        # Fetch canonical meal if needed
-        if collapsed_name != meal["mealName"]:
             docs = db.collection("meals") \
-                .where("mealName", "==", collapsed_name) \
+                .where("mealName", "==", canonical_name) \
                 .limit(1) \
                 .stream()
+
+            canonical_meal = None
             for d in docs:
-                meal = d.to_dict()
+                canonical_meal = d.to_dict()
+
+            if canonical_meal:
+                meal = canonical_meal
+            else:
+                print(f"❌ Canonical meal not found: {canonical_name}")
+                continue
 
         # -------- LOG TO FIRESTORE --------
         db.collection("meal_logs").add({
@@ -400,7 +397,7 @@ def log_meal_nlp_ml():
             "quantity": quantity,
             "source": "nlp_pipeline",
             "rawText": text,
-            "confidence": score,
+            "confidence": round(score, 2),
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
@@ -408,14 +405,13 @@ def log_meal_nlp_ml():
             "meal": meal["mealName"],
             "category": category,
             "quantity": quantity,
-            "confidence": score
+            "confidence": round(score, 2)
         })
 
     return jsonify({
         "message": "Meal logged using multi-stage NLP",
         "items": logged
     })
-
 
 
 
