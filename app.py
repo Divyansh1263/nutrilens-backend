@@ -300,16 +300,14 @@ def log_meal_nlp_ml():
         return jsonify({"error": "Missing fields"}), 400
 
     # -------- STAGE 1: ENTITY EXTRACTION --------
-    entities = extract_food_entities(text)
+    raw_entities = extract_food_entities(text)
+    entities = list(map(normalize_entity, raw_entities))
     quantities = extract_quantities(text, entities)
     logged = []
 
     for food in entities:
-        
         quantity = quantities.get(food, 1)
         category = predict_category(food)
-
-
 
         # -------- STAGE 2: FUZZY SEMANTIC MATCH --------
         meal, score = fuzzy_match_meal(food, MEALS)
@@ -317,7 +315,6 @@ def log_meal_nlp_ml():
         if not meal:
             print(f"❌ No match for '{food}'")
             continue
-     
 
         # -------- STAGE 3: CANONICAL SAFETY FILTER --------
         if food in CANONICAL_MEALS:
@@ -351,11 +348,6 @@ def log_meal_nlp_ml():
             "quantity": quantity,
             "confidence": score
         })
-
-        meal, score = fuzzy_match_meal(food, MEALS)
-        if not meal:
-            continue
-
 
     return jsonify({
         "message": "Meal logged using multi-stage NLP",
