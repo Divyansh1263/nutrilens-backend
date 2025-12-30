@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
 import firebase_admin
 from firebase_admin import credentials, firestore
 import random
@@ -126,11 +127,29 @@ knn_model.load("models/knn_meal_swap.joblib")
 def register_user():
     data = request.get_json(force=True)
 
+    # 1. Basic validation
+    email = data.get("email")
+    password = data.get("password")
     user_id = data.get("userId")
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    # 2. Check if user already exists (by email) -> Optional but good practice
+    # For now, we will rely on client providing a unique userId or generating one
+    
+    # If client didn't send userId, generate one from email
     if not user_id:
-        return jsonify({"error": "userId is required"}), 400
+        user_id = email.replace("@", "_").replace(".", "_")
+
+    # 3. Hash password
+    password_hash = generate_password_hash(password)
 
     user_profile = {
+        "userId": user_id,
+        "email": email,
+        "password_hash": password_hash,  # Store HASH, never plain text
+
         "name": data.get("name"),
         "age": data.get("age"),
         "gender": data.get("gender"),
@@ -155,8 +174,43 @@ def register_user():
 
     return jsonify({
         "message": "User registered successfully",
-        "userId": user_id
+        "userId": user_id,
+        "email": email
     })
+
+
+@app.route("/login", methods=["POST"])
+def login_user():
+    data = request.get_json(force=True)
+    
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    # 1. Find user by email
+    # querying the 'users' collection where field 'email' == email
+    users_ref = db.collection("users")
+    query = users_ref.where("email", "==", email).limit(1).stream()
+
+    user_doc = None
+    for doc in query:
+        user_doc = doc.to_dict()
+        break
+    
+    # 2. Verify user exists and password is correct
+    if user_doc and "password_hash" in user_doc:
+        if check_password_hash(user_doc["password_hash"], password):
+            # Success!
+            # Remove sensitive data before returning
+            user_doc.pop("password_hash", None)
+            return jsonify({
+                "message": "Login successful",
+                "user": user_doc
+            })
+    
+    return jsonify({"error": "Invalid email or password"}), 401
 
 
 # ======================================================
