@@ -1,0 +1,30 @@
+Creating 5 composite indexes for: nutrilens-demo
+
+  [ALREADY EXISTS] meal_plans: userId ASC + date DESC
+  [ALREADY EXISTS] meal_plans: userId ASC + date ASC
+  [ALREADY EXISTS] meal_logs: userId ASC + date ASC
+  [ALREADY EXISTS] meal_logs: userId ASC + timestamp DESC
+  [FAILED 400]  meals: mealName ASC (search)
+                   Error: this index is not necessary, configure using single field index controls
+
+=== Fetching Firebase project info ===
+Project API status: 403
+Project API error: {
+  "error": {
+    "code": 403,
+    "message": "Firebase Management API has not been used in project 211199840661 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firebase.googleapis.com/overview?project=211199840661 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorIn
+
+=== Fetching Android apps ===
+AndroidApps API status: 403
+Android apps error: {
+  "error": {
+    "code": 403,
+    "message": "Firebase Management API has not been used in project 211199840661 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firebase.googleapis.com/overview?project=211199840661 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorIn
