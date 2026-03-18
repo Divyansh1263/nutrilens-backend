@@ -150,3 +150,6 @@ logs/
 
 # Render deployment
 render.yaml
+
+# Frontend code (excluded for backend-only deployment)
+frontend/
