@@ -1,0 +1,8 @@
+﻿Analyzing frontend...                                           
+
+  error - Expected to find ';' - lib\app\modules\auth\views\singin_screen.dart:143:43 - expected_token
+  error - Expected to find ')' - lib\app\modules\auth\views\singin_screen.dart:145:21 - expected_token
+   info - Don't invoke 'print' in production code - lib\app\modules\home\tabs\diet_tab.dart:67:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\app\modules\home\tabs\diet_tab.dart:460:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\app\modules\home\tabs\diet_tab.dart:509:7 - avoid_print
+

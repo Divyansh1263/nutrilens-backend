@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^python -m py_compile backend/ai/meal_plan_generator\\.py backend/routes/meal_routes\\.py backend/repositories/meal_repository\\.py backend/app\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -m py_compile backend/repositories/meal_repository\\.py backend/routes/meal_routes\\.py backend/ai/meal_plan_generator\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
