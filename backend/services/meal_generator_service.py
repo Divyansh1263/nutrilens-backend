@@ -363,43 +363,64 @@ class MealGeneratorService:
     def apply_repetition_penalty(self, meal_name, recent_plans):
         today_str = get_today_str()
         penalty = 0
+        if not isinstance(recent_plans, list):
+            return penalty
         for p in recent_plans:
-            # Search all slots
+            if not isinstance(p, dict):
+                continue
             for slot in ["breakfast", "lunch", "dinner", "snack"]:
-                slot_data = p.get(slot) or {}
-                # Note: db structure stores items
-                items = slot_data.get("items") or []
+                slot_data = p.get(slot)
+                if not slot_data:
+                    continue
+                # Firestore saves slots as plain lists; legacy shape may wrap in {"items": [...]}
+                if isinstance(slot_data, list):
+                    items = slot_data
+                elif isinstance(slot_data, dict):
+                    items = slot_data.get("items") or []
+                else:
+                    continue
                 for item in items:
-                    if item.get("mealName") == meal_name:
-                         days_diff = get_days_difference(today_str, p.get("date"))
-                         if days_diff == 1:
-                              return PENALTY_YESTERDAY
-                         elif days_diff <= 3:
-                              return max(penalty, PENALTY_LAST_3_DAYS)
+                    if isinstance(item, dict) and item.get("mealName") == meal_name:
+                        days_diff = get_days_difference(today_str, p.get("date"))
+                        if days_diff == 1:
+                            return PENALTY_YESTERDAY
+                        elif days_diff <= 3:
+                            return max(penalty, PENALTY_LAST_3_DAYS)
         return penalty
 
     def apply_diversity_penalty(self, meal_name, recent_plans):
-         freq = 0
-         # recent_plans is limit=7 for the week
-         for p in recent_plans:
-             for slot in ["breakfast", "lunch", "dinner", "snack"]:
-                 slot_data = p.get(slot) or {}
-                 items = slot_data.get("items") or []
-                 for item in items:
-                      if item.get("mealName") == meal_name:
-                           freq += 1
-         
-         if freq >= 3:
-              return PENALTY_WEEK_FREQ_3
-         elif freq == 2:
-              return PENALTY_WEEK_FREQ_2
-         return 0
+        freq = 0
+        if not isinstance(recent_plans, list):
+            return freq
+        for p in recent_plans:
+            if not isinstance(p, dict):
+                continue
+            for slot in ["breakfast", "lunch", "dinner", "snack"]:
+                slot_data = p.get(slot)
+                if not slot_data:
+                    continue
+                if isinstance(slot_data, list):
+                    items = slot_data
+                elif isinstance(slot_data, dict):
+                    items = slot_data.get("items") or []
+                else:
+                    continue
+                for item in items:
+                    if isinstance(item, dict) and item.get("mealName") == meal_name:
+                        freq += 1
+        if freq >= 3:
+            return PENALTY_WEEK_FREQ_3
+        elif freq == 2:
+            return PENALTY_WEEK_FREQ_2
+        return 0
 
     def calculate_preference_score(self, meal_name, user_history):
-         history = user_history.get(meal_name)
-         if history:
-              return history.get("count", 0) * PREFERENCE_MULTIPLIER
-         return 0
+        if not isinstance(user_history, dict):
+            return 0
+        history = user_history.get(meal_name)
+        if isinstance(history, dict):
+            return history.get("count", 0) * PREFERENCE_MULTIPLIER
+        return 0
 
     def adjust_portion_size(self, meal, slot_target):
          # Scale meal calories to slot_target if deviation is large

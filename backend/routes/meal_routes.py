@@ -33,12 +33,18 @@ def generate_meal_plan():
     existing = tracker_repo.get_plan_by_date(user_id, date_str)
     if existing:
         return success(existing, "Meal plan retrieved")
-            
-    plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
+    
+    try:
+        plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
+    except Exception as exc:
+        app_logger.exception("generate_daily_plan crashed: %s", exc)
+        return error(f"Internal error: {exc}", 500)
+        
     if err:
         return error(err, 500 if "Error" in err else 400)
         
     return success(plan, "Meal plan generated")
+
 
 # ==========================================
 # MANUAL LOGGING & SEARCH
