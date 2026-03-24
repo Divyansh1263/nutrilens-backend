@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../main.dart';
@@ -18,8 +19,8 @@ class _AccountTabState extends State<AccountTab> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<DataProvider>(context, listen: false);
-      provider.fetchUserProfile(forceRefresh: true);
+      final provider = context.read<DataProvider>();
+      provider.fetchUserProfile();
       if (provider.dailyTarget == null) {
         provider.fetchDailyTarget();
       }
@@ -27,35 +28,39 @@ class _AccountTabState extends State<AccountTab> {
   }
   
   Future<void> _refreshData() async {
-    final provider = Provider.of<DataProvider>(context, listen: false);
-    // Refresh target (and profile if we had an endpoint)
+    final provider = context.read<DataProvider>();
+    provider.dailyTarget = null;
     await provider.fetchDailyTarget();
     await provider.fetchUserProfile(forceRefresh: true);
-    setState(() {}); // Rebuild to show updated userId if changed (unlikely without logout)
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DataProvider>(
-      builder: (context, provider, child) {
-         if (provider.isLoading && provider.userProfile == null) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-         }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Settings"),
+      ),
+      body: Selector<DataProvider, _AccountTabViewData>(
+        selector: (_, provider) => _AccountTabViewData(
+          userProfile: provider.userProfile,
+          dailyTarget: provider.dailyTarget,
+          isProfileLoading: provider.isProfileLoading,
+        ),
+        builder: (context, view, child) {
+          if (view.isProfileLoading && view.userProfile == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-         final profile = provider.userProfile ?? {};
-         
-         // Extract details
-         final email = profile['email'] ?? ApiService.userId ?? "Guest";
-         final displayName = profile['name'] ?? (email.contains('@') ? email.split('@').first : email);
-         final height = profile['height'] ?? '--';
-         final weight = profile['weight'] ?? '--';
-         final goal = profile['goal'] ?? 'Maintain Weight';
-         final activity = profile['activity_level'] ?? 'Moderate';
-         return Scaffold(
-          appBar: AppBar(
-            title: const Text("Settings"),
-          ),
-          body: RefreshIndicator(
+          final profile = view.userProfile ?? {};
+          final email = profile['email'] ?? ApiService.userId ?? "Guest";
+          final displayName =
+              profile['name'] ?? (email.contains('@') ? email.split('@').first : email);
+          final height = profile['height'] ?? '--';
+          final weight = profile['weight'] ?? '--';
+          final goal = profile['goal'] ?? 'Maintain Weight';
+          final activity = profile['activity_level'] ?? 'Moderate';
+
+          return RefreshIndicator(
             onRefresh: _refreshData,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -63,37 +68,33 @@ class _AccountTabState extends State<AccountTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // User Info Card
                   _buildUserInfoCard(displayName, email),
                   const SizedBox(height: 24),
-                  // Target Overview
-                  _buildTargetOverview(context, provider.dailyTarget),
+                  _buildTargetOverview(context, view.dailyTarget),
                   const SizedBox(height: 24),
-                  // User Details
                   _buildSettingsSection(context, "Body Metrics & Goal", [
-                     _buildSettingsTile("Height", "$height cm"),
-                     _buildSettingsTile("Weight", "$weight kg"),
-                     _buildSettingsTile("Activity Level", "$activity"),
-                     _buildSettingsTile("Goal", "$goal"),
+                    _buildSettingsTile("Height", "$height cm"),
+                    _buildSettingsTile("Weight", "$weight kg"),
+                    _buildSettingsTile("Activity Level", "$activity"),
+                    _buildSettingsTile("Goal", "$goal"),
                   ]),
                   const SizedBox(height: 24),
-                  // Settings Sections
                   _buildSettingsSection(context, "Preferences", [
                     _buildSettingsTile("Edit Profile", ">", icon: Icons.person_outline),
                     _buildSettingsTile("Reminders", ">", icon: Icons.notifications_none),
                     _buildSettingsTile("Support / About Us", ">", icon: Icons.info_outline),
                     _buildSettingsTile("Logout", ">", color: Colors.red, icon: Icons.logout, onTap: () async {
-                       await ApiService.logout();
-                       if (!context.mounted) return;
-                       Navigator.of(context).pushReplacementNamed('/auth');
+                      await ApiService.logout();
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushReplacementNamed('/auth');
                     }),
                   ]),
                 ],
               ),
             ),
-          ),
-        );
-      }
+          );
+        },
+      ),
     );
   }
 
@@ -251,4 +252,31 @@ class _AccountTabState extends State<AccountTab> {
       onTap: onTap ?? () {},
     );
   }
+}
+
+class _AccountTabViewData {
+  const _AccountTabViewData({
+    required this.userProfile,
+    required this.dailyTarget,
+    required this.isProfileLoading,
+  });
+
+  final Map<String, dynamic>? userProfile;
+  final Map<String, dynamic>? dailyTarget;
+  final bool isProfileLoading;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _AccountTabViewData &&
+        mapEquals(other.userProfile, userProfile) &&
+        mapEquals(other.dailyTarget, dailyTarget) &&
+        other.isProfileLoading == isProfileLoading;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        userProfile,
+        dailyTarget,
+        isProfileLoading,
+      );
 }

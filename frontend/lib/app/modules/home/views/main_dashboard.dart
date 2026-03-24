@@ -38,14 +38,12 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // We map the selectedIndex (0, 1, 3) to the page index (0, 1, 2)
-    int pageIndex = _selectedIndex > 3 ? _selectedIndex - 1 : _selectedIndex;
-
     return Scaffold(
-      body: _widgetOptions.elementAt(pageIndex),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _widgetOptions,
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        // THIS IS THE FIX:
-        // Set the type to 'fixed' to show all labels
         type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(

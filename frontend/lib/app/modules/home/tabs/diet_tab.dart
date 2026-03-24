@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../main.dart';
@@ -29,129 +30,131 @@ class _DietTabState extends State<DietTab> {
 
     // Fetch data when tab initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<DataProvider>(context, listen: false);
-      provider.fetchUserProfile();
-      provider.fetchStreak();
-      provider.fetchDailyTarget();
-      provider.fetchMealPlan();
-      provider.fetchTrackerSummary(); // Fetch summary to check logged status
+      final provider = context.read<DataProvider>();
+      provider.ensureHomeTabData();
     });
   }
 
   Future<void> _refreshData() async {
-    final provider = Provider.of<DataProvider>(context, listen: false);
-    // Force refresh (set loading true if needed, or just recall APIs)
-    // We should probably clear data to force spinner or just await new data
-    // DataProvider logic handles "if != null return", so we might need a force refresh flag or method
-    // For now, I'll manually set them null or add a refresh method in provider. 
-    // Actually, looking at DataProvider, it checks if data exists. I should add a clear method or just access fetch directly if I modify provider.
-    // Let's just call fetch. But wait, fetch returns if data != null.
-    // I will assume for "Refresh" we want to re-fetch.
-    // I'll modify provider to allow force refresh later, or just hack it here by clearing first?
-    // Better: let's modifying DataProvider to allow force refresh is cleaner, but I can't touch it right now in this single file edit.
-    // I'll just set the variables to null locally? No, they are in provider.
-    // I will implement _refreshData logic assuming I can just call methods, but realizing they might cache.
-    // User wants "Refresh", so I should probably update the DataProvider too.
-    // For this step, I'll implement the UI changes.
-    // Re-fetching logic:
-    provider.dailyTarget = null; 
-    provider.mealPlan = null;
-    await Future.wait([
-      provider.fetchDailyTarget(),
-      provider.fetchMealPlan(),
-    ]);
+    final provider = context.read<DataProvider>();
+    await provider.refreshDietData();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DataProvider>(
-      builder: (context, provider, child) {
-        // Allow pull to refresh even if loading (though usually we wait)
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text("Your Plan"),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Your Plan"),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: Selector<DataProvider, _DietTabViewData>(
+          selector: (_, provider) => _DietTabViewData(
+            userProfile: provider.userProfile,
+            dailyTarget: provider.dailyTarget,
+            streakData: provider.streakData,
+            trackerSummary: provider.trackerSummary,
+            mealPlan: provider.mealPlan,
+            isMealPlanLoading: provider.isMealPlanLoading,
           ),
-          body: RefreshIndicator(
-            onRefresh: _refreshData,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(), // Ensure scroll for refresh
+          builder: (context, view, child) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Today's Date
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Text(
                         _getFormattedDate(),
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500
-                        ),
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                     ),
-                    // Welcome Message
-                    _buildWelcomeMessage(provider.userProfile, provider.dailyTarget),
-                    
-                    // Motivation Streak
-                    _buildStreakCard(provider.streakData),
-
-                    // Animated Flash Greeting
+                    _buildWelcomeMessage(view.userProfile, view.dailyTarget),
+                    _buildStreakCard(view.streakData),
                     AnimatedOpacity(
                       opacity: _showGreeting ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 500),
-                      child: _showGreeting ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20), 
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(),
-                              SizedBox(height: 16),
-                              Text("Generating your personalized plan...", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
-                            ],
-                          )
-                        )
-                      ) : const SizedBox.shrink(),
+                      child: _showGreeting
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircularProgressIndicator(),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      "Generating your personalized plan...",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                    
-                    if (provider.isLoading && provider.mealPlan == null && !_showGreeting)
-                       const Center(
-                         child: Padding(
-                           padding: EdgeInsets.all(20), 
-                           child: CircularProgressIndicator()
-                         )
-                       ),
-                    
-                    // API 2: Calculate Daily Target
-                    if (provider.dailyTarget != null)
-                      _buildProgressCard(provider.dailyTarget!, provider.trackerSummary),
-                    
+                    if (view.isMealPlanLoading &&
+                        view.mealPlan == null &&
+                        !_showGreeting)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    if (view.dailyTarget != null)
+                      _buildProgressCard(view.dailyTarget!, view.trackerSummary),
                     const SizedBox(height: 24),
-                    
-                    // API 3: Generated Meal Plan
-                    if (provider.mealPlan != null) ...[
-                      if (provider.mealPlan!['breakfast'] != null)
-                        _buildMealSection(context, "Breakfast", provider.mealPlan!['breakfast']),
-                      
-                      if (provider.mealPlan!['lunch'] != null)
-                        _buildMealSection(context, "Lunch", provider.mealPlan!['lunch']),
-
-                      if (provider.mealPlan!['snack'] != null)
-                        _buildMealSection(context, "Snack", provider.mealPlan!['snack']),
-                      
-                      if (provider.mealPlan!['dinner'] != null)
-                        _buildMealSection(context, "Dinner", provider.mealPlan!['dinner']),
-                    ] else if (!provider.isLoading)
-                      const Center(child: Text("No meal plan generated yet. Pull to refresh.")),
+                    if (view.mealPlan != null) ...[
+                      if (view.mealPlan!['breakfast'] != null)
+                        _buildMealSection(
+                          context,
+                          "Breakfast",
+                          view.mealPlan!['breakfast'],
+                          view.trackerSummary,
+                        ),
+                      if (view.mealPlan!['lunch'] != null)
+                        _buildMealSection(
+                          context,
+                          "Lunch",
+                          view.mealPlan!['lunch'],
+                          view.trackerSummary,
+                        ),
+                      if (view.mealPlan!['snack'] != null)
+                        _buildMealSection(
+                          context,
+                          "Snack",
+                          view.mealPlan!['snack'],
+                          view.trackerSummary,
+                        ),
+                      if (view.mealPlan!['dinner'] != null)
+                        _buildMealSection(
+                          context,
+                          "Dinner",
+                          view.mealPlan!['dinner'],
+                          view.trackerSummary,
+                        ),
+                    ] else if (!view.isMealPlanLoading)
+                      const Center(
+                        child: Text("No meal plan generated yet. Pull to refresh."),
+                      ),
                   ],
                 ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -280,7 +283,12 @@ class _DietTabState extends State<DietTab> {
   }
 
   // Changed to build a SECTION (Card) for the whole meal time
-  Widget _buildMealSection(BuildContext context, String mealType, dynamic mealData) {
+  Widget _buildMealSection(
+    BuildContext context,
+    String mealType,
+    dynamic mealData,
+    Map<String, dynamic>? trackerSummary,
+  ) {
     // Backend v2 returns an array directly for each meal:
     //   "breakfast": [{mealName, quantity, calories, ...}, ...]
     // Legacy shape also supported:
@@ -335,16 +343,25 @@ class _DietTabState extends State<DietTab> {
              
           for (var i = 0; i < items.length; i++) ...[
              if (i > 0) const Divider(height: 1),
-             _buildMealItem(context, mealType, items[i] as Map<String, dynamic>),
+             _buildMealItem(
+               context,
+               mealType,
+               items[i] as Map<String, dynamic>,
+               trackerSummary,
+             ),
           ]
         ],
       ),
     );
   }
 
-  Widget _buildMealItem(BuildContext context, String mealType, Map<String, dynamic> item) {
-    final provider = Provider.of<DataProvider>(context); // Listen to changes
-    final logs = provider.trackerSummary != null ? (provider.trackerSummary!['logs'] as List?) : [];
+  Widget _buildMealItem(
+    BuildContext context,
+    String mealType,
+    Map<String, dynamic> item,
+    Map<String, dynamic>? trackerSummary,
+  ) {
+    final logs = trackerSummary != null ? (trackerSummary['logs'] as List?) : [];
     
     // Check if this meal name exists in logs
     int loggedQty = 0;
@@ -495,7 +512,7 @@ class _DietTabState extends State<DietTab> {
     try {
       final response = await ApiService.updateLog(logId, newQuantity);
       if (response && context.mounted) {
-        provider.fetchTrackerSummary(); // refresh UI
+        provider.refreshTrackerDataForDate(DateTime.now().toIso8601String().split('T')[0]); // refresh UI
       }
     } catch (e) {
       // Ignored error
@@ -507,7 +524,7 @@ class _DietTabState extends State<DietTab> {
     try {
       final response = await ApiService.deleteLog(logId);
       if (response && context.mounted) {
-        provider.fetchTrackerSummary();
+        provider.refreshTrackerDataForDate(DateTime.now().toIso8601String().split('T')[0]);
       }
     } catch (e) {
       // Ignored error
@@ -602,5 +619,44 @@ class _DietTabState extends State<DietTab> {
        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No suggestions found")));
      }
   }
+}
+
+class _DietTabViewData {
+  const _DietTabViewData({
+    required this.userProfile,
+    required this.dailyTarget,
+    required this.streakData,
+    required this.trackerSummary,
+    required this.mealPlan,
+    required this.isMealPlanLoading,
+  });
+
+  final Map<String, dynamic>? userProfile;
+  final Map<String, dynamic>? dailyTarget;
+  final Map<String, dynamic>? streakData;
+  final Map<String, dynamic>? trackerSummary;
+  final Map<String, dynamic>? mealPlan;
+  final bool isMealPlanLoading;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _DietTabViewData &&
+        mapEquals(other.userProfile, userProfile) &&
+        mapEquals(other.dailyTarget, dailyTarget) &&
+        mapEquals(other.streakData, streakData) &&
+        mapEquals(other.trackerSummary, trackerSummary) &&
+        mapEquals(other.mealPlan, mealPlan) &&
+        other.isMealPlanLoading == isMealPlanLoading;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        userProfile,
+        dailyTarget,
+        streakData,
+        trackerSummary,
+        mealPlan,
+        isMealPlanLoading,
+      );
 }
 

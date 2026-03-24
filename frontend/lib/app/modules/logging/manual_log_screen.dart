@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../data/providers/data_provider.dart';
 import '../../data/services/api_service.dart';
@@ -59,7 +58,6 @@ class _ManualLogScreenState extends State<ManualLogScreen> {
   Future<void> _log() async {
     if (_selectedFood == null) return;
     final provider = context.read<DataProvider>();
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     final ok = await provider.logMeal(
       (_selectedFood!['mealName'] ?? '').toString(),
@@ -68,8 +66,6 @@ class _ManualLogScreenState extends State<ManualLogScreen> {
       'manual',
     );
     if (!ok) return;
-
-    await provider.fetchTrackerSummary(today);
     if (!mounted) return;
 
     setState(() {

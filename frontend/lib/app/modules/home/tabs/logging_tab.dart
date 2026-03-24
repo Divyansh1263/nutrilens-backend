@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../data/services/api_service.dart';
 import '../../../data/providers/data_provider.dart';
 
@@ -81,7 +80,6 @@ class _LoggingTabState extends State<LoggingTab> {
   Future<void> _confirmNLPLog() async {
     // Log each analyzed meal individually via /log-meal
     final provider = Provider.of<DataProvider>(context, listen: false);
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     for (final meal in _analyzedMeals) {
       await provider.logMeal(
@@ -91,8 +89,6 @@ class _LoggingTabState extends State<LoggingTab> {
         'nlp',
       );
     }
-
-    await provider.fetchTrackerSummary(today);
 
     setState(() {
       _analyzedMeals = [];
@@ -150,7 +146,6 @@ class _LoggingTabState extends State<LoggingTab> {
     if (_selectedFood == null) return;
 
     final provider = Provider.of<DataProvider>(context, listen: false);
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     final result = await provider.logMeal(
       _selectedFood!['mealName'] ?? '',
@@ -160,8 +155,6 @@ class _LoggingTabState extends State<LoggingTab> {
     );
 
     if (!result) return;
-
-    await provider.fetchTrackerSummary(today);
     if (!mounted) return;
 
     setState(() {
