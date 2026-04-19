@@ -1,7 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import os
-import json
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -14,30 +13,77 @@ from dev_store import (
     load_users_cache_from_disk,
 )
 
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "nutrilens-b5e81")
+FIREBASE_STORAGE_BUCKET = os.environ.get(
+    "FIREBASE_STORAGE_BUCKET", "nutrilens-b5e81.firebasestorage.app"
+)
+
+
+def _load_firebase_credential():
+    service_account_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH")
+    if service_account_path:
+        if os.path.exists(service_account_path):
+            return credentials.Certificate(service_account_path)
+        raise RuntimeError(
+            f"FIREBASE_SERVICE_ACCOUNT_PATH points to a missing file: {service_account_path}"
+        )
+
+    # Backward compatibility: treat legacy env var as a file path only.
+    legacy_service_account_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+    if legacy_service_account_path:
+        if os.path.exists(legacy_service_account_path):
+            return credentials.Certificate(legacy_service_account_path)
+        raise RuntimeError(
+            "FIREBASE_SERVICE_ACCOUNT is set but does not point to a valid file. "
+            "Use FIREBASE_SERVICE_ACCOUNT_PATH with a Render Secret File path."
+        )
+
+    possible_keys = ["serviceAccountKey.json", "d:/nutrilens/backend/serviceAccountKey.json"]
+    key_path = next((key for key in possible_keys if os.path.exists(key)), None)
+    if key_path:
+        return credentials.Certificate(key_path)
+
+    raise RuntimeError(
+        "Firebase credentials not found. Set FIREBASE_SERVICE_ACCOUNT_PATH "
+        "(recommended for Render Secret Files) to your service account JSON file path."
+    )
+
 # ---------------------------------------------------------
 # 1. INITIALIZE APP & CONFIG
 # ---------------------------------------------------------
 app = Flask(__name__)
 CORS(app)
 
-firebase_env = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
-if firebase_env:
-    firebase_key = json.loads(firebase_env)
-    cred = credentials.Certificate(firebase_key)
-else:
-    possible_keys = ["serviceAccountKey.json", "d:/nutrilens/backend/serviceAccountKey.json"]
-    key_path = next((k for k in possible_keys if os.path.exists(k)), None)
-    if key_path:
-        cred = credentials.Certificate(key_path)
-    else:
-        raise RuntimeError("FIREBASE_SERVICE_ACCOUNT env var not set AND serviceAccountKey.json not found")
+try:
+    cred = _load_firebase_credential()
+except Exception as e:
+    raise RuntimeError(f"Firebase credential loading failed: {e}") from e
+
 
 try:
-    firebase_admin.get_app()
+    firebase_app = firebase_admin.get_app()
 except ValueError:
-    firebase_admin.initialize_app(cred)
+    try:
+        firebase_app = firebase_admin.initialize_app(
+            cred,
+            {
+                "projectId": FIREBASE_PROJECT_ID,
+                "storageBucket": FIREBASE_STORAGE_BUCKET,
+            },
+        )
+    except Exception as e:
+        raise RuntimeError(f"Firebase initialization failed: {e}") from e
 
-app_logger.info("Firebase initialized successfully")
+if firebase_app.project_id and firebase_app.project_id != FIREBASE_PROJECT_ID:
+    raise RuntimeError(
+        f"Firebase app project mismatch. Expected {FIREBASE_PROJECT_ID}, got {firebase_app.project_id}."
+    )
+
+app_logger.info(
+    "Firebase initialized successfully for project %s (storage bucket: %s)",
+    firebase_app.project_id,
+    FIREBASE_STORAGE_BUCKET,
+)
 
 # ---------------------------------------------------------
 # 2. STARTUP PRE-LOADING (Global Models & NLP Pipeline)
@@ -159,6 +205,17 @@ def routes_debug():
     return {
         str(rule): list(rule.methods)
         for rule in app.url_map.iter_rules()
+    }
+
+
+@app.route("/firebase-debug")
+def firebase_debug():
+    current_app = firebase_admin.get_app()
+    return {
+        "expected_project_id": FIREBASE_PROJECT_ID,
+        "connected_project_id": current_app.project_id,
+        "storage_bucket": FIREBASE_STORAGE_BUCKET,
+        "credential_project_id": getattr(cred, "project_id", None),
     }
 
 if __name__ == "__main__":

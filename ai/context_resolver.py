@@ -2,46 +2,81 @@
 # Stage 6: Context-aware meal resolution
 # Detects common food combinations and returns context scores
 #
-# IMPROVEMENT (v2.1):
-#   Changed from OVERRIDE behavior to SCORING behavior.
-#   Instead of replacing entities, returns context_scores dict
-#   that feeds into hybrid_matcher as a 4th signal.
-#   Original entities are preserved — context just boosts
-#   the combo meal in hybrid scoring.
+# IMPROVEMENTS (v2.3):
+#   - Split rules into STRONG (boost=1.0) and WEAK (boost=0.5)
+#   - Strong rules = well-known canonical Indian combos
+#   - Weak rules  = generic / secondary combos
+#   - resolve_context() checks strong first, then weak
 
-# -----------------------------------------------
-# Context Rules: (frozenset of foods) → canonical meal name
-# -----------------------------------------------
-CONTEXT_RULES = {
-    frozenset(["dal", "rice"]): "Dal Chawal",
-    frozenset(["dal", "chawal"]): "Dal Chawal",
-    frozenset(["rajma", "rice"]): "Rajma Chawal",
-    frozenset(["rajma", "chawal"]): "Rajma Chawal",
-    frozenset(["chole", "rice"]): "Chole Chawal",
-    frozenset(["chole", "chawal"]): "Chole Chawal",
-    frozenset(["chickpeas", "rice"]): "Chole Chawal",
-    frozenset(["kadhi", "rice"]): "Kadhi Chawal",
-    frozenset(["kadhi", "chawal"]): "Kadhi Chawal",
-    frozenset(["sambar", "rice"]): "Sambar Rice",
-    frozenset(["curd", "rice"]): "Curd Rice",
-    frozenset(["dahi", "rice"]): "Curd Rice",
-    frozenset(["lemon", "rice"]): "Lemon Rice",
-    frozenset(["roti", "sabzi"]): "Roti Sabzi",
-    frozenset(["chapati", "sabzi"]): "Roti Sabzi",
-    frozenset(["idli", "sambar"]): "Idli Sambar",
-    frozenset(["idli", "chutney"]): "Idli Chutney",
-    frozenset(["dosa", "sambar"]): "Dosa Sambar",
-    frozenset(["dosa", "chutney"]): "Dosa Chutney",
-    frozenset(["vada", "sambar"]): "Medu Vada",
-    frozenset(["puri", "sabzi"]): "Puri Sabzi",
-    frozenset(["puri", "aloo"]): "Puri Aloo",
-    frozenset(["poha", "jalebi"]): "Poha Jalebi",
-    frozenset(["paratha", "curd"]): "Paratha",
-    frozenset(["naan", "paneer"]): "Paneer Butter Masala",
+# ── STRONG context rules ──────────────────────────────────────────────────────
+# High-confidence canonical Indian meal pairs. boost = STRONG_BOOST (1.0)
+STRONG_CONTEXT_RULES = {
+    frozenset(["dal",          "rice"]):     "Dal Chawal",
+    frozenset(["dal",          "chawal"]):   "Dal Chawal",
+    frozenset(["rajma",        "rice"]):     "Rajma Chawal",
+    frozenset(["rajma",        "chawal"]):   "Rajma Chawal",
+    frozenset(["kidney beans", "rice"]):    "Rajma Chawal",
+    frozenset(["chole",        "rice"]):     "Chole Chawal",
+    frozenset(["chole",        "chawal"]):   "Chole Chawal",
+    frozenset(["chickpeas",    "rice"]):     "Chole Chawal",
+    frozenset(["kadhi",        "rice"]):     "Kadhi Chawal",
+    frozenset(["kadhi",        "chawal"]):   "Kadhi Chawal",
+    frozenset(["sambar",       "rice"]):     "Sambar Rice",
+    frozenset(["curd",         "rice"]):     "Curd Rice",
+    frozenset(["dahi",         "rice"]):     "Curd Rice",
+    frozenset(["idli",         "sambar"]):   "Idli Sambar",
+    frozenset(["dosa",         "sambar"]):   "Dosa Sambar",
+    frozenset(["vada",         "sambar"]):   "Medu Vada",
+    frozenset(["medu vada",    "sambar"]):   "Medu Vada",
+    frozenset(["roti",         "sabzi"]):    "Roti Sabzi",
+    frozenset(["chapati",      "sabzi"]):    "Roti Sabzi",
+    frozenset(["puri",         "sabzi"]):    "Puri Sabzi",
+    frozenset(["puri",         "aloo"]):     "Puri Aloo",
+    frozenset(["puri",         "potato"]):   "Puri Aloo",
+    frozenset(["poha",         "jalebi"]):   "Poha Jalebi",
+    frozenset(["bread",        "egg"]):      "Bread Omelette",
+    frozenset(["bread",        "anda"]):     "Bread Omelette",
 }
 
-# Context boost value (used as the context_score signal in hybrid scoring)
-CONTEXT_BOOST = 1.0
+# ── WEAK context rules ────────────────────────────────────────────────────────
+# Secondary / generic combos. boost = WEAK_BOOST (0.5)
+WEAK_CONTEXT_RULES = {
+    frozenset(["lemon",     "rice"]):    "Lemon Rice",
+    frozenset(["egg",       "rice"]):    "Egg Rice",
+    frozenset(["anda",      "rice"]):    "Egg Rice",
+    frozenset(["fish",      "rice"]):    "Fish Curry Rice",
+    frozenset(["machli",    "rice"]):    "Fish Curry Rice",
+    frozenset(["mutton",    "rice"]):    "Mutton Rice",
+    frozenset(["gosht",     "rice"]):    "Mutton Rice",
+    frozenset(["chicken",   "rice"]):    "Chicken Rice",
+    frozenset(["murgh",     "rice"]):    "Chicken Rice",
+    frozenset(["sabzi",     "rice"]):    "Sabzi Chawal",
+    frozenset(["sabzi",     "chawal"]):  "Sabzi Chawal",
+    frozenset(["roti",      "dal"]):     "Dal Roti",
+    frozenset(["chapati",   "dal"]):     "Dal Roti",
+    frozenset(["paneer",    "roti"]):    "Paneer Roti",
+    frozenset(["paneer",    "chapati"]): "Paneer Roti",
+    frozenset(["aloo",      "roti"]):    "Aloo Roti",
+    frozenset(["potato",    "roti"]):    "Aloo Roti",
+    frozenset(["egg",       "paratha"]): "Egg Paratha",
+    frozenset(["anda",      "paratha"]): "Egg Paratha",
+    frozenset(["aloo",      "paratha"]): "Aloo Paratha",
+    frozenset(["potato",    "paratha"]): "Aloo Paratha",
+    frozenset(["naan",      "paneer"]):  "Paneer Butter Masala",
+    frozenset(["idli",      "chutney"]): "Idli Chutney",
+    frozenset(["dosa",      "chutney"]): "Dosa Chutney",
+    frozenset(["uttapam",   "sambar"]):  "Uttapam Sambar",
+    frozenset(["paratha",   "curd"]):    "Paratha",
+    frozenset(["paratha",   "dahi"]):    "Paratha",
+    frozenset(["bread",     "butter"]):  "Bread Butter",
+}
+
+# Boost values
+STRONG_BOOST = 1.0
+WEAK_BOOST   = 0.5
+
+# Unified dict — used by any code that still references CONTEXT_RULES directly
+CONTEXT_RULES = {**STRONG_CONTEXT_RULES, **WEAK_CONTEXT_RULES}
 
 
 def resolve_context(entities, quantities):
@@ -49,11 +84,10 @@ def resolve_context(entities, quantities):
     IMPROVED: Instead of replacing entities with combo meals,
     this now returns a context_scores dict alongside the original entities.
 
-    The context_scores map entity names to a boost value (0.0 or 1.0).
-    Entities that are part of a detected combo have their context_score
-    set to CONTEXT_BOOST. The combo meal name is ADDED as a new entity
-    (not replacing the originals), and the hybrid matcher uses the
-    context_score as a 4th signal.
+    Tiered boosting:
+      - STRONG combo pair detected → context_score = STRONG_BOOST (1.0)
+      - WEAK combo pair detected   → context_score = WEAK_BOOST  (0.5)
+      - No match                   → context_score = 0.0
 
     Args:
         entities:    list of detected food entity strings
@@ -77,7 +111,7 @@ def resolve_context(entities, quantities):
 
     entity_set = [e.lower() for e in entities]
 
-    # Check pairs
+    # Check pairs — strong rules first, then weak
     for i in range(len(entity_set)):
         if i in consumed:
             continue
@@ -87,23 +121,33 @@ def resolve_context(entities, quantities):
 
             pair = frozenset([entity_set[i], entity_set[j]])
 
-            if pair in CONTEXT_RULES:
-                combo_name = CONTEXT_RULES[pair]
-                qty_i = quantities.get(entities[i], 1)
-                qty_j = quantities.get(entities[j], 1)
-                combo_qty = max(qty_i, qty_j)
+            # Determine which rule set matched and the appropriate boost
+            if pair in STRONG_CONTEXT_RULES:
+                combo_name = STRONG_CONTEXT_RULES[pair]
+                boost = STRONG_BOOST
+            elif pair in WEAK_CONTEXT_RULES:
+                combo_name = WEAK_CONTEXT_RULES[pair]
+                boost = WEAK_BOOST
+            else:
+                continue
 
-                # Add the combo meal as a new entity with context boost
-                resolved_entities.append(combo_name)
-                resolved_quantities[combo_name] = combo_qty
-                resolved_context_scores[combo_name] = CONTEXT_BOOST
+            qty_i = quantities.get(entities[i], 1)
+            qty_j = quantities.get(entities[j], 1)
+            combo_qty = max(qty_i, qty_j)
 
-                consumed.add(i)
-                consumed.add(j)
+            resolved_entities.append(combo_name)
+            resolved_quantities[combo_name] = combo_qty
+            resolved_context_scores[combo_name] = boost
 
-                print(f"[context] '{entities[i]}' + '{entities[j]}' "
-                      f"→ '{combo_name}' (context_score={CONTEXT_BOOST})")
-                break
+            consumed.add(i)
+            consumed.add(j)
+
+            tier = "STRONG" if boost == STRONG_BOOST else "WEAK"
+            print(
+                f"[context] '{entities[i]}' + '{entities[j]}' "
+                f"→ '{combo_name}' ({tier}, boost={boost})"
+            )
+            break
 
     # Add remaining un-consumed entities (no context boost)
     for i, entity in enumerate(entities):

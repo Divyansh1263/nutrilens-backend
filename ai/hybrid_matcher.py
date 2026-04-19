@@ -1,31 +1,33 @@
 # ai/hybrid_matcher.py
-# Stage 5: Weighted hybrid matching — TF-IDF + Fuzzy + Category + Context
+# Stage 5: Weighted hybrid matching — TF-IDF + Fuzzy + Category + Keyword + Context
 #
-# IMPROVEMENTS (v2.1):
-#   1. Entity confidence filter — discard weak matches early
-#   2. Adaptive category weighting — reduce category weight when TF-IDF is strong
-#   3. Updated formula — includes context_score signal
-#   4. New weights: 0.55 TF-IDF + 0.25 Fuzzy + 0.10 Category + 0.10 Context
+# IMPROVEMENTS (v2.3):
+#   1. Tighter acceptance: tfidf>0.35 OR (fuzzy>0.65 AND keyword>0)
+#   2. Hard-reject floor: tfidf<0.25 AND fuzzy<0.60 → discard
+#   3. Keyword_score capped at 0.5 (prevents over-boosting)
+#   4. Debug logging — prints all 5 signals + final score per candidate
+#   5. test_hybrid_matcher() helper for quick smoke tests
 
 from rapidfuzz import fuzz
 from ai.tfidf_matcher import tfidf_match, get_all_meals
 
 # -----------------------------------------------
-# Default Weights for hybrid scoring
+# Scoring weights  (must sum to 1.0)
 # -----------------------------------------------
-W_TFIDF = 0.55
-W_FUZZY = 0.25
-W_CATEGORY = 0.15     # Was 0.20
-W_CONTEXT = 0.10     # Was 0.05
+W_TFIDF    = 0.55
+W_FUZZY    = 0.25
+W_CATEGORY = 0.10
+W_KEYWORD  = 0.05   # explicit searchKeywords overlap
+W_CONTEXT  = 0.05   # context resolver signal
 
-# Minimum confidence to accept a match
-CONFIDENCE_THRESHOLD = 0.20  # Minimum hybrid score to accept a match
+# Minimum hybrid score to accept a match
+CONFIDENCE_THRESHOLD = 0.30
 
 # -----------------------------------------------
-# Entity Confidence Filter thresholds
-# If BOTH scores are below these, the entity is noise
+# Entity Confidence Filter — OR logic
+# Discard entity only when BOTH signals are weak
 # -----------------------------------------------
-MIN_TFIDF_FOR_ENTITY = 0.20
+MIN_TFIDF_FOR_ENTITY = 0.35
 MIN_FUZZY_FOR_ENTITY = 0.65
 
 
@@ -145,51 +147,83 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5):
 
     # 4. Compute hybrid score for each candidate
     results = []
+    query_lower = query.lower()
+
     for name, data in candidate_map.items():
         meal = data["meal"]
         tfidf_s = data["tfidf_score"]
         fuzzy_s = data["fuzzy_score"]
 
-        # ---- IMPROVEMENT 1: Entity Confidence Filter ----
-        # If BOTH signals are weak, this is likely a noise token — skip
-        if tfidf_s < MIN_TFIDF_FOR_ENTITY and fuzzy_s < MIN_FUZZY_FOR_ENTITY:
+        # ── Keyword boost (capped at 0.5) ─────────────────────────────────────
+        # 0.5 if any searchKeyword appears in / contains the query, else 0.0
+        # Capped at 0.5 to prevent keywords from overpowering TF-IDF signal.
+        keyword_s = 0.0
+        keywords = meal.get("searchKeywords") or meal.get("aliases") or []
+        for kw in keywords:
+            if kw.lower() in query_lower or query_lower in kw.lower():
+                keyword_s = 0.5
+                break
+
+        # ── Hard-reject floor ─────────────────────────────────────────────────
+        # Discard candidates where BOTH primary signals are very weak.
+        # This prevents noisy / off-topic meals from leaking into scoring.
+        if tfidf_s < 0.25 and fuzzy_s < 0.60:
             continue
 
-        # ---- IMPROVEMENT 2: Adaptive Category Weighting ----
-        # When TF-IDF is very confident, category match adds noise
+        # ── Acceptance gate (OR logic per spec) ───────────────────────────────
+        # Require a meaningful signal from at least one primary method.
+        passes_filter = (
+            tfidf_s > MIN_TFIDF_FOR_ENTITY                      # strong TF-IDF
+            or (fuzzy_s > MIN_FUZZY_FOR_ENTITY and keyword_s > 0)  # fuzzy + keyword
+            or fuzzy_s > 0.80                                    # dominant fuzzy
+        )
+        if not passes_filter:
+            continue
+
+        # ── Adaptive Category Weighting ───────────────────────────────────────
+        # When TF-IDF is highly confident, category signal adds noise
         if tfidf_s > 0.8:
-            w_cat = 0.0
-            # Redistribute category weight to TF-IDF
-            w_tfidf = W_TFIDF + W_CATEGORY
+            w_cat   = 0.0
+            w_tfidf = W_TFIDF + W_CATEGORY   # redistribute
         else:
-            w_cat = W_CATEGORY
+            w_cat   = W_CATEGORY
             w_tfidf = W_TFIDF
 
-        # Category match: 1.0 if the meal's category matches predicted
+        # Category match: 1.0 if meal's category equals predicted
         cat_match = 0.0
         if predicted_category:
             meal_category = meal.get("category", "").lower()
             if meal_category == predicted_category.lower():
                 cat_match = 1.0
 
-        # ---- IMPROVEMENT 3: Updated 4-signal formula ----
+        # ── 5-signal weighted formula ─────────────────────────────────────────
         final_score = (
-            w_tfidf * tfidf_s +
-            W_FUZZY * fuzzy_s +
-            w_cat * cat_match +
-            W_CONTEXT * context_score
+            w_tfidf    * tfidf_s   +
+            W_FUZZY    * fuzzy_s   +
+            w_cat      * cat_match +
+            W_KEYWORD  * keyword_s +
+            W_CONTEXT  * context_score
         )
 
         # Clamp to [0, 1]
         final_score = max(0.0, min(1.0, final_score))
 
+        # ── Debug logging ─────────────────────────────────────────────────────
+        print(
+            f"[hybrid] '{name}' "
+            f"tfidf={tfidf_s:.3f}  fuzzy={fuzzy_s:.3f}  "
+            f"kw={keyword_s:.2f}  cat={cat_match:.1f}  "
+            f"ctx={context_score:.1f}  → score={final_score:.3f}"
+        )
+
         results.append({
-            "meal": meal,
-            "score": round(final_score, 4),
-            "tfidf_score": round(tfidf_s, 4),
-            "fuzzy_score": round(fuzzy_s, 4),
+            "meal":           meal,
+            "score":          round(final_score, 4),
+            "tfidf_score":    round(tfidf_s, 4),
+            "fuzzy_score":    round(fuzzy_s, 4),
+            "keyword_score":  round(keyword_s, 4),
             "category_match": cat_match,
-            "context_score": context_score,
+            "context_score":  context_score,
         })
 
     # Sort by score desc
@@ -210,6 +244,8 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0):
     Returns:
         (meal_dict, confidence) or (None, 0.0) if below threshold
     """
+    print(f"\n[hybrid] Matching query: '{query}'")
+
     candidates = hybrid_match(
         query,
         predicted_category=predicted_category,
@@ -218,14 +254,59 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0):
     )
 
     if not candidates:
+        print(f"[hybrid] No candidates passed filter for '{query}' → unknown")
         return None, 0.0
 
     best = candidates[0]
     confidence = best["score"]
 
+    # Safety filter: final score below floor → reject
     if confidence < CONFIDENCE_THRESHOLD:
-        print(f"[hybrid] LOW CONFIDENCE for '{query}': "
-              f"best='{best['meal'].get('mealName')}' score={confidence:.3f}")
+        print(
+            f"[hybrid] REJECTED '{query}' — score={confidence:.3f} < "
+            f"threshold={CONFIDENCE_THRESHOLD} → unknown"
+        )
         return None, confidence
 
+    print(
+        f"[hybrid] ACCEPTED '{query}' → '{best['meal'].get('mealName')}' "
+        f"(score={confidence:.3f})"
+    )
     return best["meal"], confidence
+
+
+# ---------------------------------------------------------------------------
+# Quick smoke-test  —  run directly:  python -m ai.hybrid_matcher
+# ---------------------------------------------------------------------------
+def test_hybrid_matcher():
+    """
+    Smoke-test the hybrid matcher against a set of known inputs.
+    Requires the pipeline to already be initialised (call init_pipeline first).
+    """
+    test_cases = [
+        "2 roti aur dal",
+        "paner butter masla",
+        "chai biscuit",
+        "rice",
+        "kurkure",
+    ]
+
+    print("\n" + "=" * 60)
+    print("HYBRID MATCHER SMOKE TEST")
+    print("=" * 60)
+
+    for text in test_cases:
+        meal, confidence = resolve_best_meal(text)
+        if meal:
+            print(
+                f"  INPUT : '{text}'\n"
+                f"  MATCH : '{meal.get('mealName')}' "
+                f"(confidence={confidence:.3f})\n"
+            )
+        else:
+            print(
+                f"  INPUT : '{text}'\n"
+                f"  MATCH : unknown (confidence={confidence:.3f})\n"
+            )
+
+    print("=" * 60)
