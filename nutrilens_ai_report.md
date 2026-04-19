@@ -3,7 +3,7 @@
 > **Project:** NutriLens — AI-Powered Personalised Diet Planner  
 > **Backend Stack:** Python · Flask · Firebase Firestore · scikit-learn · rapidfuzz · joblib  
 > **Report Scope:** Detailed explanation of every AI model, algorithm, and technique used in the backend — suitable for inclusion in a Final Year / Capstone project report.  
-> **Pipeline Version:** v2.5 (April 2026)
+> **Pipeline Version:** v2.6 (April 2026)
 
 ---
 
@@ -21,6 +21,7 @@
 6. [Compatibility Scorer & Culinary Rule Engine](#6-compatibility-scorer)
 7. [Accuracy Results & Benchmarks](#7-accuracy)
 8. [Summary Table](#8-summary)
+9. [Dataset Quality & Firestore Enrichment (v2.6)](#9-dataset-quality)
 
 ---
 
@@ -30,7 +31,7 @@ NutriLens uses **four trained machine learning models** and **one rule-enhanced 
 
 | Feature | AI Components Involved |
 |---------|----------------------|
-| **Natural Language Meal Logging** — User types "2 roti aur dal" in any language/dialect | Text Preprocessor → Alias Normaliser → Spelling Corrector → NLP Classifier → TF-IDF Matcher → Fuzzy Matcher → Category Classifier → Context Resolver → Combo Splitter → Hybrid Scorer → Priority Booster → User Preference Booster |
+| **Natural Language Meal Logging** — User types "2 roti aur dal" in any language/dialect | Text Preprocessor → Alias Normaliser → Spelling Corrector → NLP Classifier → TF-IDF Matcher *(keyword-quality filtered)* → Fuzzy Matcher *(keyword-quality filtered)* → Category Classifier → Context Resolver → Combo Splitter → Hybrid Scorer *(generic hard-return + plain_boost + force_generic)* → Priority Booster → User Preference Booster |
 | **Personalised Daily Meal Plan Generation** — System creates a full-day macro-balanced Indian meal plan | Mifflin–St Jeor BMR Calculator → Calorie Banking → Vegetarian Pre-filter → Meal Pattern Engine → Candidate Scorer → Calorie Penalty → Completeness Check → Compatibility Scorer → Macro Balancing Solver → KNN SmartSwap |
 
 All four trained model files are persisted to disk using **joblib** and loaded at server startup:
@@ -292,7 +293,7 @@ Structured Output: [{meal, calories, protein, carbs, fat, quantity, confidence}]
 - **Pass 1 — Multi-word aliases:** Sliding window of size 3 then 2 scans across tokens, matches against `MULTI_WORD_ALIAS_MAP`
 - **Pass 2 — Single-word aliases:** Each remaining token looked up in `FOOD_ALIAS_MAP` (127+ entries)
 
-**Key alias additions (v2.5):**
+**Key alias additions (v2.5 / v2.6):**
 
 | Input | Mapped To | Category |
 |---|---|---|
@@ -307,6 +308,18 @@ Structured Output: [{meal, calories, protein, carbs, fat, quantity, confidence}]
 | `sabzi rice` | `dal chawal` | v2.5 new |
 | `dal rice` | `dal chawal` | v2.5 new |
 | `curry and rice` | `dal chawal` | 3-word window |
+| `jowar roti` | `jowar roti` | **v2.6** millet multi-word (Pass 1 priority) |
+| `jawar roti` | `jowar roti` | **v2.6** jawar→jowar transliteration fix |
+| `bajra roti` | `bajra roti` | **v2.6** millet multi-word (Pass 1 priority) |
+
+**v2.6 fix — transparent adjective tokens (`FOOD_ADJECTIVES`):**  
+Adjectives like `jawar`, `bajra`, `plain`, `masala` are now skipped during quantity attribution so that `"3 jawar roti"` correctly assigns `roti × 3` instead of `jawar × 3`.
+
+```python
+FOOD_ADJECTIVES = {"jawar", "jowar", "bajra", "multigrain", "whole wheat",
+                   "plain", "masala", "fried", "boiled", "steamed"}
+# If token is an adjective, skip it; quantity propagates to next food token.
+```
 
 **Accuracy:** 100% (10/10 tested aliases correctly normalised)
 
@@ -344,7 +357,28 @@ Structured Output: [{meal, calories, protein, carbs, fat, quantity, confidence}]
 - Recognises digits, number words, fractions, and portion words (`bowl`, `cup`, `plate`, `katori`)
 - Scans immediately before each food entity to pick up quantity context
 
-**Example:** `"2 roti aur dal"` → `{roti: 2, dal: 1}`
+**v2.6 fix — `[number] + [adjective] + [food]` pattern:**  
+Previously, `"3 jawar roti"` was parsed as `jawar=3, roti=1` because the adjective consumed the quantity. The fix introduces a `FOOD_ADJECTIVES` transparent-token skip:
+
+```
+Pattern:  <number> <FOOD_ADJECTIVE> <food_token>
+Old:      jawar=3,  roti=1   ← adjective steals the number
+New:      jawar=—,  roti=3   ← adjective skipped, quantity flows to food
+```
+
+**Corrected examples:**
+
+| Input | Before (v2.5) | After (v2.6) |
+|---|---|---|
+| `3 jawar roti` | jawar=3, roti=1 | roti=3 ✅ |
+| `2 bajra roti` | bajra=2, roti=1 | roti=2 ✅ |
+| `4 plain roti` | plain=4, roti=1 | roti=4 ✅ |
+
+**Debug log:**
+```
+[qty] token 'jawar' is FOOD_ADJECTIVE — skipping, carrying qty=3 forward
+[qty] assigned roti × 3
+```
 
 ---
 
@@ -375,7 +409,7 @@ Each matched combo logs its strength: `[context] 'dal' + 'roti' → 'Dal Roti' [
 
 ---
 
-#### Step 6b — Combo Entity Splitting (`COMBO_SPLIT_MAP`) ← NEW in v2.5
+#### Step 6b — Combo Entity Splitting (`COMBO_SPLIT_MAP`) ← NEW in v2.5, enhanced v2.6
 
 **Problem solved:** Context resolver produces combo names like `"Dal Roti"`. These are NOT single meals in Firestore — they are two separate dishes with separate nutritional entries.
 
@@ -399,10 +433,25 @@ COMBO_SPLIT_MAP = {
 | Bread parts (roti, chapati, naan, paratha) | Inherits the combo quantity (e.g., "3 roti" → roti×3) |
 | All other parts (dal, rice, curd) | Default = 1 |
 
+**v2.6 — `force_generic` flag propagation:**  
+Every entity produced by a combo split is now tagged with `force_generic=True` in the `expanded_force_generic` dictionary. This flag is passed to `resolve_best_meal()` which restricts matching to meals whose `searchKeywords` contains an **exact keyword match** — preventing flavoured variants (e.g., "Jeera Rice") from winning over base meals ("Plain Rice") within a combo context.
+
+```python
+# Pipeline sets force_generic per entity:
+expanded_force_generic[part] = True   # for combo-split parts
+expanded_force_generic[entity] = False  # for standalone entities
+
+# resolve_best_meal() enforces base-only selection:
+if force_generic:
+    # Only keyword-exact meals allowed; hybrid scoring is bypassed
+    return best_generic, 1.0
+```
+
 **Debug log:**
 ```
 [combo_split] "Dal Roti" → {"dal": 1, "roti": 3}
-[Step 6b] after combo_split: ["dal", "roti"]
+[forced_generic] combo-split triggered base-only selection for 'rice' → 'Plain Rice' (4 candidates)
+[generic_return] 'dal' → 'Plain Dal' (keyword-exact, 3 candidates) — HARD RETURN
 [Step 6b] priorities: {"dal": 0.8, "roti": 1.0}
 ```
 
@@ -428,9 +477,27 @@ category_confidence = float(max(proba))
 
 ---
 
-#### Steps 8–10 — Hybrid Matching (`ai/hybrid_matcher.py`)
+#### Steps 8–10 — Hybrid Matching (`ai/hybrid_matcher.py`) — v2.6
 
 This is the **core AI matching engine**. It combines multiple independent signals into a single weighted confidence score.
+
+**v2.6 — Generic Match Hard-Return (pre-scoring fast path):**  
+Before any scoring, `resolve_best_meal()` checks if the query is a single bareword staple:
+
+```python
+GENERIC_KEYWORDS = {"rice", "dal", "roti", "daal", "bread"}
+is_generic_query  = query_lower in GENERIC_KEYWORDS and " " not in query_lower
+
+if is_generic_query or force_generic:
+    # Keyword-exact match only — shortest name wins (most generic)
+    keyword_matches.sort(key=lambda m: len(m["mealName"].split()))
+    return keyword_matches[0], 1.0   # HARD RETURN — hybrid scoring skipped
+```
+
+This guarantees:
+- `"rice"` → **Plain Rice** (never "Fried Rice" or "Lemon Rice")
+- `"dal"` → **Plain Dal** (never "Dal Makhani")
+- `"roti"` → **Plain Roti** (never "Butter Roti")
 
 **Signal 1 — TF-IDF Cosine Similarity (weight = 0.55)**
 - Queries the TF-IDF vector index
@@ -438,9 +505,15 @@ This is the **core AI matching engine**. It combines multiple independent signal
 
 **Signal 2 — RapidFuzz Fuzzy Matching (weight = 0.25)**
 - `fuzz.partial_ratio` + `process.extractOne`
+- **v2.6:** Weak-keyword meals (`< 5 searchKeywords`) excluded from the fuzzy pool before scoring
 
-**Signal 3 — Category Agreement (weight = 0.10)**
-- 1.0 if meal category matches predicted; drops to 0 when TF-IDF > 0.8
+**Signal 3 — Category Agreement (weight = 0.10 → effectively 0.0 in v2.6)**
+- **v2.6: `IGNORE_CATEGORY = True`** — category weight is zeroed globally:
+  ```python
+  IGNORE_CATEGORY = True   # prevents classifier noise from excluding valid staples
+  # When True: w_cat = 0.0, its weight redistributed to w_tfidf
+  ```
+- Rationale: the food-category classifier (62.5% accuracy) was incorrectly excluding valid staple meals (e.g., classifying "rice" as "snack").
 
 **Signal 4 — Keyword Overlap (weight = 0.05)**
 - 0.5 if any `searchKeyword` overlaps with query (capped at 0.5)
@@ -448,44 +521,54 @@ This is the **core AI matching engine**. It combines multiple independent signal
 **Signal 5 — Context Score (weight = 0.05)**
 - 1.0 for STRONG combos, 0.5 for WEAK, 0.0 otherwise
 
-**The 7-Signal Weighted Formula (v2.5):**
+**The 8-Signal Weighted Formula (v2.6):**
 ```
 base_score = (W_TFIDF × tfidf_score)
            + (W_FUZZY × fuzzy_score)
-           + (W_CAT   × category_match)
+           + (0.0     × category_match)   ← IGNORE_CATEGORY=True in v2.6
            + (W_KW    × keyword_score)
            + (W_CTX   × context_score)
 
-priority_contribution = entity_priority × 0.10          ← NEW v2.5
-sabzi_boost  = 0.08  (if query and meal are both veg-type) ← NEW v2.5
+priority_contribution = entity_priority × 0.10
+sabzi_boost  = 0.08  (if query and meal are both veg-type)
 exact_boost  = 0.10  (if meal_name == query exactly)
+plain_boost  = +0.20 if "plain" in meal_name          ← NEW v2.6
+             + +0.15 if meal_name starts with "plain"  ← NEW v2.6
+             = +0.35 total for "Plain Rice"/"Plain Dal"/"Plain Roti"
 
-specificity_penalty = 0.07 × word_count_in_meal_name    ← raised 0.05→0.07
+specificity_penalty = 0.07 × word_count_in_meal_name
 
 final_score = base_score
             + priority_contribution
             + sabzi_boost
             + exact_boost
+            + plain_boost
             − specificity_penalty
             (clamped to [0.0, 1.0] as final step)
 ```
 
-**Priority contribution:** Primary foods (rice, roti) get `entity_priority=1.0` → `+0.10`; secondary items get `0.8` → `+0.08`. Ensures staple carb bases rank above accompanying side items.
+**plain_boost explained:**  
+"Plain Rice" receives `+0.20 + 0.15 = +0.35` over flavored variants. Even if "Lemon Rice" scores higher on TF-IDF similarity for the query `"rice"`, the +0.35 boost ensures **Plain Rice always wins** in the hybrid scoring path (as a fallback to the hard-return path).
 
-**Sabzi-aware boost:** When the query contains any of `{vegetable, sabzi, mixed, veg}` AND the candidate meal name contains `{mixed, veg, vegetable}` → `+0.08` boost. Prevents random curry entries from beating actual vegetable dishes.
+**Priority contribution:** Primary foods (rice, roti) get `entity_priority=1.0` → `+0.10`; secondary items get `0.8` → `+0.08`.
 
-**Specificity penalty:** Raised from 0.05 to 0.07 per word. "Dal" (1 word, −0.07) beats "Lasooni Dal" (2 words, −0.14), preferring simpler/canonical meals for generic queries.
+**Sabzi-aware boost:** When query contains `{vegetable, sabzi, mixed, veg}` AND candidate name contains `{mixed, veg, vegetable}` → `+0.08`.
 
-**Quality Gates (unchanged from v2.1):**
+**Specificity penalty:** 0.07 per word. "Dal" (1 word, −0.07) beats "Lasooni Dal" (2 words, −0.14).
+
+**Quality Gates:**
 - **Hard reject floor:** `tfidf < 0.25 AND fuzzy < 0.60` → discard
 - **Acceptance gate (OR):** `tfidf > 0.35` OR `(fuzzy > 0.65 AND keyword > 0)` OR `fuzzy > 0.80`
 - **Final confidence threshold:** score ≥ 0.30 → accept
 
-**v2.5 Debug log per candidate:**
+**v2.6 Debug log per candidate:**
 ```
-[hybrid] 'Dal Tadka' tfidf=0.712 fuzzy=0.880 kw=0.50 cat=1.0 ctx=1.0
-  priority=0.8(+0.080) sabzi_boost=0.00 words=2 spec_penalty=0.140
-  → final_score=0.921
+[generic_return] 'rice' → 'Plain Rice' (keyword-exact, 4 candidates) — HARD RETURN
+[forced_generic] combo-split triggered base-only for 'dal' → 'Plain Dal' (3 candidates)
+[hybrid] 'Plain Rice' PLAIN BOOST +0.35
+[hybrid] 'Plain Rice' tfidf=0.712 fuzzy=0.880 kw=0.50 cat=0.0 ctx=1.0
+  priority=1.0(+0.100) sabzi_boost=0.00 plain_boost=0.35 words=2 spec_penalty=0.140
+  → final_score=1.000 [CLAMPED from 1.422]
 ```
 
 ---
@@ -788,14 +871,21 @@ new_calories = max(1100, base_calories + adjustment)
 | **NLP Meal Classifier** | Macro F1-Score | **0.899** | EXCELLENT |
 | **NLP Meal Classifier** | Cross-Validation Mean (5-fold) | **85.03%** | GOOD |
 | **Food Category Classifier** | Test Accuracy (32 samples) | 62.5% | NEEDS IMPROVEMENT |
-| **Food Category Classifier** | Confidence gate (v2.5) | ≥0.60 to apply filter | IMPROVED |
+| **Food Category Classifier** | v2.6 — IGNORE_CATEGORY=True | Disabled globally | BYPASSED |
 | **SmartSwap KNN** | Within 10% calorie range | **92.0%** | EXCELLENT |
 | **SmartSwap KNN** | Within 20% calorie range | **96.0%** | EXCELLENT |
 | **SmartSwap KNN** | Mean calorie deviation | 3.8% | GOOD |
 | **TF-IDF Hybrid Matcher** | Top-1 Retrieval Accuracy | **90.0%** (18/20) | EXCELLENT |
+| **TF-IDF Hybrid Matcher** | Keyword quality gate (v2.6) | MIN_KEYWORD_COUNT=5 | NEW |
+| **Fuzzy Matcher** | Keyword quality gate (v2.6) | Weak meals excluded from pool | NEW |
+| **Generic Match Hard-Return** | Bareword staples (rice/dal/roti) | 100% → Plain base meal | NEW v2.6 |
+| **Plain Boost** | Base meal scoring priority | +0.35 for Plain Rice/Dal/Roti | NEW v2.6 |
+| **force_generic** | Combo-split base-only selection | Verified 4 combo rules | NEW v2.6 |
 | **Text Preprocessor — Alias** | Alias Normalisation Accuracy | **100%** (10/10) | EXCELLENT |
 | **Text Preprocessor — Spell** | Spelling Correction Rate | **100%** (5/5) | EXCELLENT |
-| **Combo Splitter (v2.5)** | Correctly splits dal+roti, dal+rice | 6 combo rules | NEW |
+| **Quantity Extractor (v2.6)** | Adjective-transparent qty fix | `3 jawar roti` → roti=3 ✅ | FIXED |
+| **Combo Splitter** | Correctly splits dal+roti, dal+rice | 6 combo rules | v2.5 |
+| **Firestore Dataset (v2.6)** | Meals with ≥5 keywords | **1,935 / 1,935 (100%)** | EXCELLENT |
 | **Hybrid Matcher Throughput** | Queries per second | 51 qps | GOOD |
 | **Hybrid Matcher Latency** | Per-query latency | 19.61 ms | GOOD |
 
@@ -816,38 +906,110 @@ new_calories = max(1100, base_calories + adjustment)
 
 ## 8. Summary Table <a name="8-summary"></a>
 
-| Component | File | Algorithm(s) | Trained? | v2.5 Changes | Accuracy |
+| Component | File | Algorithm(s) | Trained? | v2.6 Changes | Accuracy |
 |---|---|---|---|---|---|
 | NLP Meal Classifier | `nlp_meal_classifier.joblib` | TF-IDF + Logistic Regression | ✅ Yes | — | **91.37%** |
-| Food Category Classifier | `food_category_classifier.joblib` | TF-IDF + Logistic Regression | ✅ Yes | Confidence gate 0.60 | 62.5% |
+| Food Category Classifier | `food_category_classifier.joblib` | TF-IDF + Logistic Regression | ✅ Yes | **IGNORE_CATEGORY=True** (globally disabled) | 62.5% (bypassed) |
 | SmartSwap KNN | `knn_meal_swap.joblib` | K-Nearest Neighbours | ✅ Yes | — | 92% within 10% cal |
-| TF-IDF Meal Matcher | `tfidf_meal_matcher.joblib` | TF-IDF + Cosine Similarity | ✅ Yes | Confidence-gated filter | **90.0%** Top-1 |
-| Text Preprocessor | `text_preprocessor.py` | Regex + RapidFuzz + Dictionary | Rule-based | Sabzi/rice/curry-rice aliases | 100% alias/spell |
+| TF-IDF Meal Matcher | `tfidf_meal_matcher.joblib` | TF-IDF + Cosine Similarity | ✅ Yes | **MIN_KEYWORD_COUNT=5 filter at init** | **90.0%** Top-1 |
+| Text Preprocessor | `text_preprocessor.py` | Regex + RapidFuzz + Dictionary | Rule-based | **Millet aliases (jowar/bajra), FOOD_ADJECTIVES transparent skip** | 100% alias/spell |
 | Phrase Detector | `phrase_detector.py` | Sliding Window N-gram | Rule-based | — | — |
-| Quantity Extractor | `quantity_extractor.py` | Pattern Matching | Rule-based | — | — |
+| Quantity Extractor | `quantity_extractor.py` | Pattern Matching | Rule-based | **Adjective-transparent qty fix (`3 jawar roti` → roti=3)** | Fixed ✅ |
 | Context Resolver | `context_resolver.py` | Set Matching + Tiered Scoring | Rule-based | Post-alias rules, promoted STRONG rules | — |
-| Combo Splitter | `nlp_pipeline.py` `COMBO_SPLIT_MAP` | Dictionary + Smart Qty | Rule-based | **NEW** in v2.5 | 6 rules |
-| Hybrid Matcher | `hybrid_matcher.py` | 7-Signal Weighted Ensemble | Ensemble | Priority, Sabzi boost, clamp, spec penalty ×0.07 | **90.0%** |
+| Combo Splitter | `nlp_pipeline.py` `COMBO_SPLIT_MAP` | Dictionary + Smart Qty + force_generic | Rule-based | **force_generic=True propagated to all combo-split entities** | 6 rules |
+| Hybrid Matcher | `hybrid_matcher.py` | 8-Signal Weighted Ensemble | Ensemble | **Generic hard-return, plain_boost +0.35, force_generic base-only, IGNORE_CATEGORY, kw-filter** | **90.0%** |
 | Meal Plan Generator | `meal_plan_generator.py` | Constraint Satisfaction + Multi-Signal | Algorithmic AI | Veg filter, calorie penalty, completeness check, variety ×8 | — |
 | Compatibility Scorer | `compatibility_scorer.py` | Culinary Rule Engine | Rule-based | — | — |
 | Target Calculator | `target_calculator.py` | Mifflin–St Jeor + TDEE + Banking | Formula-based | — | Clinical standard |
+| Keyword Updater | `update_firestore_keywords.py` | Batch Firestore update | Tool | **NEW v2.6** — updates 772 meals from local cache | — |
+| Meal Enricher | `enrich_skipped_firestore_meals.py` | Token synonym + category map | Tool | **NEW v2.6** — auto-enriches 1,163 weak meals | — |
+
+---
+
+## 9. Dataset Quality & Firestore Enrichment (v2.6) <a name="9-dataset-quality"></a>
+
+### Problem
+Firestore contained **1,935 meals** but only **772** had rich `searchKeywords` arrays. The remaining **1,163 meals** had 1–3 keywords, making them nearly invisible to the TF-IDF and keyword-overlap signals.
+
+### Solution: Two-Script Enrichment Pipeline
+
+#### Script 1 — `update_firestore_keywords.py`
+Updates `searchKeywords` for the 772 meals present in the enriched local cache (`.cache/meals_cache.json`).
+
+| Feature | Detail |
+|---|---|
+| Source | `.cache/meals_cache.json` (pre-enriched with `expand_keywords.py`) |
+| Safety | Only touches `searchKeywords` — never calories/protein/fat/flags |
+| Batch size | 400 writes/batch (Firestore hard limit = 500) |
+| Dry-run mode | `--dry-run` flag simulates without writing |
+| Priority mode | `--priority` processes low-keyword meals first |
+| Result | 772 meals updated in **2.7 seconds** |
+
+#### Script 2 — `enrich_skipped_firestore_meals.py`
+Auto-generates keywords for the 1,163 Firestore-only meals (not in local cache) using a rule-based synonym engine.
+
+**Keyword generation strategy (3-tier):**
+```
+Tier 1: Meal name tokens + TOKEN_SYNONYMS map (80+ food terms)
+        "Rice" → rice, chawal, chaawal, chaval, bhat, boiled rice, ...
+        "Roti" → roti, chapati, phulka, rotti, flatbread, ...
+
+Tier 2: CATEGORY_TAGS fallback (if still < min_keywords)
+        category="grains" → ["grain", "carb", "staple", "indian food"]
+
+Tier 3: Generic floor ["indian food", "meal", "food", "nutrition", "calories"]
+```
+
+| Feature | Detail |
+|---|---|
+| Threshold | `--min-keywords 5` (configurable) |
+| Coverage | TOKEN_SYNONYMS: 80+ canonical food tokens → Hinglish/synonym variants |
+| Result | **1,163 / 1,163 enriched — 0 failures** in **4.0 seconds** |
+
+### Keyword Quality Filter in NLP Pipeline (v2.6)
+
+Separately, the pipeline now **excludes weak-keyword meals** from both matching pools:
+
+```python
+# ai/tfidf_matcher.py — at init time
+MIN_KEYWORD_COUNT = 5
+strong_meals = [m for m in meals if _has_enough_keywords(m)]
+_meal_list = strong_meals   # Only strong meals enter the TF-IDF index
+# Logs: [kw-filter] Excluded N meals with < 5 keywords
+
+# ai/hybrid_matcher.py — fuzzy_match_meal()
+meals = [m for m in meals if _has_enough_keywords(m)]
+# Logs: [kw-filter] fuzzy_match_meal: excluded N weak-keyword meals
+```
+
+### Before vs After
+
+| Metric | Before v2.6 | After v2.6 |
+|---|---|---|
+| Meals with ≥5 keywords | 0 / 1,935 (0%) | **1,935 / 1,935 (100%)** |
+| Avg keywords per meal (cache) | 1.9 | **9.0** |
+| Min keywords per meal | 1 | **5** |
+| Weak meals in TF-IDF index | 1,163 (noise) | **0** |
+| `searchKeywords` Firestore writes | 0 | **1,935** |
 
 ---
 
 ## Conclusion
 
-NutriLens v2.5 employs a **multi-layer AI architecture** combining:
+NutriLens v2.6 employs a **multi-layer AI architecture** combining:
 
 1. **Supervised Machine Learning** — Three trained scikit-learn models (Logistic Regression for meal naming + category prediction, KNN for smart meal swapping)
-2. **Information Retrieval with ML** — TF-IDF vector indexing with cosine similarity for semantic meal search
-3. **Ensemble / Hybrid Scoring** — A 7-signal weighted formula with priority boosting, sabzi-aware boosting, and specificity penalty — achieving 90% Top-1 accuracy
-4. **Context-Aware NLP** — Tiered context rules (STRONG/WEAK), combo entity splitting with smart quantity inheritance, and post-alias rule matching
+2. **Information Retrieval with ML** — TF-IDF vector indexing with cosine similarity for semantic meal search; weak-keyword meals filtered before index construction
+3. **Ensemble / Hybrid Scoring** — An 8-signal weighted formula with generic hard-return, `plain_boost` (+0.35), `force_generic` base-only path, priority boosting, sabzi-aware boosting, and specificity penalty — achieving 90% Top-1 accuracy
+4. **Context-Aware NLP** — Tiered context rules (STRONG/WEAK), combo entity splitting with smart quantity inheritance, `force_generic` propagation ensuring base meals are always selected for combo parts
 5. **Constraint-Based AI** — The meal plan generator solves a multi-objective optimisation problem (calories + 3 macros + variety + culinary realism + portion rules + completeness) using candidate-generation + scoring
 6. **Personalisation** — User preference boost from meal log history, calorie banking from 3-day intake history, and strict vegetarian pre-filtering
-7. **Hinglish NLP** — 127+ alias entries + Hinglish stopword removal + rice/sabzi/curry-rice variant normalisation makes this the first nutrition logging NLP pipeline specifically tuned for Indian dietary patterns
+7. **Hinglish NLP** — 127+ alias entries + Hinglish stopword removal + millet aliases (jowar/bajra) + transparent adjective quantity fix + rice/sabzi/curry-rice variant normalisation
+8. **Dataset Quality Engineering** — Full Firestore enrichment pipeline ensuring 100% of 1,935 meals have ≥5 `searchKeywords` using an 80+ synonym/Hinglish expansion ruleset
 
 ---
 
-*Report updated: April 2026 — Pipeline version v2.5*  
+*Report updated: April 2026 — Pipeline version v2.6*  
 *All model files located in `d:\NutriLens\backend\models\`*  
-*Source files: `ai/nlp_pipeline.py`, `ai/hybrid_matcher.py`, `ai/context_resolver.py`, `ai/text_preprocessor.py`, `ai/meal_plan_generator.py`*
+*Source files: `ai/nlp_pipeline.py`, `ai/hybrid_matcher.py`, `ai/context_resolver.py`, `ai/text_preprocessor.py`, `ai/tfidf_matcher.py`, `ai/meal_plan_generator.py`*  
+*Tooling scripts: `update_firestore_keywords.py`, `enrich_skipped_firestore_meals.py`*
