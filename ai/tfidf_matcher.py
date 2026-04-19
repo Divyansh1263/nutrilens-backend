@@ -23,6 +23,19 @@ _meal_list = []       # parallel list of meal dicts
 _meal_texts = []      # parallel list of text representations
 _category_index = {}  # category -> list of indices
 
+# ── TASK 1: Minimum keyword quality gate ─────────────────────────────────
+# Meals with fewer than MIN_KEYWORD_COUNT searchKeywords are excluded from
+# the TF-IDF candidate pool and from fuzzy matching.  This prevents weak,
+# under-described meals from leaking into pipeline results.
+MIN_KEYWORD_COUNT = 5
+
+
+def _has_enough_keywords(meal: dict) -> bool:
+    """Return True if the meal meets the minimum keyword quality threshold."""
+    kws = meal.get("searchKeywords") or []
+    return len(kws) >= MIN_KEYWORD_COUNT
+
+
 
 def load_tfidf_cache(cache_path=None):
     """
@@ -86,7 +99,19 @@ def init_tfidf_matcher(meals):
             return  # Cache is fresh enough
 
     # ── Build from scratch ────────────────────────────────────────────────
-    _meal_list = meals
+    # ── TASK 1: Filter out meals with < MIN_KEYWORD_COUNT keywords ───────────
+    weak_meals = [m for m in meals if not _has_enough_keywords(m)]
+    strong_meals = [m for m in meals if _has_enough_keywords(m)]
+    if weak_meals:
+        print(
+            f"[kw-filter] Excluded {len(weak_meals)} meals with < {MIN_KEYWORD_COUNT} "
+            f"keywords from TF-IDF index  "
+            f"({len(strong_meals)} retained out of {len(meals)} total)"
+        )
+        for m in weak_meals[:5]:  # sample log
+            kc = len(m.get('searchKeywords') or [])
+            print(f"  [kw-filter] skipped '{m.get('mealName')}' ({kc} kws)")
+    _meal_list = strong_meals
     _meal_texts = []
     _category_index = {}
 

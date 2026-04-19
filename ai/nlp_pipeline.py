@@ -243,6 +243,7 @@ def process_meal_text(text, user_id, date, db=None):
     expanded_quantities     = dict(resolved_quantities)
     expanded_context_scores = dict(context_scores)
     expanded_priorities     = {}   # TASK 2: entity → priority_score
+    expanded_force_generic  = {}   # TASK 3: True for entities from combo splits
 
     for entity in resolved_entities:
         if entity in COMBO_SPLIT_MAP:
@@ -271,10 +272,12 @@ def process_meal_text(text, user_id, date, db=None):
                 expanded_context_scores[part] = 0.0  # pair already resolved
                 # TASK 2: assign priority by part type
                 expanded_priorities[part] = 1.0 if part.lower() in PRIMARY_FOODS else 0.8
+                expanded_force_generic[part] = True   # TASK 3: force generic
         else:
             expanded_entities.append(entity)
             # TASK 2: priority for non-combo entities
             expanded_priorities[entity] = 1.0 if entity.lower() in PRIMARY_FOODS else 0.8
+            expanded_force_generic[entity] = False  # TASK 3: native entity — normal matching
 
     print(f"[Step 6b] after combo_split: {expanded_entities}")
     print(f"[Step 6b] priorities: {expanded_priorities}")
@@ -283,6 +286,7 @@ def process_meal_text(text, user_id, date, db=None):
         quantity      = expanded_quantities.get(entity, 1)
         ctx_score     = expanded_context_scores.get(entity, 0.0)
         priority_score = expanded_priorities.get(entity, 0.8)  # TASK 2
+        force_generic  = expanded_force_generic.get(entity, False)  # TASK 3
 
         # Step 7: Predict category + TASK 4/7: extract confidence
         first_word = entity.split()[0]
@@ -312,6 +316,7 @@ def process_meal_text(text, user_id, date, db=None):
             context_score=ctx_score,
             category_confidence=category_confidence,
             entity_priority=priority_score,   # TASK 1: pass priority
+            force_generic=force_generic,       # TASK 3: base-only for combo parts
         )
 
         match_debug = {

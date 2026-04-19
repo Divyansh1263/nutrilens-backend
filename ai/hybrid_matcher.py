@@ -12,7 +12,10 @@
 #   8. TASK 7: Logs final_score after penalty + category_confidence
 
 from rapidfuzz import fuzz
-from ai.tfidf_matcher import tfidf_match, get_all_meals
+from ai.tfidf_matcher import (
+    tfidf_match, get_all_meals,
+    MIN_KEYWORD_COUNT, _has_enough_keywords,   # Task 1: keyword quality gate
+)
 
 # -----------------------------------------------
 # Scoring weights  (must sum to 1.0)
@@ -34,6 +37,17 @@ CATEGORY_CONFIDENCE_THRESHOLD = 0.60
 # Minimum hybrid score to accept a match
 CONFIDENCE_THRESHOLD = 0.30
 
+# ── TASK 4: Disable category influence globally ───────────────────────────
+# Set True to zero out category weights during scoring.
+# This prevents the food-category classifier from excluding valid meals
+# when the classifier is uncertain (e.g. 'rice' classified as 'snack').
+IGNORE_CATEGORY = True
+
+# ── Keyword quality gate (mirrors tfidf_matcher.MIN_KEYWORD_COUNT) ───────────
+# Meals below this threshold are excluded from BOTH TF-IDF and fuzzy pools.
+# Value must match tfidf_matcher.MIN_KEYWORD_COUNT for consistency.
+HYBRID_MIN_KEYWORDS = MIN_KEYWORD_COUNT   # = 5
+
 # -----------------------------------------------
 # Entity Confidence Filter — OR logic
 # Discard entity only when BOTH signals are weak
@@ -49,6 +63,16 @@ def fuzzy_match_meal(query, meals, top_k=5):
     Returns:
         list of (meal_dict, fuzzy_score_0_to_1) tuples
     """
+    # ── TASK 1: Exclude weak-keyword meals from fuzzy pool ──────────────────
+    pre_filter_count = len(meals)
+    meals = [m for m in meals if _has_enough_keywords(m)]
+    excluded = pre_filter_count - len(meals)
+    if excluded > 0:
+        print(
+            f"[kw-filter] fuzzy_match_meal: excluded {excluded} weak-keyword meals "
+            f"({len(meals)} remain from {pre_filter_count})"
+        )
+
     scored = []
     query_lower = query.lower()
 
@@ -100,7 +124,8 @@ def fuzzy_match_meal(query, meals, top_k=5):
 
 
 def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
-                 category_confidence=None, entity_priority=0.8):
+                 category_confidence=None, entity_priority=0.8,
+                 force_generic=False):
     """
     Combine TF-IDF similarity, fuzzy matching, category agreement,
     and context score into a single weighted score.
@@ -123,16 +148,20 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
     Returns:
         list of dicts sorted by final score desc
     """
-    # TASK 4: Disable category filter when confidence is low
-    effective_category = predicted_category
-    if (
+    # TASK 4 (prev) + new IGNORE_CATEGORY: Disable category filtering
+    # IGNORE_CATEGORY=True zeros out category weight for all queries.
+    # Low-confidence gate still applies when IGNORE_CATEGORY is False.
+    effective_category = None if IGNORE_CATEGORY else predicted_category
+    if IGNORE_CATEGORY:
+        print("[hybrid] IGNORE_CATEGORY=True — category filter disabled globally")
+    elif (
         category_confidence is not None
         and category_confidence < CATEGORY_CONFIDENCE_THRESHOLD
     ):
         effective_category = None
         print(
             f"[hybrid] Low category confidence ({category_confidence:.2f}) "
-            f"< {CATEGORY_CONFIDENCE_THRESHOLD} → category filter DISABLED, using full dataset"
+            f"< {CATEGORY_CONFIDENCE_THRESHOLD} → category filter DISABLED"
         )
 
     # TASK 7: Log category confidence
@@ -210,18 +239,32 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
         if not passes_filter:
             continue
 
-        # ── Adaptive Category Weighting ───────────────────────────────────────
-        # When TF-IDF is highly confident, category signal adds noise
-        if tfidf_s > 0.8:
+        # ── TASK 3: force_generic filter ───────────────────────────────────────────
+        # When force_generic=True (combo-split entity), only allow meals
+        # whose searchKeywords contain the exact bare query term.
+        if force_generic:
+            kws_lower = [k.lower() for k in (meal.get("searchKeywords") or meal.get("aliases") or [])]
+            meal_exact = (meal.get("mealName") or "").lower()
+            if query_lower not in kws_lower and meal_exact != query_lower:
+                print(f"[forced_generic] Skipping '{name}' — no exact keyword '{query_lower}'")
+                continue
+
+        # ── Adaptive Category Weighting (IGNORE_CATEGORY=True zeroes w_cat) ─────────
+        # IGNORE_CATEGORY globally zeroes category influence (Task 4).
+        # Fallback: when TF-IDF is highly confident, w_cat is also zeroed.
+        if IGNORE_CATEGORY:
             w_cat   = 0.0
-            w_tfidf = W_TFIDF + W_CATEGORY   # redistribute
+            w_tfidf = W_TFIDF + W_CATEGORY   # absorb category weight into TF-IDF
+        elif tfidf_s > 0.8:
+            w_cat   = 0.0
+            w_tfidf = W_TFIDF + W_CATEGORY
         else:
             w_cat   = W_CATEGORY
             w_tfidf = W_TFIDF
 
         # Category match: 1.0 if meal's category equals predicted
         cat_match = 0.0
-        if predicted_category:
+        if predicted_category and not IGNORE_CATEGORY:
             meal_category = meal.get("category", "").lower()
             if meal_category == predicted_category.lower():
                 cat_match = 1.0
@@ -259,6 +302,20 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
         if name.lower() == query_lower:
             final_score += EXACT_MATCH_BOOST
             print(f"[hybrid] '{name}' EXACT MATCH → +{EXACT_MATCH_BOOST}")
+
+        # ── TASK 2: Plain meal boost ───────────────────────────────────────────
+        # Generic/base meals are boosted so they beat flavored variants
+        # when the query is a bare staple like 'rice', 'dal', 'roti'.
+        # +0.20 if 'plain' appears in meal name; +0.15 extra if name STARTS with 'plain'.
+        name_lower_plain = name.lower()
+        plain_boost = 0.0
+        if "plain" in name_lower_plain:
+            plain_boost += 0.20
+        if name_lower_plain.startswith("plain"):
+            plain_boost += 0.15
+        if plain_boost > 0.0:
+            final_score += plain_boost
+            print(f"[hybrid] '{name}' PLAIN BOOST +{plain_boost:.2f}")
 
         # ── TASK 3: Specificity penalty (raised 0.05→0.07) ─────────────────
         # Subtract 0.07 per word in the meal name.
@@ -301,9 +358,18 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
 
 
 def resolve_best_meal(query, predicted_category=None, context_score=0.0,
-                      category_confidence=None, entity_priority=0.8):
+                      category_confidence=None, entity_priority=0.8,
+                      force_generic=False):
     """
     Find the single best meal match for a food entity.
+
+    TASK 4 (Generic Match Enforcement):
+    If the query is a single bareword (e.g. "rice", "dal", "roti"),
+    we first look for a meal whose searchKeywords contains that exact word.
+    The SHORTEST matching meal name is preferred (most generic = fewest words).
+    This prevents flavoured variants (e.g. "Fried Rice") from winning over
+    "Plain Rice" when the user just says "rice".
+    Logs the enforcement decision as [hybrid-generic] (Task 6).
 
     Args:
         query:               food entity string
@@ -317,6 +383,50 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
     """
     print(f"\n[hybrid] Matching query: '{query}' (priority={entity_priority:.1f})")
 
+    # ── TASK 4: Generic keyword-exact match for single-word queries ───────────
+    GENERIC_KEYWORDS = {"rice", "dal", "roti", "daal", "bread"}
+    query_lower = query.strip().lower()
+
+    is_generic_query = query_lower in GENERIC_KEYWORDS and " " not in query_lower
+
+    if is_generic_query or force_generic:
+        all_meals = get_all_meals()
+        keyword_matches = []
+        for meal in all_meals:
+            kws = [k.lower() for k in (meal.get("searchKeywords") or meal.get("aliases") or [])]
+            meal_name_lower = (meal.get("mealName") or "").lower()
+            if query_lower in kws or meal_name_lower == query_lower:
+                keyword_matches.append(meal)
+
+        if keyword_matches:
+            # Prefer shortest name (most generic = fewest words)
+            keyword_matches.sort(key=lambda m: len((m.get("mealName") or "").split()))
+            best_generic = keyword_matches[0]
+            if force_generic and not is_generic_query:
+                # TASK 3 + TASK 5
+                print(
+                    f"[forced_generic] combo-split triggered base-only selection "
+                    f"for '{query}' → '{best_generic.get('mealName')}' "
+                    f"({len(keyword_matches)} candidates)"
+                )
+            else:
+                # TASK 1 + TASK 5: hard return, no hybrid fallback
+                print(
+                    f"[generic_return] '{query}' → '{best_generic.get('mealName')}' "
+                    f"(keyword-exact, {len(keyword_matches)} candidates) — HARD RETURN"
+                )
+            return best_generic, 1.0  # TASK 1: hard return
+
+        if force_generic:
+            print(f"[forced_generic] No keyword-exact meal for '{query}'; returning None")
+            return None, 0.0
+
+        print(
+            f"[generic_return] No keyword-exact hit for '{query}'; "
+            f"falling back to hybrid scoring"
+        )
+
+    # ── Standard hybrid scoring path ─────────────────────────────────────────
     candidates = hybrid_match(
         query,
         predicted_category=predicted_category,
@@ -324,6 +434,7 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
         top_k=3,
         category_confidence=category_confidence,
         entity_priority=entity_priority,
+        force_generic=force_generic,
     )
 
     if not candidates:

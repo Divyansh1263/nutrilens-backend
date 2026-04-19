@@ -100,6 +100,13 @@ FOOD_ALIAS_MAP = {
     "rava": "semolina",
     "maida": "refined flour",
     "besan": "gram flour",
+    # TASK 2: Millet / grain variety aliases
+    # 'jawar' -> 'jowar': spelling correction only (not dish expansion).
+    # Multi-word forms ('jawar roti', 'jowar roti', etc.) are handled in
+    # MULTI_WORD_ALIAS_MAP (Pass 1) which runs before single-token aliases.
+    # Single bare tokens ('jowar', 'bajra') are resolved by phrase_detector
+    # which collapses them back into compound dish names using the meal list.
+    "jawar": "jowar",          # spelling alias: jawar -> jowar
     # ── Legumes / Lentils ────────────────────────────────────────────────────
     "chana": "chickpeas",
     "chole": "chickpeas",
@@ -168,6 +175,15 @@ MULTI_WORD_ALIAS_MAP = {
     "gravy rice":     "dal chawal",
     "sabzi rice":     "dal chawal",
     "dal rice":       "dal chawal",
+    # TASK 2 + TASK 5: Multi-word millet-roti phrases treated as single entities.
+    # These MUST be matched in Pass 1 (multi-word) BEFORE Pass 2 (single-token)
+    # so "jowar" is NOT expanded to "jowar roti" a second time.
+    "jawar roti":  "jowar roti",   # misspelling → canonical
+    "jowar roti":  "jowar roti",   # canonical already; keeps it intact
+    "bajra roti":  "bajra roti",   # canonical
+    "ragi roti":   "ragi roti",    # canonical
+    "makki roti":  "makki roti",   # canonical (maize flatbread)
+    "makai roti":  "makki roti",   # alternate spelling
 }
 
 # Module-level cache (populated by init)
@@ -268,7 +284,11 @@ def normalize_aliases(tokens):
     for token in result_pass1:
         if token in FOOD_ALIAS_MAP:
             canonical = FOOD_ALIAS_MAP[token]
-            print(f"[alias] '{token}' → '{canonical}'")
+            # TASK 6: Specific log tag for jawar/jowar alias resolution
+            if token in ("jawar", "jowar"):
+                print(f"[alias-jowar] Resolved millet alias '{token}' → '{canonical}'")
+            else:
+                print(f"[alias] '{token}' → '{canonical}'")
             # Canonical may be multi-word (e.g., "gram flour")
             result_pass2.extend(canonical.split())
         else:
