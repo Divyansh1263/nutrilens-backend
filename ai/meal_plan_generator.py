@@ -2,13 +2,14 @@
 # Meal Plan Generator v3 — Macro-balanced, protein-prioritised
 #
 # IMPROVEMENTS over v2:
-#   1. Macro Balancing Solver — penalises deviation from slot-proportional macro targets
-#      (protein deviation is double-weighted)
-#   2. Protein Prioritisation — protein density score rewards high-protein candidates
-#   3. Calorie Tolerance ±3% — applied AFTER portion rules so portioned calories are used
-#   4. Fixed _apply_portions() — quantities strictly follow PORTION_RULES, no calorie-deficit scaling
-#   5. Meal logging correctness — each item appears once with a quantity field
+#   1. Macro Balancing Solver
+#   2. Protein Prioritisation
+#   3. Calorie Tolerance ±3%
+#   4. Fixed _apply_portions()
+#   5. Meal logging correctness
 #   6. Combined candidate score inside solve_meal()
+#   TASK 6: is_vegetarian strict filter applied BEFORE scoring (per meal type)
+#   TASK 5/6: Calorie-aware penalty added to candidate scoring + debug logging
 
 import random
 import copy
@@ -32,7 +33,8 @@ MEAL_SPLIT = {
 NUM_CANDIDATES = 10
 
 # Penalty applied per recent occurrence of the same meal (variety control)
-VARIETY_PENALTY = -3
+# Raised -3 → -8 (TASK 4) for stronger diversity enforcement
+VARIETY_PENALTY = -8
 
 
 # ==============================================================================
@@ -410,6 +412,92 @@ def _compute_variety_penalty(items, recent_meals):
     return penalty
 
 
+# TASK 4: Meal completeness check
+# Keywords defining carb sources and protein sources for balance check.
+_CARB_KEYWORDS   = {
+    "rice", "roti", "chapati", "chapatti", "naan", "paratha",
+    "bread", "poha", "upma", "idli", "dosa", "oats", "millet",
+}
+_PROTEIN_KEYWORDS = {
+    "dal", "lentil", "paneer", "egg", "chicken", "mutton", "fish",
+    "prawn", "tofu", "chana", "rajma", "chole", "moong", "soya",
+    "curd", "yogurt", "dahi",
+}
+
+
+# Minimum protein grams for an item to count as a protein source (TASK 5)
+MIN_PROTEIN_G = 5.0
+
+
+def _check_meal_completeness(items):
+    """
+    TASK 4 + TASK 5: Ensure candidate has at least one carb + one protein source.
+
+    TASK 5 addition: An item only counts as a protein source when its protein
+    field is ≥ MIN_PROTEIN_G (5g). Items labelled as protein by name/food_group
+    but with negligible protein content are excluded.
+
+    Returns:
+        (is_complete: bool, penalty: float, details: str)
+    """
+    has_carb    = False
+    has_protein = False
+    protein_log = []   # TASK 6: per-item protein detection log
+
+    for item in items:
+        name_lower = item.get("mealName", "").lower()
+        food_group = item.get("food_group", "").lower()
+        item_protein = item.get("protein", 0) or 0
+
+        if not has_carb:
+            has_carb = (
+                any(kw in name_lower for kw in _CARB_KEYWORDS)
+                or food_group in {"grain", "bread", "cereal"}
+            )
+
+        if not has_protein:
+            # Check name/food_group match first
+            name_or_group_match = (
+                any(kw in name_lower for kw in _PROTEIN_KEYWORDS)
+                or food_group in {"legume", "protein", "dairy", "meat", "poultry"}
+            )
+            # TASK 5: also require protein quantity ≥ MIN_PROTEIN_G
+            if name_or_group_match:
+                if item_protein >= MIN_PROTEIN_G:
+                    has_protein = True
+                    protein_log.append(
+                        f"{item.get('mealName','?')}(protein={item_protein:.1f}g ✓)"
+                    )
+                else:
+                    # Name matched but protein too low — skip
+                    protein_log.append(
+                        f"{item.get('mealName','?')}(protein={item_protein:.1f}g<{MIN_PROTEIN_G}g ✗)"
+                    )
+            else:
+                protein_log.append(
+                    f"{item.get('mealName','?')}(no_protein_match)"
+                )
+
+        if has_carb and has_protein:
+            break
+
+    is_complete = has_carb and has_protein
+    missing = []
+    if not has_carb:
+        missing.append("carb")
+    if not has_protein:
+        missing.append("protein")
+
+    COMPLETENESS_PENALTY = -5.0
+    penalty  = COMPLETENESS_PENALTY if not is_complete else 0.0
+    details  = "OK" if is_complete else f"missing={missing}"
+
+    # TASK 6: always print protein detection result
+    print(f"[completeness] {details}  protein_detection={protein_log}")
+
+    return is_complete, penalty, details
+
+
 def solve_meal(pattern, candidates, target_calories, target_macros=None, recent_meals=None):
     """
     REFACTORED solve_meal() v3 — macro-balanced, protein-prioritised.
@@ -468,11 +556,38 @@ def solve_meal(pattern, candidates, target_calories, target_macros=None, recent_
         protein_density_score = _compute_protein_density_score(items)
         variety_penalty       = _compute_variety_penalty(items, recent_meals)
 
+        # TASK 3: Calorie-aware penalty (upgraded to convex power formula)
+        # Large deviations are penalised exponentially; small ones stay cheap.
+        # Old: |diff|/target * 0.3   New: (|diff|/target)^1.5 * 0.4
+        raw_cals = sum(item.get("calories", 0) or 0 for item in items)
+        if target_calories and target_calories > 0:
+            cal_ratio = abs(raw_cals - target_calories) / target_calories
+            calorie_penalty = (cal_ratio ** 1.5) * 0.4
+        else:
+            calorie_penalty = 0.0
+
+        # TASK 4: Meal completeness check
+        is_complete, completeness_penalty, completeness_details = _check_meal_completeness(items)
+
         total_score = (
             compat_score
             + macro_score
             + protein_density_score
             + variety_penalty
+            - calorie_penalty            # TASK 3
+            + completeness_penalty       # TASK 4 (0 or -5)
+        )
+
+        # TASK 5 / TASK 6: Debug log per candidate
+        item_names = [i.get("mealName", "?") for i in items]
+        print(
+            f"[solve_meal] attempt={attempt+1}  items={item_names}  "
+            f"raw_cal={raw_cals:.0f}  target_cal={target_calories:.0f}  "
+            f"cal_penalty={calorie_penalty:.3f}  "
+            f"completeness={completeness_details}  comp_penalty={completeness_penalty:.1f}  "
+            f"compat={compat_score:.2f}  macro={macro_score:.2f}  "
+            f"protein_density={protein_density_score:.2f}  variety={variety_penalty:.1f}  "
+            f"total_score={total_score:.3f}"
         )
 
         # Step 3: Track best candidate
@@ -520,32 +635,68 @@ def solve_meal(pattern, candidates, target_calories, target_macros=None, recent_
 # 5. ORCHESTRATOR
 # ==============================================================================
 
-def generate_full_meal_plan(target, meals_by_type, recent_meals=None):
+def generate_full_meal_plan(target, meals_by_type, recent_meals=None, is_vegetarian=False):
     """
     ISSUE 1 FIX: Sequential Macro-Aware Generation.
-    
+
     Generate a complete daily meal plan with sequential macro tracking.
     After each meal, remaining macros are updated so subsequent meals compensate.
 
-    Algorithm:
-      1. Initialize remaining = daily targets
-      2. For each meal (breakfast → snack → lunch → dinner):
-         a. Compute target as remaining macros (not fixed split ratio)
-         b. Generate meal using remaining macros as target
-         c. Subtract actual meal macros from remaining
-         d. Clamp remaining to prevent negatives
-      3. Final validation: check if totals within tolerance
+    TASK 6: Vegetarian Pre-filter.
+    When is_vegetarian=True, each meal type pool is filtered to only meals
+    where is_vegetarian==True BEFORE any scoring takes place.
+    Falls back to the full pool for a meal type if no vegetarian meals exist.
 
     Args:
         target:        dict with {calories, protein, carbs, fat}
         meals_by_type: dict with {Breakfast: [...], Lunch: [...], ...}
         recent_meals:  optional set of meal names from last 3 days
+        is_vegetarian: if True, filter each pool to vegetarian meals only
 
     Returns:
         plan dict with total_calories and validation status
     """
     if recent_meals is None:
         recent_meals = set()
+
+    # ── TASK 6 / strict TASK 4: Vegetarian pre-filter (applied BEFORE scoring) ─
+    if is_vegetarian:
+        # Non-veg keywords that must NOT appear in mealName (case-insensitive)
+        NON_VEG_KEYWORDS = {"chicken", "mutton", "fish", "egg"}
+
+        def _is_strict_veg(meal):
+            """Meal passes if flagged vegetarian AND name contains no non-veg word."""
+            if meal.get("is_vegetarian") is not True:
+                return False
+            name_lower = meal.get("mealName", "").lower()
+            return not any(kw in name_lower for kw in NON_VEG_KEYWORDS)
+
+        filtered_by_type = {}
+        for meal_type, meals in meals_by_type.items():
+            veg_meals = [m for m in meals if _is_strict_veg(m)]
+            if veg_meals:
+                filtered_by_type[meal_type] = veg_meals
+                print(
+                    f"[Meal Plan] Strict-veg filter: {meal_type} pool "
+                    f"{len(meals)} → {len(veg_meals)} (veg-only, non-veg keywords excluded)"
+                )
+            else:
+                # Fallback: relax keyword check, keep flag-only filter
+                flag_only = [m for m in meals if m.get("is_vegetarian") is True]
+                if flag_only:
+                    filtered_by_type[meal_type] = flag_only
+                    print(
+                        f"[Meal Plan] Strict-veg filter: {meal_type} — "
+                        f"no strict-veg meals; relaxed to is_vegetarian flag only "
+                        f"({len(flag_only)} meals)"
+                    )
+                else:
+                    filtered_by_type[meal_type] = meals
+                    print(
+                        f"[Meal Plan] Strict-veg filter: {meal_type} — "
+                        f"no veg meals at all, using full pool ({len(meals)} meals)"
+                    )
+        meals_by_type = filtered_by_type
 
     # STEP 1: Initialize remaining targets
     remaining = {

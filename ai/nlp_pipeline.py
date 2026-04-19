@@ -2,11 +2,14 @@
 # Main NLP pipeline orchestrator — chains all stages together
 # 12-step hybrid NLP pipeline for meal logging
 #
-# IMPROVEMENTS (v2.1):
+# IMPROVEMENTS (v2.5):
 #   - Alias normalization stage (new step between clean + spell)
 #   - Context scoring (feeds into hybrid matcher as 4th signal)
 #   - Debug logging to Firestore nlp_debug_logs collection
 #   - PIPELINE_CACHE global for cold-start performance
+#   - TASK 4: category_confidence extracted + passed to resolve_best_meal
+#   - TASK 7: category confidence logged per entity
+#   - TASK 1/5: COMBO_SPLIT_MAP — combo entities expanded before hybrid matching
 
 from ai.text_preprocessor import (
     init_preprocessor, clean_text, correct_spelling, normalize_aliases
@@ -33,6 +36,26 @@ PIPELINE_CACHE = {
     # "phrases":    set by phrase_detector.init_phrase_detector()
     # "vocab":      set by text_preprocessor.init_preprocessor()
     # "classifier": loaded by food_category_model at import time
+}
+
+# -----------------------------------------------
+# TASK 1: Combo Split Map
+# Context resolver may produce combo names (e.g. "Dal Roti").
+# These are NOT real meal entries — split them into constituent
+# entities so EACH component is matched individually by the
+# hybrid matcher, producing correct separate nutritional entries.
+# -----------------------------------------------
+COMBO_SPLIT_MAP = {
+    # legume + bread
+    "Dal Roti":    ["dal",  "roti"],
+    # legume + rice
+    "Dal Chawal":  ["dal",  "rice"],
+    "Rice Dal":    ["dal",  "rice"],
+    "Chawal Dal":  ["dal",  "rice"],
+    # dairy + rice
+    "Curd Rice":   ["curd", "rice"],
+    # bread + vegetable ("sabzi" → "mixed vegetable sabzi" by Step 2)
+    "Roti Sabzi":  ["roti", "mixed vegetable sabzi"],
 }
 
 
@@ -204,25 +227,97 @@ def process_meal_text(text, user_id, date, db=None):
     logged_items = []
     debug_log["matches"] = []
 
-    for entity in resolved_entities:
-        quantity = resolved_quantities.get(entity, 1)
-        ctx_score = context_scores.get(entity, 0.0)
+    # TASK 1: Expand combo entities before hybrid matching
+    # Build the final working list with smart quantity assignment:
+    #   - Bread-type parts (roti, chapati) inherit the combo quantity
+    #     (user likely said "3 roti" before it was context-resolved)
+    #   - All other parts (dal, rice, curd, sabzi) default to qty 1
+    # ----------------------------------------------------------------
+    # TASK 2: Primary food priority
+    # Primary foods are staple carb bases — their query signal is stronger
+    PRIMARY_FOODS = {"rice", "roti", "chapati", "chapatti", "naan", "paratha"}
 
-        # Step 7: Predict category
+    BREAD_PARTS = {"roti", "chapati", "chapatis", "chapatti", "naan", "paratha"}
+
+    expanded_entities       = []
+    expanded_quantities     = dict(resolved_quantities)
+    expanded_context_scores = dict(context_scores)
+    expanded_priorities     = {}   # TASK 2: entity → priority_score
+
+    for entity in resolved_entities:
+        if entity in COMBO_SPLIT_MAP:
+            parts     = COMBO_SPLIT_MAP[entity]
+            combo_qty = resolved_quantities.get(entity, 1)
+
+            # TASK 1: Smart quantity per part
+            part_qty_map = {}
+            for part in parts:
+                if part.lower() in BREAD_PARTS:
+                    part_qty_map[part] = combo_qty   # bread inherits count
+                else:
+                    part_qty_map[part] = 1           # liquids/grains default 1
+
+            # TASK 5: Log with per-part quantities
+            print(
+                f"[combo_split] '{entity}' \u2192 {part_qty_map}"
+            )
+            debug_log.setdefault("combo_splits", []).append(
+                {"combo": entity, "parts": part_qty_map}
+            )
+
+            for part in parts:
+                expanded_entities.append(part)
+                expanded_quantities[part]     = part_qty_map[part]
+                expanded_context_scores[part] = 0.0  # pair already resolved
+                # TASK 2: assign priority by part type
+                expanded_priorities[part] = 1.0 if part.lower() in PRIMARY_FOODS else 0.8
+        else:
+            expanded_entities.append(entity)
+            # TASK 2: priority for non-combo entities
+            expanded_priorities[entity] = 1.0 if entity.lower() in PRIMARY_FOODS else 0.8
+
+    print(f"[Step 6b] after combo_split: {expanded_entities}")
+    print(f"[Step 6b] priorities: {expanded_priorities}")
+
+    for entity in expanded_entities:
+        quantity      = expanded_quantities.get(entity, 1)
+        ctx_score     = expanded_context_scores.get(entity, 0.0)
+        priority_score = expanded_priorities.get(entity, 0.8)  # TASK 2
+
+        # Step 7: Predict category + TASK 4/7: extract confidence
         first_word = entity.split()[0]
         category = predict_category(first_word)
-        print(f"[Step 7] predict_category('{entity}'): {category}")
+
+        # TASK 4 + TASK 7: Attempt to retrieve classifier confidence
+        # Uses predict_proba if available; defaults to None (no confidence gate)
+        category_confidence = None
+        try:
+            from ai.food_category_model import model as _cat_model
+            proba = _cat_model.predict_proba([first_word])[0]
+            category_confidence = float(max(proba))
+        except Exception:
+            pass  # Model doesn't support predict_proba — gate stays off
+
+        # TASK 7: Log category + confidence
+        conf_str = f"{category_confidence:.2f}" if category_confidence is not None else "N/A"
+        print(
+            f"[Step 7] predict_category('{entity}'): '{category}' "
+            f"(confidence={conf_str}, priority={priority_score:.1f})"
+        )
 
         # Steps 8-11: Hybrid matching (TF-IDF + fuzzy + category + context)
         meal, confidence = resolve_best_meal(
             entity,
             predicted_category=category,
             context_score=ctx_score,
+            category_confidence=category_confidence,
+            entity_priority=priority_score,   # TASK 1: pass priority
         )
 
         match_debug = {
             "entity": entity,
             "category": category,
+            "category_confidence": round(category_confidence, 3) if category_confidence is not None else None,
             "context_score": ctx_score,
         }
 
@@ -235,7 +330,7 @@ def process_meal_text(text, user_id, date, db=None):
             continue
 
         print(f"[Step 11] ✅ '{entity}' → '{meal['mealName']}' "
-              f"(confidence={confidence:.3f})")
+              f"(confidence={confidence:.3f}, priority={priority_score:.1f})")
 
         # Step 12: User preference boost
         confidence = _apply_user_preference(

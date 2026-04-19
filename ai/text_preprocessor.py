@@ -2,6 +2,7 @@
 # Stage 1: Text cleaning + spelling correction + alias normalization
 #
 # IMPROVEMENT (v2.1):
+# IMPROVEMENT (v2.4 TASK 3): Added curry-rice multi-word aliases
 #   Added food alias normalization — maps regional names to
 #   canonical English food words before entity extraction.
 #   Examples: dahi → curd, bhindi → okra, baingan → eggplant
@@ -121,9 +122,12 @@ FOOD_ALIAS_MAP = {
     "hing": "asafoetida",
     "imli": "tamarind",
     # ── Snacks / Dishes ──────────────────────────────────────────────────────
-    "momo": "momos",
+    "momo":   "momos",
     "samosa": "samosa",
-    "tikki": "aloo tikki",
+    "tikki":  "aloo tikki",
+    # TASK 1 (v2.5): sabzi → more specific canonical name matching Firestore mealNames
+    "sabzi":  "mixed vegetable sabzi",
+    "subzi":  "mixed vegetable sabzi",   # common alternate spelling
 }
 
 # ── Multi-word alias map (phrase-level replacement) ───────────────────────────
@@ -152,6 +156,18 @@ MULTI_WORD_ALIAS_MAP = {
     "idli sambar": "idli sambar",
     "poha jalebi": "poha jalebi",
     "bread butter": "bread butter",
+    # TASK 3 (prev): Curry-rice generic aliases → canonical dal chawal
+    "curry rice":     "dal chawal",
+    "rice curry":     "dal chawal",
+    "curry and rice": "dal chawal",
+    # TASK 3: Rice variant normalisation → plain rice
+    "plain rice":     "rice",
+    "boiled rice":    "rice",
+    "white rice":     "rice",
+    # TASK 4: Expand curry-rice variants → dal chawal
+    "gravy rice":     "dal chawal",
+    "sabzi rice":     "dal chawal",
+    "dal rice":       "dal chawal",
 }
 
 # Module-level cache (populated by init)

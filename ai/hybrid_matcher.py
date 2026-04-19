@@ -1,12 +1,15 @@
 # ai/hybrid_matcher.py
 # Stage 5: Weighted hybrid matching — TF-IDF + Fuzzy + Category + Keyword + Context
 #
-# IMPROVEMENTS (v2.3):
+# IMPROVEMENTS (v2.4):
 #   1. Tighter acceptance: tfidf>0.35 OR (fuzzy>0.65 AND keyword>0)
 #   2. Hard-reject floor: tfidf<0.25 AND fuzzy<0.60 → discard
 #   3. Keyword_score capped at 0.5 (prevents over-boosting)
-#   4. Debug logging — prints all 5 signals + final score per candidate
+#   4. Debug logging — prints all signals + final score after penalty
 #   5. test_hybrid_matcher() helper for quick smoke tests
+#   6. TASK 2: Specificity penalty (0.05 * word_count) — prefer simple meals
+#   7. TASK 4: category_confidence gate — disables category filter if low
+#   8. TASK 7: Logs final_score after penalty + category_confidence
 
 from rapidfuzz import fuzz
 from ai.tfidf_matcher import tfidf_match, get_all_meals
@@ -19,6 +22,14 @@ W_FUZZY    = 0.25
 W_CATEGORY = 0.10
 W_KEYWORD  = 0.05   # explicit searchKeywords overlap
 W_CONTEXT  = 0.05   # context resolver signal
+
+# Specificity penalty weight per word in meal name
+# Raised 0.05 → 0.07 (TASK 3) for stronger preference of simple names
+SPECIFICITY_PENALTY_PER_WORD = 0.07
+
+# TASK 4: Minimum category confidence below which category filter is disabled
+# Raised 0.50 → 0.60 (TASK 3) for stricter gating
+CATEGORY_CONFIDENCE_THRESHOLD = 0.60
 
 # Minimum hybrid score to accept a match
 CONFIDENCE_THRESHOLD = 0.30
@@ -88,29 +99,48 @@ def fuzzy_match_meal(query, meals, top_k=5):
     return final_scored[:top_k]
 
 
-def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5):
+def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
+                 category_confidence=None, entity_priority=0.8):
     """
     Combine TF-IDF similarity, fuzzy matching, category agreement,
     and context score into a single weighted score.
 
-    IMPROVEMENTS:
-      - Entity confidence filter: discard if tfidf < 0.35 AND fuzzy < 0.65
-      - Adaptive category weight: set to 0 if tfidf > 0.8
-      - Context score: new 4th signal from context_resolver
+    IMPROVEMENTS (v2.5):
+      - Entity confidence filter, adaptive category weight, context score
+      - Specificity penalty, exact match boost
+      - TASK 1: entity_priority — primary foods score higher
+      - TASK 2: sabzi-aware keyword boost for vegetable queries
+      - TASK 5: logs priority_contribution + sabzi_boost
 
     Args:
         query:               food entity string
         predicted_category:  predicted category from classifier (or None)
         context_score:       context rule score (0.0 or 1.0), default 0.0
         top_k:               number of results to consider from each method
+        category_confidence: classifier confidence; below threshold disables filter
+        entity_priority:     0.8 (default) or 1.0 for primary foods
 
     Returns:
-        list of dicts: [{meal, score, tfidf_score, fuzzy_score,
-                         category_match, context_score}, ...]
-        sorted by final score desc
+        list of dicts sorted by final score desc
     """
+    # TASK 4: Disable category filter when confidence is low
+    effective_category = predicted_category
+    if (
+        category_confidence is not None
+        and category_confidence < CATEGORY_CONFIDENCE_THRESHOLD
+    ):
+        effective_category = None
+        print(
+            f"[hybrid] Low category confidence ({category_confidence:.2f}) "
+            f"< {CATEGORY_CONFIDENCE_THRESHOLD} → category filter DISABLED, using full dataset"
+        )
+
+    # TASK 7: Log category confidence
+    if category_confidence is not None:
+        print(f"[hybrid] category='{predicted_category}' confidence={category_confidence:.2f}")
+
     # 1. Get TF-IDF candidates (with optional category filter)
-    tfidf_results = tfidf_match(query, category_filter=predicted_category, top_k=top_k * 2)
+    tfidf_results = tfidf_match(query, category_filter=effective_category, top_k=top_k * 2)
 
     # 2. Get fuzzy candidates from ALL meals
     all_meals = get_all_meals()
@@ -205,15 +235,53 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5):
             W_CONTEXT  * context_score
         )
 
-        # Clamp to [0, 1]
-        final_score = max(0.0, min(1.0, final_score))
+        # ── TASK 1: Priority contribution ──────────────────────────────────
+        # Primary foods (rice/roti) get entity_priority=1.0 from pipeline
+        # Secondary items get 0.8. Difference = +0.02 in final score.
+        PRIORITY_WEIGHT = 0.1
+        priority_contribution = entity_priority * PRIORITY_WEIGHT
+        final_score += priority_contribution
 
-        # ── Debug logging ─────────────────────────────────────────────────────
+        # ── TASK 2: Sabzi-aware vegetable boost (TASK 1 here: reduced 0.15→0.08) ──
+        VEG_QUERY_TRIGGERS  = {"vegetable", "sabzi", "mixed", "veg"}
+        SABZI_MEAL_KEYWORDS = {"mixed", "veg", "vegetable"}
+        SABZI_BOOST = 0.08   # TASK 1: reduced 0.15 → 0.08 to prevent over-boosting
+        sabzi_boost = 0.0
+        query_words = set(query_lower.split())
+        if query_words & VEG_QUERY_TRIGGERS:
+            name_lower_check = name.lower()
+            if any(kw in name_lower_check for kw in SABZI_MEAL_KEYWORDS):
+                sabzi_boost = SABZI_BOOST
+                final_score += sabzi_boost
+
+        # ── Exact match boost ─────────────────────────────────────────
+        EXACT_MATCH_BOOST = 0.10
+        if name.lower() == query_lower:
+            final_score += EXACT_MATCH_BOOST
+            print(f"[hybrid] '{name}' EXACT MATCH → +{EXACT_MATCH_BOOST}")
+
+        # ── TASK 3: Specificity penalty (raised 0.05→0.07) ─────────────────
+        # Subtract 0.07 per word in the meal name.
+        word_count = len(name.split())
+        specificity_penalty = SPECIFICITY_PENALTY_PER_WORD * word_count
+        final_score -= specificity_penalty
+
+        # ── TASK 2: Clamp AFTER all boosts ──────────────────────────────
+        # All boosts + penalties applied above; clamp is the FINAL step.
+        pre_clamp = final_score
+        final_score = max(0.0, min(1.0, final_score))
+        was_clamped = pre_clamp != final_score
+
+        # ── TASK 6: Debug logging ─────────────────────────────────────
+        clamp_note = f" [CLAMPED from {pre_clamp:.3f}]" if was_clamped else ""
         print(
             f"[hybrid] '{name}' "
             f"tfidf={tfidf_s:.3f}  fuzzy={fuzzy_s:.3f}  "
-            f"kw={keyword_s:.2f}  cat={cat_match:.1f}  "
-            f"ctx={context_score:.1f}  → score={final_score:.3f}"
+            f"kw={keyword_s:.2f}  cat={cat_match:.1f}  ctx={context_score:.1f}  "
+            f"priority={entity_priority:.1f}(+{priority_contribution:.3f})  "
+            f"sabzi_boost={sabzi_boost:.2f}  "
+            f"words={word_count}  spec_penalty={specificity_penalty:.3f}  "
+            f"→ final_score={final_score:.3f}"
         )
 
         results.append({
@@ -232,25 +300,30 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5):
     return results[:top_k]
 
 
-def resolve_best_meal(query, predicted_category=None, context_score=0.0):
+def resolve_best_meal(query, predicted_category=None, context_score=0.0,
+                      category_confidence=None, entity_priority=0.8):
     """
     Find the single best meal match for a food entity.
 
     Args:
-        query:              food entity string
-        predicted_category: predicted category (or None)
-        context_score:      context boost from context_resolver (0.0 or 1.0)
+        query:               food entity string
+        predicted_category:  predicted category (or None)
+        context_score:       context boost from context_resolver (0.0 or 1.0)
+        category_confidence: classifier confidence; low values disable category filter
+        entity_priority:     1.0 for primary foods, 0.8 for others (TASK 1)
 
     Returns:
         (meal_dict, confidence) or (None, 0.0) if below threshold
     """
-    print(f"\n[hybrid] Matching query: '{query}'")
+    print(f"\n[hybrid] Matching query: '{query}' (priority={entity_priority:.1f})")
 
     candidates = hybrid_match(
         query,
         predicted_category=predicted_category,
         context_score=context_score,
         top_k=3,
+        category_confidence=category_confidence,
+        entity_priority=entity_priority,
     )
 
     if not candidates:

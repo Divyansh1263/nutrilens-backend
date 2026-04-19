@@ -2,11 +2,13 @@
 # Stage 6: Context-aware meal resolution
 # Detects common food combinations and returns context scores
 #
-# IMPROVEMENTS (v2.3):
+# IMPROVEMENTS (v2.4):
 #   - Split rules into STRONG (boost=1.0) and WEAK (boost=0.5)
 #   - Strong rules = well-known canonical Indian combos
 #   - Weak rules  = generic / secondary combos
 #   - resolve_context() checks strong first, then weak
+#   - TASK 1: dal+roti, chapati+dal, rice+curry promoted to STRONG
+#   - TASK 7: context strength (STRONG/WEAK) logged per pair
 
 # ── STRONG context rules ──────────────────────────────────────────────────────
 # High-confidence canonical Indian meal pairs. boost = STRONG_BOOST (1.0)
@@ -28,14 +30,22 @@ STRONG_CONTEXT_RULES = {
     frozenset(["dosa",         "sambar"]):   "Dosa Sambar",
     frozenset(["vada",         "sambar"]):   "Medu Vada",
     frozenset(["medu vada",    "sambar"]):   "Medu Vada",
-    frozenset(["roti",         "sabzi"]):    "Roti Sabzi",
-    frozenset(["chapati",      "sabzi"]):    "Roti Sabzi",
-    frozenset(["puri",         "sabzi"]):    "Puri Sabzi",
-    frozenset(["puri",         "aloo"]):     "Puri Aloo",
-    frozenset(["puri",         "potato"]):   "Puri Aloo",
-    frozenset(["poha",         "jalebi"]):   "Poha Jalebi",
-    frozenset(["bread",        "egg"]):      "Bread Omelette",
-    frozenset(["bread",        "anda"]):     "Bread Omelette",
+    frozenset(["roti",           "sabzi"]):               "Roti Sabzi",
+    frozenset(["chapati",        "sabzi"]):               "Roti Sabzi",
+    # Post-alias forms ("sabzi" → "mixed vegetable sabzi" in Step 2)
+    frozenset(["roti",           "mixed vegetable sabzi"]): "Roti Sabzi",
+    frozenset(["chapati",        "mixed vegetable sabzi"]): "Roti Sabzi",
+    frozenset(["puri",           "sabzi"]):               "Puri Sabzi",
+    frozenset(["puri",           "mixed vegetable sabzi"]): "Puri Sabzi",
+    frozenset(["puri",           "aloo"]):           "Puri Aloo",
+    frozenset(["puri",           "potato"]):         "Puri Aloo",
+    frozenset(["poha",           "jalebi"]):         "Poha Jalebi",
+    frozenset(["bread",          "egg"]):            "Bread Omelette",
+    frozenset(["bread",          "anda"]):           "Bread Omelette",
+    # TASK 1: Promoted from WEAK — canonical combos deserve strong boost
+    frozenset(["dal",            "roti"]):           "Dal Roti",
+    frozenset(["chapati",        "dal"]):            "Dal Roti",
+    frozenset(["rice",           "curry"]):          "Dal Chawal",
 }
 
 # ── WEAK context rules ────────────────────────────────────────────────────────
@@ -52,8 +62,7 @@ WEAK_CONTEXT_RULES = {
     frozenset(["murgh",     "rice"]):    "Chicken Rice",
     frozenset(["sabzi",     "rice"]):    "Sabzi Chawal",
     frozenset(["sabzi",     "chawal"]):  "Sabzi Chawal",
-    frozenset(["roti",      "dal"]):     "Dal Roti",
-    frozenset(["chapati",   "dal"]):     "Dal Roti",
+    # NOTE: dal+roti and chapati+dal promoted to STRONG_CONTEXT_RULES (TASK 1)
     frozenset(["paneer",    "roti"]):    "Paneer Roti",
     frozenset(["paneer",    "chapati"]): "Paneer Roti",
     frozenset(["aloo",      "roti"]):    "Aloo Roti",
@@ -142,10 +151,11 @@ def resolve_context(entities, quantities):
             consumed.add(i)
             consumed.add(j)
 
+            # TASK 7: Log context strength clearly
             tier = "STRONG" if boost == STRONG_BOOST else "WEAK"
             print(
                 f"[context] '{entities[i]}' + '{entities[j]}' "
-                f"→ '{combo_name}' ({tier}, boost={boost})"
+                f"→ '{combo_name}' [context_strength={tier}, boost={boost:.1f}]"
             )
             break
 
