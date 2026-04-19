@@ -243,8 +243,8 @@ def train_nlp_model(csv_path: Path, output_path: Path) -> Pipeline:
                 "tfidf",
                 TfidfVectorizer(
                     ngram_range=(1, 2),
-                    max_features=2000,    # reduced from unlimited → cuts model size
-                    min_df=3,             # ignore very rare tokens
+                    max_features=3000,    # raised 2000→3000 for better accuracy
+                    min_df=2,             # lowered 3→2 to keep more signal
                     stop_words="english",
                 ),
             ),
@@ -355,10 +355,10 @@ def build_tfidf_cache(meals: list[dict[str, Any]], output_path: Path) -> dict[st
 
     vectorizer = TfidfVectorizer(
         ngram_range=(1, 2),
-        max_features=2000,    # reduced: keeps enough discriminative ngrams
+        max_features=3000,    # raised 2000→3000 for better accuracy
         lowercase=True,
         sublinear_tf=True,
-        min_df=3,             # remove very rare tokens to shrink vocabulary
+        min_df=2,             # lowered 3→2 to keep more signal
     )
     tfidf_matrix = vectorizer.fit_transform(texts)
 
