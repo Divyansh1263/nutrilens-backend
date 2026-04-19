@@ -21,6 +21,17 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+
+
+def _save_compressed(obj, path: Path, compress: int = 3) -> None:
+    """
+    Save a model/cache with zlib compression and print the resulting file size.
+    compress=3 gives a good size/speed trade-off (scale: 0=none, 9=max).
+    """
+    joblib.dump(obj, path, compress=compress)
+    size_mb = path.stat().st_size / (1024 * 1024)
+    flag = "OK" if size_mb < 100 else "WARNING: exceeds 100 MB!"
+    print(f"  Saved {path.name}: {size_mb:.2f} MB  [{flag}]")
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -232,7 +243,8 @@ def train_nlp_model(csv_path: Path, output_path: Path) -> Pipeline:
                 "tfidf",
                 TfidfVectorizer(
                     ngram_range=(1, 2),
-                    min_df=2,
+                    max_features=2000,    # reduced from unlimited → cuts model size
+                    min_df=3,             # ignore very rare tokens
                     stop_words="english",
                 ),
             ),
@@ -244,12 +256,11 @@ def train_nlp_model(csv_path: Path, output_path: Path) -> Pipeline:
     predictions = model.predict(x_test)
     accuracy = accuracy_score(y_test, predictions)
 
-    joblib.dump(model, output_path)
+    _save_compressed(model, output_path)
 
-    print(f"NLP samples: {len(df)}")
-    print(f"NLP labels: {df['label'].nunique()}")
+    print(f"NLP samples:  {len(df)}")
+    print(f"NLP labels:   {df['label'].nunique()}")
     print(f"NLP accuracy: {accuracy * 100:.2f}%")
-    print(f"Saved NLP model: {output_path}")
     return model
 
 
@@ -269,15 +280,14 @@ def train_knn_meal_swap_model(meals: list[dict[str, Any]], output_path: Path) ->
     knn.fit(scaled_features)
 
     model_data = {
-        "scaler": scaler,
-        "knn": knn,
-        "meals": meals,
+        "scaler":       scaler,
+        "knn":          knn,
+        "meals":        meals,
         "feature_cols": FEATURE_COLS,
     }
-    joblib.dump(model_data, output_path)
+    _save_compressed(model_data, output_path)
 
     print(f"KNN meals: {len(meals)}")
-    print(f"Saved KNN model: {output_path}")
     return model_data
 
 
@@ -323,11 +333,10 @@ def train_food_category_classifier(
         ]
     )
     model.fit(list(x), list(y))
-    joblib.dump(model, output_path)
+    _save_compressed(model, output_path)
 
     print(f"Category samples: {len(training_rows)}")
-    print(f"Category labels: {len(set(y))}")
-    print(f"Saved category classifier: {output_path}")
+    print(f"Category labels:  {len(set(y))}")
     return model
 
 
@@ -346,10 +355,10 @@ def build_tfidf_cache(meals: list[dict[str, Any]], output_path: Path) -> dict[st
 
     vectorizer = TfidfVectorizer(
         ngram_range=(1, 2),
-        max_features=5000,        # matches tfidf_matcher.py runtime setting
+        max_features=2000,    # reduced: keeps enough discriminative ngrams
         lowercase=True,
         sublinear_tf=True,
-        min_df=2,                 # removes noisy single-occurrence tokens
+        min_df=3,             # remove very rare tokens to shrink vocabulary
     )
     tfidf_matrix = vectorizer.fit_transform(texts)
 
@@ -363,13 +372,13 @@ def build_tfidf_cache(meals: list[dict[str, Any]], output_path: Path) -> dict[st
         "vectorizer":     vectorizer,
         "tfidf_matrix":   tfidf_matrix,
         "meals":          meals,
-        "texts":          texts,
+        # 'texts' intentionally omitted — it was the largest contributor to
+        # file size and is not needed at inference time.
         "category_index": category_index,
     }
-    joblib.dump(cache_data, output_path)
+    _save_compressed(cache_data, output_path)
 
-    print(f"TF-IDF cache shape: {tfidf_matrix.shape}")
-    print(f"Saved TF-IDF cache: {output_path}")
+    print(f"TF-IDF cache: {tfidf_matrix.shape[0]} meals x {tfidf_matrix.shape[1]} features")
     return cache_data
 
 
@@ -408,12 +417,19 @@ def main() -> None:
     print("\n[4/4] Building TF-IDF meal matcher cache...")
     build_tfidf_cache(merged_meals, TFIDF_CACHE_PATH)
 
+    # ── Size report ────────────────────────────────────────────────────────
     print("\n" + "=" * 60)
-    print("Retraining complete. All models saved to models/")
-    print("  NLP classifier:       nlp_meal_classifier.joblib")
-    print("  KNN swap model:       knn_meal_swap.joblib")
-    print("  Category classifier:  food_category_classifier.joblib")
-    print("  TF-IDF cache:         tfidf_meal_matcher.joblib")
+    print("Final model sizes (GitHub limit = 100 MB per file):")
+    for name, path in [
+        ("NLP classifier",       NLP_MODEL_PATH),
+        ("KNN swap model",       KNN_MODEL_PATH),
+        ("Category classifier",  CATEGORY_MODEL_PATH),
+        ("TF-IDF cache",         TFIDF_CACHE_PATH),
+    ]:
+        if path.exists():
+            mb = path.stat().st_size / (1024 * 1024)
+            flag = "OK  " if mb < 100 else "FAIL - EXCEEDS LIMIT"
+            print(f"  [{flag}]  {name:25s}  {mb:7.2f} MB")
     print("=" * 60)
 
 

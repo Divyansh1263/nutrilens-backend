@@ -17,8 +17,8 @@ serviceAccountKey.json
 # OS files
 .DS_Store
 
-# Trained model binaries (too large for GitHub — regenerate with retrain_models_pipeline.py)
-models/*.joblib
+# Trained model binaries — safe to commit (all compressed < 100 MB via joblib compress=3)
+# Regenerate locally if needed:  python retrain_models_pipeline.py
 
 # Cache
 .cache/

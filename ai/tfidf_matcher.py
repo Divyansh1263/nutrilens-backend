@@ -106,10 +106,10 @@ def init_tfidf_matcher(meals):
 
     _vectorizer = TfidfVectorizer(
         ngram_range=(1, 2),
-        max_features=5000,
+        max_features=2000,   # matches retrain_models_pipeline.py cache setting
         lowercase=True,
         sublinear_tf=True,
-        min_df=2,            # removes noisy single-occurrence tokens
+        min_df=3,            # removes noisy single-occurrence tokens
     )
     _tfidf_matrix = _vectorizer.fit_transform(_meal_texts)
 
