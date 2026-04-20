@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../../main.dart';
 import '../../../data/providers/data_provider.dart';
@@ -42,6 +43,9 @@ class _DietTabState extends State<DietTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Compute once per build — stable across the whole widget tree.
+    final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your Plan"),
@@ -53,7 +57,7 @@ class _DietTabState extends State<DietTab> {
             userProfile: provider.userProfile,
             dailyTarget: provider.dailyTarget,
             streakData: provider.streakData,
-            trackerSummary: provider.trackerSummary,
+            trackerSummary: provider.getTrackerSummaryForDate(todayKey),
             mealPlan: provider.mealPlan,
             isMealPlanLoading: provider.isMealPlanLoading,
           ),
@@ -106,38 +110,51 @@ class _DietTabState extends State<DietTab> {
                     if (view.isMealPlanLoading &&
                         view.mealPlan == null &&
                         !_showGreeting)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
+                      _buildMealPlanSkeleton(),
                     if (view.dailyTarget != null)
                       _buildProgressCard(view.dailyTarget!, view.trackerSummary),
                     const SizedBox(height: 24),
                     if (view.mealPlan != null) ...[
-                      if (view.mealPlan!['breakfast'] != null)
+                      // TASK 6: debug print slot sizes before rendering
+                      () {
+                        final mp = view.mealPlan!;
+                        debugPrint('[diet-tab] breakfast: ${(mp["breakfast"] as List?)?.length ?? 0} items');
+                        debugPrint('[diet-tab] lunch:     ${(mp["lunch"]     as List?)?.length ?? 0} items');
+                        debugPrint('[diet-tab] snack:     ${(mp["snack"]     as List?)?.length ?? 0} items');
+                        debugPrint('[diet-tab] dinner:    ${(mp["dinner"]    as List?)?.length ?? 0} items');
+                        return const SizedBox.shrink();
+                      }(),
+                      // TASK 5: guard null AND empty list before rendering
+                      if (view.mealPlan!['breakfast'] != null &&
+                          !((view.mealPlan!['breakfast'] is List) &&
+                            (view.mealPlan!['breakfast'] as List).isEmpty))
                         _buildMealSection(
                           context,
                           "Breakfast",
                           view.mealPlan!['breakfast'],
                           view.trackerSummary,
                         ),
-                      if (view.mealPlan!['lunch'] != null)
+                      if (view.mealPlan!['lunch'] != null &&
+                          !((view.mealPlan!['lunch'] is List) &&
+                            (view.mealPlan!['lunch'] as List).isEmpty))
                         _buildMealSection(
                           context,
                           "Lunch",
                           view.mealPlan!['lunch'],
                           view.trackerSummary,
                         ),
-                      if (view.mealPlan!['snack'] != null)
+                      if (view.mealPlan!['snack'] != null &&
+                          !((view.mealPlan!['snack'] is List) &&
+                            (view.mealPlan!['snack'] as List).isEmpty))
                         _buildMealSection(
                           context,
                           "Snack",
                           view.mealPlan!['snack'],
                           view.trackerSummary,
                         ),
-                      if (view.mealPlan!['dinner'] != null)
+                      if (view.mealPlan!['dinner'] != null &&
+                          !((view.mealPlan!['dinner'] is List) &&
+                            (view.mealPlan!['dinner'] as List).isEmpty))
                         _buildMealSection(
                           context,
                           "Dinner",
@@ -145,9 +162,7 @@ class _DietTabState extends State<DietTab> {
                           view.trackerSummary,
                         ),
                     ] else if (!view.isMealPlanLoading)
-                      const Center(
-                        child: Text("No meal plan generated yet. Pull to refresh."),
-                      ),
+                      _buildFallbackMealPlan(context),
                   ],
                 ),
               ),
@@ -282,7 +297,135 @@ class _DietTabState extends State<DietTab> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Skeleton loading: shown while isMealPlanLoading == true && mealPlan == null
+  // Uses a simple animated shimmer effect with no external packages.
+  // ---------------------------------------------------------------------------
+  Widget _buildMealPlanSkeleton() {
+    return _SkeletonLoader(
+      child: Column(
+        children: List.generate(4, (i) {
+          // Mimic the real meal-section card structure
+          return Card(
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // meal header row
+                Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 1),
+                // two item rows
+                ...List.generate(2, (_) => Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 14,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              height: 11,
+                              width: 180,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fallback: shown when loading is done but mealPlan is still null
+  // ---------------------------------------------------------------------------
+  Widget _buildFallbackMealPlan(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.restaurant_menu_outlined,
+                size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              "Couldn't load your meal plan",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "This can happen when the server is busy.\nPull down to retry.",
+              textAlign: TextAlign.center,
+              style:
+                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                      ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  context.read<DataProvider>().fetchMealPlan(forceRefresh: true),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text("Retry"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 28, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Changed to build a SECTION (Card) for the whole meal time
+
   Widget _buildMealSection(
     BuildContext context,
     String mealType,
@@ -412,7 +555,8 @@ class _DietTabState extends State<DietTab> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${item['calories']} kcal • ${item['protein']}g P • ${item['fat']}g F • ${item['carbs']}g C",
+                        // TASK 3: null-safe macro display
+                        "${item['calories'] ?? 0} kcal • ${item['protein'] ?? 0}g P • ${item['fat'] ?? 0}g F • ${item['carbs'] ?? 0}g C",
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -579,38 +723,39 @@ class _DietTabState extends State<DietTab> {
                title: Text(item['mealName']),
                subtitle: Text("${item['calories']} kcal"),
                trailing: const Icon(Icons.add_circle, color: Colors.green),
-               onTap: () {
-                 Navigator.pop(ctx); // Close Sheet
-                 // Update the local Plan UI (Do not log yet)
-                 final newMeal = Map<String, dynamic>.from(item);
-                 newMeal['source'] = "knn_swap"; // Mark source if needed for later log
+                onTap: () {
+                  Navigator.pop(ctx); // Close Sheet
+                  final newMeal = Map<String, dynamic>.from(item);
+                  newMeal['source'] = "knn_swap";
 
-                 // Find and Swap in provider.mealPlan
-                 // Since provider.mealPlan is the source of truth for the UI list
-                 if (provider.mealPlan != null) {
+                  // Immutable update - Selector detects new map reference.
+                  if (provider.mealPlan != null) {
                     final key = mealType.toLowerCase();
-                    final section = provider.mealPlan![key];
+                    final oldPlan = provider.mealPlan!;
+                    final newPlan = Map<String, dynamic>.from(oldPlan);
 
                     // New shape: section is a List
-                    if (section is List) {
-                      final idx = section.indexWhere((e) => e is Map && e['mealName'] == currentMeal);
-                      if (idx != -1) {
-                        section[idx] = newMeal;
-                        setState(() {});
-                      }
-                    }
-
-                    // Legacy shape: section is a Map with items
-                    if (section is Map && section['items'] is List) {
-                      final list = section['items'] as List;
+                    if (oldPlan[key] is List) {
+                      final list = List<dynamic>.from(oldPlan[key] as List);
                       final idx = list.indexWhere((e) => e is Map && e['mealName'] == currentMeal);
                       if (idx != -1) {
                         list[idx] = newMeal;
-                        setState(() {});
+                        newPlan[key] = list;
+                        provider.setMealPlan(newPlan);
+                      }
+                    } else if (oldPlan[key] is Map && (oldPlan[key] as Map)['items'] is List) {
+                      final inner = Map<String, dynamic>.from(oldPlan[key] as Map<String, dynamic>);
+                      final list = List<dynamic>.from(inner['items'] as List);
+                      final idx = list.indexWhere((e) => e is Map && e['mealName'] == currentMeal);
+                      if (idx != -1) {
+                        list[idx] = newMeal;
+                        inner['items'] = list;
+                        newPlan[key] = inner;
+                        provider.setMealPlan(newPlan);
                       }
                     }
-                 }
-               },
+                  }
+                },
              );
            }
          )
@@ -660,3 +805,65 @@ class _DietTabViewData {
       );
 }
 
+// =============================================================================
+// _SkeletonLoader — wraps its child in a left-to-right shimmer animation.
+// Pure Flutter, no external packages required.
+// =============================================================================
+class _SkeletonLoader extends StatefulWidget {
+  const _SkeletonLoader({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SkeletonLoader> createState() => _SkeletonLoaderState();
+}
+
+class _SkeletonLoaderState extends State<_SkeletonLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, child) {
+        // Sweep from -1 to +2 so the highlight fully exits both sides.
+        final double shift = _controller.value * 3 - 1;
+        return ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: const [
+              Color(0xFFE0E0E0),
+              Color(0xFFF5F5F5),
+              Color(0xFFE0E0E0),
+            ],
+            stops: [
+              (shift - 0.3).clamp(0.0, 1.0),
+              shift.clamp(0.0, 1.0),
+              (shift + 0.3).clamp(0.0, 1.0),
+            ],
+          ).createShader(bounds),
+          blendMode: BlendMode.srcATop,
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}

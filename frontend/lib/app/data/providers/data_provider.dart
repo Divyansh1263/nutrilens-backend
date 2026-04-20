@@ -152,30 +152,79 @@ class DataProvider extends ChangeNotifier {
     _setMealPlanLoading(true);
     try {
       final res = await ApiService.generateMealPlan();
-      debugPrint('DataProvider.fetchMealPlan response: $res');
-      final nextMealPlan =
-          (res is Map<String, dynamic> && res['success'] == true)
-          ? (res['data'] as Map<String, dynamic>?)
-          : null;
+
+      // TASK 1: log raw API response for debugging
+      debugPrint('[meal-plan] RAW API RESPONSE keys: ${res is Map ? (res as Map).keys.toList() : res}');
+
+      if (res is! Map<String, dynamic> || res['success'] != true) {
+        debugPrint('[meal-plan] fetchMealPlan: unsuccessful or malformed response');
+        return;
+      }
+
+      // TASK 2 & 8: dual-key parsing with safe fallback
+      // Backend returns BOTH res['data']['breakfast'] AND res['breakfast'] (top-level).
+      // Prefer res['data'] (structured), fall back to top-level keys.
+      Map<String, dynamic>? nextMealPlan;
+
+      final dataBlock = res['data'];
+      if (dataBlock is Map<String, dynamic> &&
+          (dataBlock.containsKey('breakfast') ||
+           dataBlock.containsKey('lunch') ||
+           dataBlock.containsKey('dinner'))) {
+        nextMealPlan = dataBlock;
+        debugPrint('[meal-plan] parsed from res["data"] block');
+      } else {
+        // Fallback: pick slot keys directly from top-level response
+        final breakfast = res['breakfast'];
+        final lunch     = res['lunch'];
+        final snack     = res['snack'];
+        final dinner    = res['dinner'];
+
+        if (breakfast != null || lunch != null || snack != null || dinner != null) {
+          nextMealPlan = {
+            'breakfast':       breakfast       ?? [],
+            'lunch':           lunch           ?? [],
+            'snack':           snack           ?? [],
+            'dinner':          dinner          ?? [],
+            'target_calories': res['target_calories'],
+            'target_macros':   res['target_macros'],
+            'total_calories':  res['total_calories'],
+          };
+          debugPrint('[meal-plan] parsed from top-level keys (backward-compat path)');
+        }
+      }
+
+      // TASK 6: log slot sizes before assigning
+      if (nextMealPlan != null) {
+        final bLen = (nextMealPlan['breakfast'] as List?)?.length ?? 0;
+        final lLen = (nextMealPlan['lunch']     as List?)?.length ?? 0;
+        final sLen = (nextMealPlan['snack']     as List?)?.length ?? 0;
+        final dLen = (nextMealPlan['dinner']    as List?)?.length ?? 0;
+        debugPrint('[meal-plan] Breakfast items: $bLen');
+        debugPrint('[meal-plan] Lunch items: $lLen');
+        debugPrint('[meal-plan] Snack items: $sLen');
+        debugPrint('[meal-plan] Dinner items: $dLen');
+      }
 
       if (nextMealPlan != null) {
         mealPlan = nextMealPlan;
+        debugPrint('[meal-plan] mealPlan set successfully — notifying listeners');
+        // TASK 4: explicit notifyListeners after state update
+        _notifySafely();
+        await _persistMealPlanCache(mealPlan!);
       } else {
         debugPrint(
-          'DataProvider.fetchMealPlan availability: '
-          '${mealPlan != null ? 'using-existing-cache' : 'missing'}',
+          '[meal-plan] fetchMealPlan: no slots found in response — '
+          '${mealPlan != null ? "keeping existing cache" : "mealPlan remains null"}',
         );
       }
-
-      if (mealPlan != null) {
-        await _persistMealPlanCache(mealPlan!);
-      }
     } catch (e) {
-      debugPrint('DataProvider.fetchMealPlan error: $e');
+      debugPrint('[meal-plan] fetchMealPlan error: $e');
     } finally {
       _setMealPlanLoading(false);
     }
   }
+
 
   // Fetch API 5: Tracker Summary
   Future<void> fetchTrackerSummary([String? dateStr, bool forceRefresh = false]) async {
@@ -214,10 +263,12 @@ class DataProvider extends ChangeNotifier {
     _setTrackerLoading(true);
     try {
       final response = await ApiService.getTrackerSummary(dateStr);
-      _trackerSummaryCache[dateStr] =
-          response?['data'] as Map<String, dynamic>?;
-      _trackerCacheTime[dateStr] = DateTime.now();
-      _trimDatedCache(_trackerSummaryCache, _trackerCacheTime);
+      if (response != null && response['success'] == true) {
+        _trackerSummaryCache[dateStr] =
+            response['data'] as Map<String, dynamic>?;
+        _trackerCacheTime[dateStr] = DateTime.now();
+        _trimDatedCache(_trackerSummaryCache, _trackerCacheTime);
+      }
     } catch (e) {
       debugPrint('DataProvider.fetchTrackerSummary($dateStr) error: $e');
     } finally {
@@ -261,13 +312,12 @@ class DataProvider extends ChangeNotifier {
     _setDailyRatingLoading(true);
     try {
       final response = await ApiService.generateDailyRating(dateStr);
-      final payload =
-          (response is Map<String, dynamic> && response['success'] == true)
-          ? (response['data'] as Map<String, dynamic>?)
-          : response;
-      _dailyRatingCache[dateStr] = payload;
-      _dailyRatingCacheTime[dateStr] = DateTime.now();
-      _trimDatedCache(_dailyRatingCache, _dailyRatingCacheTime);
+      if (response is Map<String, dynamic> && response['success'] == true) {
+        _dailyRatingCache[dateStr] =
+            response['data'] as Map<String, dynamic>?;
+        _dailyRatingCacheTime[dateStr] = DateTime.now();
+        _trimDatedCache(_dailyRatingCache, _dailyRatingCacheTime);
+      }
     } catch (e) {
       debugPrint('DataProvider.fetchDailyRating($dateStr) error: $e');
     } finally {
@@ -328,7 +378,9 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshTrackerDataForDate(String dateStr) async {
+  Future<void> refreshTrackerDataForDate(String dateStr, {bool force = false}) async {
+    // TTL guard: skip refresh if cache is still fresh (unless forced).
+    if (!force && _isTrackerCacheFresh(dateStr)) return;
     await invalidateTrackerSummary(dateStr);
     await invalidateDailyRating(dateStr);
     await Future.wait([
@@ -343,6 +395,12 @@ class DataProvider extends ChangeNotifier {
 
   Map<String, dynamic>? getDailyRatingForDate(String dateStr) {
     return _dailyRatingCache[dateStr];
+  }
+
+  /// Replaces the meal plan immutably and notifies listeners.
+  void setMealPlan(Map<String, dynamic> newPlan) {
+    mealPlan = newPlan;
+    _notifySafely();
   }
 
   // Fetch API 4.7: User Profile
@@ -421,13 +479,20 @@ class DataProvider extends ChangeNotifier {
   }
 
   // API 4: Log Meal (Map-based)
-  Future<bool> logMeal(dynamic mealNameOrData, [double quantity = 1.0, String mealType = 'Lunch', String source = 'manual']) async {
+  // Set [refresh] to false when batch-logging to defer the tracker refresh.
+  Future<bool> logMeal(
+    dynamic mealNameOrData, [
+    double quantity = 1.0,
+    String mealType = 'Lunch',
+    String source = 'manual',
+    bool refresh = true,
+  ]) async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     try {
       if (mealNameOrData is Map<String, dynamic>) {
         final success = await ApiService.logMeal(mealNameOrData);
-        if (success) {
-          await refreshTrackerDataForDate(today);
+        if (success && refresh) {
+          await refreshTrackerDataForDate(today, force: true);
         }
         return success;
       }
@@ -441,8 +506,8 @@ class DataProvider extends ChangeNotifier {
         'source': source,
       };
       final success = await ApiService.logMeal(mealData);
-      if (success) {
-        await refreshTrackerDataForDate(today);
+      if (success && refresh) {
+        await refreshTrackerDataForDate(today, force: true);
       }
       return success;
     } catch (e) {
@@ -481,11 +546,15 @@ class DataProvider extends ChangeNotifier {
   }
 
   // API 7: Swap Meal
-  Future<Map<String, dynamic>?> swapMeal(String mealLogId, String newMealName) async {
+  // [dateKey] should be the date that the swapped log belongs to.
+  Future<Map<String, dynamic>?> swapMeal(
+      String mealLogId, String newMealName, [String? dateKey]) async {
+    final effectiveKey =
+        dateKey ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
     try {
       final result = await ApiService.swapMeal(mealLogId, newMealName);
       if (result != null) {
-        await refreshTrackerDataForDate(DateFormat('yyyy-MM-dd').format(DateTime.now()));
+        await refreshTrackerDataForDate(effectiveKey, force: true);
       }
       return result;
     } catch (e) {
