@@ -28,22 +28,21 @@ def generate_meal_plan():
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
 
-    # TASK 1 & 2: fetch cached plan but reject it if all slots are empty
+    # TASK 3: fetch cached plan, normalize structure, reject if empty
     from repositories.tracker_repository import tracker_repo
     existing = tracker_repo.get_plan_by_date(user_id, date_str)
 
-    if existing and not _is_plan_empty(existing):
-        app_logger.info("[meal-plan] Valid cached plan found — returning without regeneration")
-        return _meal_plan_response(existing, "Meal plan retrieved")
-
-    if existing and _is_plan_empty(existing):
-        # TASK 4: log the bad cache hit
+    if existing:
+        existing = _normalize_plan_structure(existing)   # TASK 1
+        if not _is_plan_empty(existing):
+            app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
+            return _meal_plan_response(existing, "Meal plan retrieved")
         app_logger.warning(
-            "[meal-plan] Cached plan is empty → regenerating for user=%s date=%s",
+            "[meal-plan] cached plan empty → regenerating for user=%s date=%s",
             user_id, date_str
         )
 
-    # TASK 2 & 3: generate (or regenerate) and save — overwrites any bad cache
+    # Generate (or regenerate) — save_plan() inside overwrites Firestore
     try:
         plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
     except Exception as exc:
@@ -53,55 +52,95 @@ def generate_meal_plan():
     if err:
         return error(err, 500 if "Error" in err else 400)
 
+    # TASK 1: normalize fresh plan too (defensive)
+    plan = _normalize_plan_structure(plan)
+
+    # TASK 4: final safety — force-fill any still-empty slot
+    slots = ("breakfast", "lunch", "snack", "dinner")
+    if _is_plan_empty(plan):
+        import random
+        app_logger.warning("[meal-plan] WARNING: generated plan is empty → forcing fallback")
+        from meals_cache import MEALS_CACHE
+        pool = list(MEALS_CACHE) if MEALS_CACHE else []
+        for slot in slots:
+            if not plan.get(slot) and pool:
+                m = random.choice(pool)
+                plan[slot] = [{
+                    "mealName": m.get("mealName", "fallback"),
+                    "quantity":  1.0,
+                    "calories": round(float(m.get("calories") or 0), 1),
+                    "protein":  round(float(m.get("protein")  or 0), 1),
+                    "carbs":    round(float(m.get("carbs")    or 0), 1),
+                    "fat":      round(float(m.get("fat")      or 0), 1),
+                }]
+
     return _meal_plan_response(plan, "Meal plan generated")
+
+
+def _normalize_plan_structure(plan: dict) -> dict:
+    """
+    TASK 1: Normalize Firestore slot values so they are always Python lists.
+    Firestore sometimes stores arrays as dicts {"0": {...}, "1": {...}}.
+    Also coerces None slots to empty lists.
+    """
+    for key in ("breakfast", "lunch", "snack", "dinner"):
+        val = plan.get(key)
+        if isinstance(val, dict):
+            plan[key] = list(val.values())   # {"0":{...}, "1":{...}} → [{...}, {...}]
+        elif val is None:
+            plan[key] = []
+    return plan
 
 
 def _is_plan_empty(plan: dict) -> bool:
     """
-    TASK 1: Returns True when a stored plan has no items in any meal slot.
-    Used to detect stale/empty Firestore cache entries that must be
-    discarded and regenerated rather than returned to the client.
+    TASK 2: Returns True when ALL meal slots are absent or empty.
+    Uses normalization so Firestore dict-as-array is handled correctly.
     """
     if not plan:
         return True
-    slots = ("breakfast", "lunch", "snack", "dinner")
-    return all(len(plan.get(s) or []) == 0 for s in slots)
+    for key in ("breakfast", "lunch", "snack", "dinner"):
+        val = plan.get(key)
+        if isinstance(val, dict):
+            val = list(val.values())
+        if val and len(val) > 0:
+            return False
+    return True
 
 
 
 
 def _meal_plan_response(plan, message):
     """
-    TASK 2: Flat-only response — exactly what the existing APK expects.
-
-    Returns top-level keys ONLY (no nested 'data' object):
-        { success, message, breakfast, lunch, snack, dinner,
-          target_calories, target_macros, total_calories }
-
-    Applied to BOTH paths (TASK 3):
-        - fresh generation
-        - cached Firestore plan retrieval
+    TASK 5: Flat-only response — exactly what the existing APK expects.
+    No nested 'data' key. Both cached and fresh paths use this helper.
     """
     from utils.response_utils import sanitize_firestore_data
     from flask import jsonify
 
+    # Normalize one final time (handles any Firestore dict-as-array edge cases)
+    plan = _normalize_plan_structure(plan)
     clean = sanitize_firestore_data(plan)
+
+    slots = ("breakfast", "lunch", "snack", "dinner")
+
+    # TASK 6: FINAL PLAN debug log
+    slot_counts = {s: len(clean.get(s) or []) for s in slots}
+    print(f"[meal-plan] FINAL PLAN: {slot_counts}")
 
     response = {
         "success":          True,
         "message":          message,
-        # ── TASK 2: flat keys only — no nested "data" ──────────────────────
-        "breakfast":        clean.get("breakfast",       []),
-        "lunch":            clean.get("lunch",           []),
-        "snack":            clean.get("snack",           []),
-        "dinner":           clean.get("dinner",          []),
+        # TASK 5: flat keys only — no 'data' envelope
+        "breakfast":        clean.get("breakfast", []),
+        "lunch":            clean.get("lunch",     []),
+        "snack":            clean.get("snack",     []),
+        "dinner":           clean.get("dinner",    []),
         "target_calories":  clean.get("target_calories"),
         "target_macros":    clean.get("target_macros"),
         "total_calories":   clean.get("total_calories"),
     }
 
-    # TASK 4: debug log — confirm no "data" key in response
-    print(f"[meal-plan] response keys: {list(response.keys())}")
     assert "data" not in response, "[meal-plan] BUG: 'data' key must not be present"
 
     return jsonify(response), 200
