@@ -22,28 +22,79 @@ def generate_meal_plan():
     is_valid, msg = validate_generate_plan(data)
     if not is_valid:
         return error(msg)
-        
+
     user_id = data.get("userId")
     date_str = data.get("date")
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
-    
+
     # Check if plan already exists for today
     from repositories.tracker_repository import tracker_repo
     existing = tracker_repo.get_plan_by_date(user_id, date_str)
     if existing:
-        return success(existing, "Meal plan retrieved")
-    
+        return _meal_plan_response(existing, "Meal plan retrieved")
+
     try:
         plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
     except Exception as exc:
         app_logger.exception("generate_daily_plan crashed: %s", exc)
         return error(f"Internal error: {exc}", 500)
-        
+
     if err:
         return error(err, 500 if "Error" in err else 400)
-        
-    return success(plan, "Meal plan generated")
+
+    return _meal_plan_response(plan, "Meal plan generated")
+
+
+def _meal_plan_response(plan, message):
+    """
+    Build a dual-format meal plan response for backward compatibility.
+
+    The existing mobile APK reads top-level keys:
+        response["breakfast"], response["lunch"], etc.
+
+    New clients use the structured envelope:
+        response["data"]["breakfast"], response["data"]["total_calories"], etc.
+
+    Both shapes are included so neither client needs updating.
+    """
+    from utils.response_utils import sanitize_firestore_data
+    from flask import jsonify
+
+    clean = sanitize_firestore_data(plan)
+
+    breakfast = clean.get("breakfast", [])
+    lunch     = clean.get("lunch",     [])
+    snack     = clean.get("snack",     [])
+    dinner    = clean.get("dinner",    [])
+
+    response = {
+        "success": True,
+        "message": message,
+
+        # ── Backward-compatible top-level keys (existing APK) ──────────────
+        "breakfast":        breakfast,
+        "lunch":            lunch,
+        "snack":            snack,
+        "dinner":           dinner,
+        "target_calories":  clean.get("target_calories"),
+        "target_macros":    clean.get("target_macros"),
+        "total_calories":   clean.get("total_calories"),
+
+        # ── New structured envelope (future clients) ───────────────────────
+        "data": {
+            "breakfast":       breakfast,
+            "lunch":           lunch,
+            "snack":           snack,
+            "dinner":          dinner,
+            "target_calories": clean.get("target_calories"),
+            "target_macros":   clean.get("target_macros"),
+            "total_calories":  clean.get("total_calories"),
+        },
+    }
+    return jsonify(response), 200
+
+
 
 
 # ==========================================
