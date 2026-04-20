@@ -949,25 +949,65 @@ def generate_full_meal_plan(target, meals_by_type, recent_meals=None, is_vegetar
           f"{target['fat']:.1f}g fat")
     print(f"[Meal Plan] Validation: {plan['validation']}")
 
-    # TASK 5: Safety fallback — ensure every slot has at least 1 meal
-    all_meals_flat = [
-        m for meals in meals_by_type.values() for m in meals
-    ]
-    if all_meals_flat:
-        for slot in order:
-            slot_key = slot.lower()
-            slot_data = plan.get(slot_key, {})
-            if not slot_data.get("items"):
-                print(f"[meal-plan] fallback triggered — {slot} is empty; picking random meal")
-                fallback_meal = random.choice(all_meals_flat)
-                fb_copy = copy.deepcopy(fallback_meal)
-                fb_copy["quantity"] = 1
-                plan[slot_key] = {
-                    "items": [fb_copy],
-                    "mealCalories": fallback_meal.get("calories", 0),
-                    "cuisineTheme": get_tags(fallback_meal)["cuisine"],
-                    "template": "safety_fallback",
-                    "calorie_ok": False,
-                }
+    # TASK 5 (improved): Safety fallback — type-safe, diet-compliant, calorie-aware
+    # TASK 1: use per-slot pool (meals_by_type[slot]), not the full flat list
+    # TASK 2: respect is_vegetarian filter
+    # TASK 3: prefer calorie proximity; random only as last resort
+    for slot in order:
+        slot_key = slot.lower()
+        slot_data = plan.get(slot_key, {})
+        if slot_data.get("items"):
+            continue  # slot already filled — nothing to do
+
+        # TASK 1: type-correct pool for this slot
+        slot_pool = list(meals_by_type.get(slot, []))
+
+        # TASK 2: apply veg filter when required
+        if is_vegetarian and slot_pool:
+            veg_pool = [
+                m for m in slot_pool
+                if m.get("is_vegetarian") is True
+                and not any(
+                    kw in (m.get("mealName") or "").lower()
+                    for kw in {"chicken", "mutton", "fish", "egg"}
+                )
+            ]
+            if veg_pool:
+                slot_pool = veg_pool
+            # else: no veg meals for this type — keep unfiltered pool
+
+        if not slot_pool:
+            # Absolute last resort: anything from any type
+            slot_pool = [m for ms in meals_by_type.values() for m in ms]
+
+        if not slot_pool:
+            print(f"[meal-plan] fallback triggered — {slot}: no meals available at all, skipping")
+            continue
+
+        # TASK 3: pick by calorie proximity to the slot's proportional target
+        slot_target_cals = target["calories"] * MEAL_SPLIT.get(slot, 0.25)
+        slot_pool_sorted = sorted(
+            slot_pool,
+            key=lambda m: abs((m.get("calories") or 0) - slot_target_cals)
+        )
+        fallback_meal = slot_pool_sorted[0]
+
+        # TASK 4: structured log message
+        print(
+            f"[meal-plan] fallback triggered — type-safe selection: "
+            f"{slot} → '{fallback_meal.get('mealName')}' "
+            f"(cal={fallback_meal.get('calories', 0)}, target≈{slot_target_cals:.0f}, "
+            f"pool={len(slot_pool)}, veg={is_vegetarian})"
+        )
+
+        fb_copy = copy.deepcopy(fallback_meal)
+        fb_copy["quantity"] = 1
+        plan[slot_key] = {
+            "items": [fb_copy],
+            "mealCalories": fallback_meal.get("calories", 0),
+            "cuisineTheme": get_tags(fallback_meal)["cuisine"],
+            "template": "safety_fallback",
+            "calorie_ok": False,
+        }
 
     return plan
