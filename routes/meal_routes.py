@@ -48,50 +48,38 @@ def generate_meal_plan():
 
 def _meal_plan_response(plan, message):
     """
-    Build a dual-format meal plan response for backward compatibility.
+    TASK 2: Flat-only response — exactly what the existing APK expects.
 
-    The existing mobile APK reads top-level keys:
-        response["breakfast"], response["lunch"], etc.
+    Returns top-level keys ONLY (no nested 'data' object):
+        { success, message, breakfast, lunch, snack, dinner,
+          target_calories, target_macros, total_calories }
 
-    New clients use the structured envelope:
-        response["data"]["breakfast"], response["data"]["total_calories"], etc.
-
-    Both shapes are included so neither client needs updating.
+    Applied to BOTH paths (TASK 3):
+        - fresh generation
+        - cached Firestore plan retrieval
     """
     from utils.response_utils import sanitize_firestore_data
     from flask import jsonify
 
     clean = sanitize_firestore_data(plan)
 
-    breakfast = clean.get("breakfast", [])
-    lunch     = clean.get("lunch",     [])
-    snack     = clean.get("snack",     [])
-    dinner    = clean.get("dinner",    [])
-
     response = {
-        "success": True,
-        "message": message,
-
-        # ── Backward-compatible top-level keys (existing APK) ──────────────
-        "breakfast":        breakfast,
-        "lunch":            lunch,
-        "snack":            snack,
-        "dinner":           dinner,
+        "success":          True,
+        "message":          message,
+        # ── TASK 2: flat keys only — no nested "data" ──────────────────────
+        "breakfast":        clean.get("breakfast",       []),
+        "lunch":            clean.get("lunch",           []),
+        "snack":            clean.get("snack",           []),
+        "dinner":           clean.get("dinner",          []),
         "target_calories":  clean.get("target_calories"),
         "target_macros":    clean.get("target_macros"),
         "total_calories":   clean.get("total_calories"),
-
-        # ── New structured envelope (future clients) ───────────────────────
-        "data": {
-            "breakfast":       breakfast,
-            "lunch":           lunch,
-            "snack":           snack,
-            "dinner":          dinner,
-            "target_calories": clean.get("target_calories"),
-            "target_macros":   clean.get("target_macros"),
-            "total_calories":  clean.get("total_calories"),
-        },
     }
+
+    # TASK 4: debug log — confirm no "data" key in response
+    print(f"[meal-plan] response keys: {list(response.keys())}")
+    assert "data" not in response, "[meal-plan] BUG: 'data' key must not be present"
+
     return jsonify(response), 200
 
 
