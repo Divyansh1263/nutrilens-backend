@@ -28,12 +28,22 @@ def generate_meal_plan():
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
 
-    # Check if plan already exists for today
+    # TASK 1 & 2: fetch cached plan but reject it if all slots are empty
     from repositories.tracker_repository import tracker_repo
     existing = tracker_repo.get_plan_by_date(user_id, date_str)
-    if existing:
+
+    if existing and not _is_plan_empty(existing):
+        app_logger.info("[meal-plan] Valid cached plan found — returning without regeneration")
         return _meal_plan_response(existing, "Meal plan retrieved")
 
+    if existing and _is_plan_empty(existing):
+        # TASK 4: log the bad cache hit
+        app_logger.warning(
+            "[meal-plan] Cached plan is empty → regenerating for user=%s date=%s",
+            user_id, date_str
+        )
+
+    # TASK 2 & 3: generate (or regenerate) and save — overwrites any bad cache
     try:
         plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
     except Exception as exc:
@@ -44,6 +54,20 @@ def generate_meal_plan():
         return error(err, 500 if "Error" in err else 400)
 
     return _meal_plan_response(plan, "Meal plan generated")
+
+
+def _is_plan_empty(plan: dict) -> bool:
+    """
+    TASK 1: Returns True when a stored plan has no items in any meal slot.
+    Used to detect stale/empty Firestore cache entries that must be
+    discarded and regenerated rather than returned to the client.
+    """
+    if not plan:
+        return True
+    slots = ("breakfast", "lunch", "snack", "dinner")
+    return all(len(plan.get(s) or []) == 0 for s in slots)
+
+
 
 
 def _meal_plan_response(plan, message):
