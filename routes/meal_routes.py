@@ -56,8 +56,21 @@ def generate_meal_plan():
         print("[meal-plan] DEMO MODE ACTIVE — returning hardcoded plan")
         plan = get_demo_meal_plan()
         return jsonify({
-            "success":         True,
-            "message":         "Demo meal plan generated",
+            "success": True,
+            "message": "Demo meal plan generated",
+
+            # Nested "data" block — APK reads res['data']['breakfast']
+            "data": {
+                "breakfast":       plan["breakfast"],
+                "lunch":           plan["lunch"],
+                "snack":           plan["snack"],
+                "dinner":          plan["dinner"],
+                "target_calories": plan["target_calories"],
+                "target_macros":   plan["target_macros"],
+                "total_calories":  plan["total_calories"],
+            },
+
+            # Flat keys — kept for any client reading top-level
             "breakfast":       plan["breakfast"],
             "lunch":           plan["lunch"],
             "snack":           plan["snack"],
@@ -66,6 +79,7 @@ def generate_meal_plan():
             "target_macros":   plan["target_macros"],
             "total_calories":  plan["total_calories"],
         }), 200
+
 
     data = request.get_json(force=True)
     is_valid, msg = validate_generate_plan(data)
