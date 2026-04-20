@@ -6,12 +6,7 @@ from firebase_admin import credentials, firestore
 
 from utils.response_utils import error
 from utils.logger import app_logger
-from dev_store import (
-    set_meals_cache,
-    save_meals_cache_to_disk,
-    load_meals_cache_from_disk,
-    load_users_cache_from_disk,
-)
+from dev_store import load_users_cache_from_disk
 
 FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "nutrilens-b5e81")
 FIREBASE_STORAGE_BUCKET = os.environ.get(
@@ -88,66 +83,46 @@ app_logger.info(
 # ---------------------------------------------------------
 # 2. STARTUP PRE-LOADING (Global Models & NLP Pipeline)
 # ---------------------------------------------------------
-# We load MEALS into memory for the NLP pipeline cold-start
+# TASK 3: Load meals ONCE into global in-memory cache before any route fires.
+from meals_cache import load_meals_cache, MEALS_CACHE as _MEALS_CACHE_REF
 from ai.nlp_pipeline import init_pipeline
 from ai.smart_swap_knn import SmartSwapKNN
 
+print("[cache-init] Loading meals into global in-memory cache …")
+try:
+    load_meals_cache()
+except Exception as _e:
+    app_logger.error("[cache-init] load_meals_cache failed: %s", _e)
+
+from meals_cache import MEALS_CACHE as MEALS  # re-import after load
+print(f"[cache-init] {len(MEALS)} meals ready in memory (source: "
+      f"{__import__('meals_cache').MEALS_SOURCE})")
+
+if not MEALS:
+    app_logger.warning(
+        "[cache-init] Meals cache is empty after startup — "
+        "NLP pipeline will use seed meals."
+    )
+
+# Initialise the NLP pipeline with the in-memory meals list
 try:
     db = firestore.client()
-    meal_docs = db.collection("meals").stream()
-    MEALS = []
-    for d in meal_docs:
-        m = d.to_dict()
-        m["id"] = d.id
-        MEALS.append(m)
-        
-    print(f"\nMeals loaded: {len(MEALS)}")
-    if len(MEALS) == 0:
-        app_logger.warning("WARNING: Zero meals fetched from Firestore db.collection('meals')! Ensure collection exists.")
-        
-    init_pipeline(MEALS, db=db)
-    # Provide an in-memory fallback cache for local dev when Firestore is rate-limited.
-    set_meals_cache(MEALS)
-    try:
-        save_meals_cache_to_disk()
-    except Exception as e:
-        app_logger.warning(f"Could not persist meals cache locally: {e}")
-    app_logger.info(f"Loaded {len(MEALS)} meals into NLP memory pipeline.")
-except Exception as e:
-    app_logger.error(f"Failed to preload memory components: {e}")
-    # If Firestore is rate-limited, try to continue using cached meals from disk
-    try:
-        if load_meals_cache_from_disk():
-            from ai.nlp_pipeline import init_pipeline
-            from dev_store import MEALS_CACHE
-            init_pipeline(MEALS_CACHE, db=None)
-            app_logger.warning("Loaded meals from local disk cache (Firestore unavailable).")
-        else:
-            # Last-resort: seed meals so local app remains usable for demos.
-            from dev_store import ensure_meals_available, MEALS_CACHE
-            ensure_meals_available()
-            init_pipeline(MEALS_CACHE, db=None)
-            app_logger.warning("Loaded seeded meals cache (Firestore unavailable).")
-    except Exception as e2:
-        app_logger.warning(f"Could not load meals cache from disk: {e2}")
+except Exception:
+    db = None
 
-    # Load local user cache so login/profile can work when Firestore is throttled
-    try:
-        load_users_cache_from_disk()
-    except Exception:
-        pass
-
-# ISSUE 3: Initialize meal caching to reduce Firestore reads by 80-90%
-print("[Firestore Optimization] Initializing in-memory meal cache on startup...")
 try:
-    from repositories.meal_repository import _initialize_cache
-    _initialize_cache()
-    print("[Firestore Optimization] Cache initialization complete")
-except Exception as e:
-    print(f"[Firestore Optimization] Cache initialization warning: {e}")
+    init_pipeline(MEALS, db=db)
+except Exception as _e:
+    app_logger.error("[startup] NLP pipeline init failed: %s", _e)
+
+# Load local user cache so login/profile can work when Firestore is throttled
+try:
+    load_users_cache_from_disk()
+except Exception:
+    pass
 
 # Load KNN model for meal replacement suggestions
-print("[KNN Model] Loading SmartSwapKNN model...")
+print("[KNN Model] Loading SmartSwapKNN model …")
 try:
     knn_model = SmartSwapKNN()
     knn_model.load("models/knn_meal_swap.joblib")

@@ -74,3 +74,24 @@ def submit_feedback():
         return success({}, "Feedback submitted successfully")
     except Exception as e:
         return error(str(e), 500)
+
+
+# TASK 6 – Admin endpoint to force-reload the meals cache from Firestore
+@system_bp.route("/refresh-cache", methods=["POST"])
+def refresh_cache():
+    """
+    Force-reload the in-memory meals cache from Firestore.
+    Useful after bulk meal uploads without restarting the server.
+
+    Example:
+        POST /refresh-cache
+    """
+    try:
+        from meals_cache import refresh_meals_cache, MEALS_CACHE, MEALS_SOURCE
+        refresh_meals_cache()
+        return success(
+            {"meals_loaded": len(MEALS_CACHE), "source": MEALS_SOURCE},
+            "Meals cache refreshed successfully"
+        )
+    except Exception as e:
+        return error(f"Cache refresh failed: {e}", 500)

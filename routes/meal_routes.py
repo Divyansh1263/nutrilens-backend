@@ -238,56 +238,30 @@ def replace_meal():
         except Exception as e:
             print(f"[Debug] KNN failed: {e}")
     
-    # TIER 3: Top up to 5 using random meals from cache (exclude original)
-    # IMPROVEMENT 4: Use cached meals for fallback instead of querying Firestore
+    # TIER 3: Top up to 5 using random meals from global cache (0 Firestore reads)
     if len(suggestions) < 5:
         try:
             import random
-            from repositories.meal_repository import _cached_meals
-            
-            # Use in-memory cache for random selection (0 Firestore reads)
-            if _cached_meals:
-                needed = 5 - len(suggestions)
-                existing_names = {s.get("mealName", "") for s in suggestions} | {meal_name}
-                
-                # Create a shuffled copy and filter
-                available_meals = [
-                    m for m in _cached_meals
-                    if m.get("mealName", "").lower() not in {n.lower() for n in existing_names}
-                ]
-                random.shuffle(available_meals)
-                
-                for rm in available_meals[:needed]:
-                    rm_name = rm.get("mealName", "")
-                    if rm_name and rm_name not in existing_names:
-                        suggestions.append(rm)
-                        existing_names.add(rm_name)
-                
-                num_added = len(suggestions)
-                print(f"[Debug] Added {num_added} meals from cache fallback (IMPROVEMENT 4: zero Firestore reads)")
-            else:
-                # Fallback to original method if cache not ready
-                needed = 5 - len(suggestions)
-                existing_names = {s.get("mealName", "") for s in suggestions} | {meal_name}
-                
-                random_meals = meal_repo.get_random_meals(limit=needed + 10)
-                
-                for rm in random_meals:
-                    rm_name = rm.get("mealName", "")
-                    if rm_name and rm_name not in existing_names:
-                        suggestions.append(rm)
-                        existing_names.add(rm_name)
-                        if len(suggestions) >= 5:
-                            break
-                
-                print(f"[Debug] Cache not ready, using Firestore fallback ({len(random_meals)} fetches)")
+            from meals_cache import MEALS_CACHE as _all_meals
+
+            needed = 5 - len(suggestions)
+            existing_names = {s.get("mealName", "") for s in suggestions} | {meal_name}
+
+            available_meals = [
+                m for m in _all_meals
+                if m.get("mealName", "").lower() not in {n.lower() for n in existing_names}
+            ]
+            random.shuffle(available_meals)
+
+            for rm in available_meals[:needed]:
+                rm_name = rm.get("mealName", "")
+                if rm_name and rm_name not in existing_names:
+                    suggestions.append(rm)
+                    existing_names.add(rm_name)
+
+            print(f"[Debug] Added meals from global cache (0 Firestore reads), total={len(suggestions)}")
         except Exception as e:
             print(f"[Debug] Cache fallback failed: {e}")
-            pass
-            
-            print(f"[Debug] Added {len(suggestions)} random meal fallbacks")
-        except Exception as e:
-            print(f"[Debug] Random meals fallback failed: {e}")
     
     # Ensure we always have at least some result (even if empty items)
     result_suggestions = [{"mealName": s.get("mealName", "Unknown")} for s in suggestions[:5]]
