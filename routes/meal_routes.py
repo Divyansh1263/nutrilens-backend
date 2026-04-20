@@ -13,11 +13,60 @@ from services.search_service import search_service
 
 meal_bp = Blueprint('meal', __name__)
 
-# ==========================================
+# ─────────────────────────────────────────────────────────────────────────────
+# DEMO MODE — set True before a presentation to bypass all backend logic and
+# always return a hardcoded meal plan. Flip back to False afterwards.
+# ─────────────────────────────────────────────────────────────────────────────
+DEMO_MODE = True
+
+
+def get_demo_meal_plan() -> dict:
+    """Returns a realistic hardcoded meal plan used during DEMO_MODE.
+    Meal names match the live dataset so the swap endpoint still works."""
+    return {
+        "breakfast": [
+            {"mealName": "Masala Oats",  "calories": 150, "protein": 5,  "carbs": 25, "fat": 3,  "quantity": 1},
+            {"mealName": "Boiled Egg",   "calories": 75,  "protein": 6,  "carbs": 1,  "fat": 5,  "quantity": 2},
+        ],
+        "lunch": [
+            {"mealName": "Dal Tadka",    "calories": 300, "protein": 12, "carbs": 30, "fat": 10, "quantity": 1},
+            {"mealName": "Plain Rice",   "calories": 200, "protein": 4,  "carbs": 45, "fat": 1,  "quantity": 1},
+        ],
+        "snack": [
+            {"mealName": "Banana",       "calories": 100, "protein": 1,  "carbs": 27, "fat": 0,  "quantity": 1},
+        ],
+        "dinner": [
+            {"mealName": "Roti",                    "calories": 120, "protein": 3, "carbs": 20, "fat": 3,  "quantity": 2},
+            {"mealName": "Mixed Vegetable Sabzi",   "calories": 180, "protein": 5, "carbs": 15, "fat": 10, "quantity": 1},
+        ],
+        "target_calories": 1500,
+        "target_macros":   {"protein": 90, "carbs": 150, "fat": 50},
+        "total_calories":  1400,
+    }
+
+
+# =============================================================================
 # GENERATION
-# ==========================================
+# =============================================================================
 @meal_bp.route("/generate-meal-plan", methods=["POST"])
 def generate_meal_plan():
+    # TASK 3: DEMO MODE — short-circuit everything, return hardcoded plan
+    if DEMO_MODE:
+        from flask import jsonify
+        print("[meal-plan] DEMO MODE ACTIVE — returning hardcoded plan")
+        plan = get_demo_meal_plan()
+        return jsonify({
+            "success":         True,
+            "message":         "Demo meal plan generated",
+            "breakfast":       plan["breakfast"],
+            "lunch":           plan["lunch"],
+            "snack":           plan["snack"],
+            "dinner":          plan["dinner"],
+            "target_calories": plan["target_calories"],
+            "target_macros":   plan["target_macros"],
+            "total_calories":  plan["total_calories"],
+        }), 200
+
     data = request.get_json(force=True)
     is_valid, msg = validate_generate_plan(data)
     if not is_valid:
@@ -33,7 +82,7 @@ def generate_meal_plan():
     existing = tracker_repo.get_plan_by_date(user_id, date_str)
 
     if existing:
-        existing = _normalize_plan_structure(existing)   # TASK 1
+        existing = _normalize_plan_structure(existing)
         if not _is_plan_empty(existing):
             app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
             return _meal_plan_response(existing, "Meal plan retrieved")
@@ -75,6 +124,7 @@ def generate_meal_plan():
                 }]
 
     return _meal_plan_response(plan, "Meal plan generated")
+
 
 
 def _normalize_plan_structure(plan: dict) -> dict:
