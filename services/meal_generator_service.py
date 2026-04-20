@@ -32,49 +32,61 @@ class MealGeneratorService:
     
     def generate_daily_plan(self, user_id, date_str):
         app_logger.info("Generating meal plan for user %s", user_id)
-        
+
         # 1. Fetch user targets
         target_calories = self.get_user_targets(user_id, date_str)
         if not target_calories:
-             return None, "Error calculating targets"
-             
+            return None, "Error calculating targets"
+
         # 2. Fetch History
         recent_plans = tracker_repo.get_recent_plans(user_id, limit=7)
         user_history = tracker_repo.get_user_meal_history(user_id)
-        
-        # 3. Fetch candidate meal combos
-        # We must generate multi-item meals, so we prefer single foods dataset.
-        all_meals = meal_repo.get_all_meals()
-        app_logger.info(f"Candidate meals count: {len(all_meals)}")
-        
-        # 4 & 5. Filter Candidates (dietary & conditions)
-        # TODO: integrate specific profile filtering logic if present in user doc
-        filtered_meals = all_meals  # Default pass-through for now
-        
-        plan = {
-            "target_calories": target_calories,
-            "target_macros": { # Hardcoded scale of target for structure
-                "protein": round(target_calories * 0.25 / 4),
-                "carbs": round(target_calories * 0.45 / 4),
-                "fat": round(target_calories * 0.30 / 9)
-            }
-        }
-        
-        total_gen_cals = 0
-        used_today = set()
 
-        # Generate each slot
+        # 3. Candidate meals from global in-memory cache (0 Firestore reads)
+        all_meals = meal_repo.get_all_meals()
+        app_logger.info("[meal-plan] candidate pool: %d meals", len(all_meals))
+
+        filtered_meals = all_meals  # pass-through; dietary filter applied in fallback
+
+        # 4. Resolve vegetarian preference from user profile (best-effort)
+        _is_veg = False
+        try:
+            from repositories.user_repository import user_repo as _ur
+            _profile = _ur.get_user_profile(user_id)
+            _is_veg = bool(_profile and _profile.get("is_vegetarian"))
+        except Exception:
+            pass
+
+        _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
+
+        # TASK 2: slot keys exactly match frontend contract (all lowercase)
         slots = [
             ("breakfast", BREAKFAST_RANGE, MEAL_SPLIT_RATIOS["Breakfast"]),
-            ("lunch", LUNCH_RANGE, MEAL_SPLIT_RATIOS["Lunch"]),
-            ("snack", SNACK_RANGE, MEAL_SPLIT_RATIOS["Snack"]),
-            ("dinner", DINNER_RANGE, MEAL_SPLIT_RATIOS["Dinner"])
+            ("lunch",     LUNCH_RANGE,     MEAL_SPLIT_RATIOS["Lunch"]),
+            ("snack",     SNACK_RANGE,     MEAL_SPLIT_RATIOS["Snack"]),
+            ("dinner",    DINNER_RANGE,    MEAL_SPLIT_RATIOS["Dinner"]),
         ]
-        
+
+        plan = {
+            "target_calories": target_calories,
+            "target_macros": {
+                "protein": round(target_calories * 0.25 / 4),
+                "carbs":   round(target_calories * 0.45 / 4),
+                "fat":     round(target_calories * 0.30 / 9),
+            },
+            # Pre-seed every slot as an empty list so plan keys always exist
+            "breakfast": [],
+            "lunch":     [],
+            "snack":     [],
+            "dinner":    [],
+        }
+
+        used_today = set()
+
+        # ── Primary generation loop ───────────────────────────────────────────
         for slot_name, cal_range, split_ratio in slots:
-            # target specific to slot
             slot_target = target_calories * split_ratio
-            
+
             items = self.build_multi_item_meal(
                 slot_name=slot_name,
                 slot_target=float(slot_target),
@@ -85,63 +97,39 @@ class MealGeneratorService:
                 max_items=4,
             )
 
-            # Sum this meal
-            meal_cals = sum(float(i.get("calories") or 0) for i in items)
-            total_gen_cals += meal_cals
+            # TASK 1: always use plan[slot_name] explicitly (in-place)
+            # TASK 2: slot_name is already lowercase from the slots tuple
+            plan[slot_name] = items  # may be [] — fallback handles below
 
-            # Step 6: API response should return arrays of foods (per prompt)
-            plan[slot_name] = items
-                 
-        plan["total_calories"] = total_gen_cals
+            for i in items:
+                used_today.add(i.get("mealName", ""))
 
-        # ── TASKS 1-4: Per-slot fallback ─────────────────────────────────────
-        # TASK 1: check each slot for an empty list (not relying on solve_meal)
-        # TASK 2: respect vegetarian flag from user profile
-        # TASK 3: sort by calorie proximity; mutate plan[slot] in-place
-        # TASK 4: log every applied fallback
-
-        # Determine vegetarian preference from user profile (best-effort)
-        _is_veg = False
-        try:
-            from repositories.user_repository import user_repo as _ur
-            _profile = _ur.get_user_profile(user_id)
-            _is_veg = bool(_profile and _profile.get("is_vegetarian"))
-        except Exception:
-            pass
-
-        _slot_split = {
-            "breakfast": MEAL_SPLIT_RATIOS["Breakfast"],
-            "lunch":     MEAL_SPLIT_RATIOS["Lunch"],
-            "snack":     MEAL_SPLIT_RATIOS["Snack"],
-            "dinner":    MEAL_SPLIT_RATIOS["Dinner"],
-        }
-        _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
-
-        for _slot_name, _, _split_ratio in slots:
-            # TASK 1: detect empty slot
-            if plan.get(_slot_name):
+        # ── TASK 5 (execution order): fallback BEFORE total_calories ─────────
+        # ── TASKS 1-4: per-slot fallback ────────────────────────────────────
+        for slot_name, _, split_ratio in slots:
+            # TASK 1: detect empty list
+            if plan[slot_name]:          # non-empty → skip
                 continue
 
             app_logger.warning(
-                "[meal-plan] slot '%s' is empty after generation — applying fallback",
-                _slot_name
+                "[meal-plan] slot '%s' empty after primary generation — applying fallback",
+                slot_name
             )
 
-            # TASK 2: build a type-filtered pool
-            _slot_target = target_calories * _split_ratio
+            _slot_target = target_calories * split_ratio
+
+            # TASK 2: type-correct pool, then widen if needed
             _pool = [
                 m for m in filtered_meals
-                if (m.get("meal_type") or "").lower() == _slot_name
-                or (m.get("category") or "").lower() == _slot_name
+                if (m.get("meal_type") or "").lower() == slot_name
+                or (m.get("category")  or "").lower() == slot_name
             ]
-
-            # Widen to full candidate set if type-pool is too small
             if len(_pool) < 5:
-                _pool = list(filtered_meals)
+                _pool = list(filtered_meals)   # widen to full pool
 
-            # TASK 2: veg filter
+            # TASK 2: vegetarian filter
             if _is_veg and _pool:
-                _veg_pool = [
+                _veg = [
                     m for m in _pool
                     if m.get("is_vegetarian") is True
                     and not any(
@@ -149,21 +137,18 @@ class MealGeneratorService:
                         for kw in _NON_VEG_KWS
                     )
                 ]
-                if _veg_pool:
-                    _pool = _veg_pool
+                if _veg:
+                    _pool = _veg
 
             if not _pool:
                 app_logger.error(
-                    "[meal-plan] fallback: no candidates at all for slot '%s'", _slot_name
+                    "[meal-plan] fallback: pool is empty for slot '%s'", slot_name
                 )
                 continue
 
-            # TASK 3: pick by calorie proximity, no random
-            _pool_sorted = sorted(
-                _pool,
-                key=lambda m: abs((m.get("calories") or 0) - _slot_target)
-            )
-            _best = _pool_sorted[0]
+            # TASK 3: calorie proximity — no random
+            _pool.sort(key=lambda m: abs((m.get("calories") or 0) - _slot_target))
+            _best = _pool[0]
             _fb_item = {
                 "mealName": _best.get("mealName", ""),
                 "quantity": 1.0,
@@ -173,55 +158,65 @@ class MealGeneratorService:
                 "fat":      round(float(_best.get("fat")      or 0), 1),
             }
 
-            # TASK 3: mutate in-place
-            plan[_slot_name] = [_fb_item]
-            total_gen_cals += _fb_item["calories"]
+            # TASK 1 + TASK 3: in-place mutation
+            plan[slot_name] = [_fb_item]
 
-            # TASK 4: log the applied fallback
+            # TASK 4: slot fallback log
             app_logger.info(
                 "[meal-plan] slot fallback applied → %s: '%s' "
                 "(cal=%.0f, target≈%.0f, pool=%d, veg=%s)",
-                _slot_name, _fb_item["mealName"], _fb_item["calories"],
-                _slot_target, len(_pool), _is_veg
+                slot_name, _fb_item["mealName"],
+                _fb_item["calories"], _slot_target, len(_pool), _is_veg,
             )
 
-        # Update total after any fallbacks were applied
+        # ── TASK 5 (total after fallbacks applied) ───────────────────────────
+        total_gen_cals = sum(
+            float(i.get("calories") or 0)
+            for sn, _, _ in slots
+            for i in plan[sn]
+        )
         plan["total_calories"] = round(total_gen_cals)
 
-        # TASK 5: Final safety — assert at least one slot has items
-        _slot_names = [s for s, _, _ in slots]
-        _any_filled = any(bool(plan.get(s)) for s in _slot_names)
+        # ── TASK 4: FINAL PLAN log before return ─────────────────────────────
+        app_logger.info(
+            "[meal-plan] FINAL PLAN: breakfast→%d  lunch→%d  snack→%d  dinner→%d  "
+            "total_cal=%d",
+            len(plan["breakfast"]), len(plan["lunch"]),
+            len(plan["snack"]),     len(plan["dinner"]),
+            plan["total_calories"],
+        )
 
-        if not _any_filled:
+        # ── TASK 4: assert non-empty — force-fill if everything is still empty
+        _slot_names = [sn for sn, _, _ in slots]
+        if all(len(plan[sn]) == 0 for sn in _slot_names):
             app_logger.error(
-                "[meal-plan] all slots empty after fallback — forcing 1 random meal per slot"
+                "[meal-plan] ALL SLOTS EMPTY after fallback — emergency force-fill"
             )
             import random as _rnd
-            for _slot_name, _, _split_ratio in slots:
+            for sn, _, sr in slots:
                 if filtered_meals:
-                    _emergency = _rnd.choice(filtered_meals)
-                    plan[_slot_name] = [{
-                        "mealName": _emergency.get("mealName", "fallback"),
+                    _em = _rnd.choice(filtered_meals)
+                    plan[sn] = [{
+                        "mealName": _em.get("mealName", "fallback"),
                         "quantity": 1.0,
-                        "calories": round(float(_emergency.get("calories") or 0), 1),
-                        "protein":  round(float(_emergency.get("protein")  or 0), 1),
-                        "carbs":    round(float(_emergency.get("carbs")    or 0), 1),
-                        "fat":      round(float(_emergency.get("fat")      or 0), 1),
+                        "calories": round(float(_em.get("calories") or 0), 1),
+                        "protein":  round(float(_em.get("protein")  or 0), 1),
+                        "carbs":    round(float(_em.get("carbs")    or 0), 1),
+                        "fat":      round(float(_em.get("fat")      or 0), 1),
                     }]
                     app_logger.info(
-                        "[meal-plan] emergency fill: %s → '%s'",
-                        _slot_name, _emergency.get("mealName")
+                        "[meal-plan] emergency fill: %s → '%s'", sn, _em.get("mealName")
                     )
 
-        # Save to DB
+        # ── Save to Firestore ─────────────────────────────────────────────────
         tracker_repo.save_plan({
-            # IMPORTANT: repository queries use "userId"
             "userId": user_id,
-            "date": date_str,
-            **plan
+            "date":   date_str,
+            **plan,
         })
-        
+
         return plan, ""
+
 
 
     def get_user_targets(self, user_id, date_str):
