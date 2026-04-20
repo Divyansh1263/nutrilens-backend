@@ -33,8 +33,8 @@ MEAL_SPLIT = {
 NUM_CANDIDATES = 10
 
 # Penalty applied per recent occurrence of the same meal (variety control)
-# Raised -3 → -8 (TASK 4) for stronger diversity enforcement
-VARIETY_PENALTY = -8
+# Relaxed -8 → -3 (TASK 3) to prevent over-pruning of valid candidates
+VARIETY_PENALTY = -3
 
 
 # ==============================================================================
@@ -425,8 +425,9 @@ _PROTEIN_KEYWORDS = {
 }
 
 
-# Minimum protein grams for an item to count as a protein source (TASK 5)
-MIN_PROTEIN_G = 5.0
+# Minimum protein grams for an item to count as a protein source (TASK 4)
+# Relaxed 5.0 → 3.0 (TASK 4 relax) to avoid rejecting low-but-valid protein items
+MIN_PROTEIN_G = 3.0
 
 
 def _check_meal_completeness(items):
@@ -556,13 +557,13 @@ def solve_meal(pattern, candidates, target_calories, target_macros=None, recent_
         protein_density_score = _compute_protein_density_score(items)
         variety_penalty       = _compute_variety_penalty(items, recent_meals)
 
-        # TASK 3: Calorie-aware penalty (upgraded to convex power formula)
-        # Large deviations are penalised exponentially; small ones stay cheap.
-        # Old: |diff|/target * 0.3   New: (|diff|/target)^1.5 * 0.4
+        # TASK 2 (relaxed): Calorie-aware penalty.
+        # Old formula: (ratio^1.5) * 0.4  — too harsh, caused empty results.
+        # New formula: (ratio^1.2) * 0.25 — gentler convex penalty.
         raw_cals = sum(item.get("calories", 0) or 0 for item in items)
         if target_calories and target_calories > 0:
             cal_ratio = abs(raw_cals - target_calories) / target_calories
-            calorie_penalty = (cal_ratio ** 1.5) * 0.4
+            calorie_penalty = (cal_ratio ** 1.2) * 0.25
         else:
             calorie_penalty = 0.0
 
@@ -597,15 +598,25 @@ def solve_meal(pattern, candidates, target_calories, target_macros=None, recent_
             best_cuisine = cuisine
 
     if best_candidate is None:
-        # Fallback: just pick anything from the pool
+        # TASK 1: Fallback — calorie-proximity only, ignore all penalties
+        print("[meal-plan] fallback triggered — no candidate passed scoring; using calorie-proximity fallback")
         if candidates:
-            fallback = random.choice(candidates)
-            fallback_copy = copy.deepcopy(fallback)
-            fallback_copy["quantity"] = 1  # FIX #5: always include quantity field
+            # Pick top-N meals closest to target calories, ignoring completeness/variety/protein
+            sorted_by_cal = sorted(
+                candidates,
+                key=lambda m: abs((m.get("calories") or 0) - target_calories)
+            )
+            fallback_items = sorted_by_cal[:2]  # take the 2 closest
+            fallback_copies = []
+            for fb in fallback_items:
+                fb_copy = copy.deepcopy(fb)
+                fb_copy["quantity"] = 1
+                fallback_copies.append(fb_copy)
+            fallback_cals = sum(f.get("calories", 0) for f in fallback_copies)
             return {
-                "items": [fallback_copy],
-                "mealCalories": fallback.get("calories", 0),
-                "cuisineTheme": get_tags(fallback)["cuisine"],
+                "items": fallback_copies,
+                "mealCalories": round(fallback_cals),
+                "cuisineTheme": get_tags(fallback_copies[0])["cuisine"] if fallback_copies else "indian",
                 "template": pattern["name"],
                 "calorie_ok": False,
             }
@@ -937,5 +948,26 @@ def generate_full_meal_plan(target, meals_by_type, recent_meals=None, is_vegetar
           f"{target['carbs']:.1f}g carbs, "
           f"{target['fat']:.1f}g fat")
     print(f"[Meal Plan] Validation: {plan['validation']}")
+
+    # TASK 5: Safety fallback — ensure every slot has at least 1 meal
+    all_meals_flat = [
+        m for meals in meals_by_type.values() for m in meals
+    ]
+    if all_meals_flat:
+        for slot in order:
+            slot_key = slot.lower()
+            slot_data = plan.get(slot_key, {})
+            if not slot_data.get("items"):
+                print(f"[meal-plan] fallback triggered — {slot} is empty; picking random meal")
+                fallback_meal = random.choice(all_meals_flat)
+                fb_copy = copy.deepcopy(fallback_meal)
+                fb_copy["quantity"] = 1
+                plan[slot_key] = {
+                    "items": [fb_copy],
+                    "mealCalories": fallback_meal.get("calories", 0),
+                    "cuisineTheme": get_tags(fallback_meal)["cuisine"],
+                    "template": "safety_fallback",
+                    "calorie_ok": False,
+                }
 
     return plan
