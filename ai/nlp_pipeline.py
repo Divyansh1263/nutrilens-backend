@@ -422,13 +422,18 @@ def _apply_user_preference(meal, user_id, base_confidence, db):
         return base_confidence
 
     try:
+        from utils.logger import app_logger
         logs_ref = db.collection("meal_logs") \
             .where("userId", "==", user_id) \
+            .limit(100) \
             .stream()
 
         target_name = meal.get("mealName", "")
+        # Convert to list to iterate + count correctly while knowing the length for logging
+        docs_list = list(logs_ref)
+        app_logger.info(f"[db] fetched {len(docs_list)} docs for meal_logs preference check")
         count = sum(
-            1 for doc in logs_ref
+            1 for doc in docs_list
             if doc.to_dict().get("mealName") == target_name
         )
 

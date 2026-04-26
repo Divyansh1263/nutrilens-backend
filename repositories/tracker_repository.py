@@ -146,14 +146,16 @@ class TrackerRepository:
         take the tail in Python — avoids requiring a DESC composite index.
         """
         try:
+            from utils.logger import app_logger
             docs = self.db.collection(COL_MEAL_PLANS)\
                 .where("userId", "==", user_id)\
                 .order_by("date")\
+                .limit(limit)\
                 .stream()
 
-            # Collect all matching docs, then slice the most-recent N.
             plans = [d.to_dict() for d in docs]
-            return plans[-limit:] if len(plans) > limit else plans
+            app_logger.info(f"[db] fetched {len(plans)} docs for {COL_MEAL_PLANS}")
+            return plans
         except Exception as e:
             if "Quota exceeded" in str(e) or "429" in str(e):
                 return []

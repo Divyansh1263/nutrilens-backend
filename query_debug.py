@@ -7,7 +7,7 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 print("\n--- Testing Single Record Fetch ---")
-docs = list(db.collection("nlp_debug_logs").order_by("timestamp", direction=firestore.Query.ASCENDING).stream())
-doc = docs[-1] if docs else None
+docs = db.collection("nlp_debug_logs").order_by("timestamp").limit(1).stream()
+doc = next(iter(docs), None)
 if doc:
     print(doc.to_dict())
