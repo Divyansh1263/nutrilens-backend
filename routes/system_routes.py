@@ -2,7 +2,7 @@
 from flask import Blueprint, request
 from utils.response_utils import success, error
 from repositories.user_repository import user_repo
-from utils.calorie_utils import get_or_calculate_user_targets
+from utils.calorie_utils import get_or_calculate_user_targets, invalidate_user_target_cache
 from utils.date_utils import get_today_str
 
 system_bp = Blueprint('system', __name__)
@@ -46,6 +46,9 @@ def calculate_target():
     if not profile:
         return error("User not found", 404)
     
+    # Fix F (audit): invalidate stale target cache so the new calculation
+    # is served immediately on the next tracker/diet request.
+    invalidate_user_target_cache(user_id)
     targets = get_or_calculate_user_targets(user_id, date_str)
     return success(targets, "Targets calculated")
 

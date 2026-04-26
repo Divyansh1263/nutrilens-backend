@@ -120,3 +120,13 @@ def get_profile():
 
     return success(mapped)
 
+
+# TODO (Fix F — audit): When a PATCH /user-profile endpoint is added to allow
+# users to update weight/goal/activity, call:
+#
+#   from utils.calorie_utils import invalidate_user_target_cache
+#   invalidate_user_target_cache(user_id)
+#
+# immediately after saving the updated profile to Firestore.
+# Without this, the 10-minute user_target_cache will serve stale calorie
+# targets until it naturally expires.
