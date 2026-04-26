@@ -413,10 +413,10 @@ def _apply_user_preference(meal, user_id, base_confidence, db):
     """
     Boost confidence for meals the user has frequently logged before.
 
-    Strategy:
-        - Query the last 30 meal_logs for this user
-        - Count how many times this meal appears
-        - Add a small boost: min(0.05 * count, 0.15)
+    Index fix: removed DESCENDING order_by on timestamp (required a
+    composite index on userId+timestamp DESC).  Instead, query by userId
+    only (single-field index — always available) and count matches in
+    Python. The result is more accurate (all history, not just last 30).
     """
     if not db or not user_id:
         return base_confidence
@@ -424,19 +424,18 @@ def _apply_user_preference(meal, user_id, base_confidence, db):
     try:
         logs_ref = db.collection("meal_logs") \
             .where("userId", "==", user_id) \
-            .order_by("timestamp", direction="DESCENDING") \
-            .limit(30)
+            .stream()
 
-        count = 0
-        for doc in logs_ref.stream():
-            log = doc.to_dict()
-            if log.get("mealName") == meal.get("mealName"):
-                count += 1
+        target_name = meal.get("mealName", "")
+        count = sum(
+            1 for doc in logs_ref
+            if doc.to_dict().get("mealName") == target_name
+        )
 
         if count > 0:
             boost = min(0.05 * count, 0.15)
             print(f"[Step 12] User preference boost for "
-                  f"'{meal['mealName']}': +{boost:.2f} (logged {count}x)")
+                  f"'{target_name}': +{boost:.2f} (logged {count}x)")
             return min(1.0, base_confidence + boost)
 
     except Exception as e:

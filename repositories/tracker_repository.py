@@ -140,17 +140,20 @@ class TrackerRepository:
             pass
 
     def get_recent_plans(self, user_id, limit=3):
-        """Fetch last N days of meal plans for variety control."""
+        """Fetch last N days of meal plans for variety control.
+
+        Index fix: order ASC (uses existing userId+date ASC index) and
+        take the tail in Python — avoids requiring a DESC composite index.
+        """
         try:
             docs = self.db.collection(COL_MEAL_PLANS)\
                 .where("userId", "==", user_id)\
-                .order_by("date", direction=firestore.Query.DESCENDING)\
-                .limit(limit).stream()
-            
-            plans = []
-            for d in docs:
-                plans.append(d.to_dict())
-            return plans
+                .order_by("date")\
+                .stream()
+
+            # Collect all matching docs, then slice the most-recent N.
+            plans = [d.to_dict() for d in docs]
+            return plans[-limit:] if len(plans) > limit else plans
         except Exception as e:
             if "Quota exceeded" in str(e) or "429" in str(e):
                 return []
