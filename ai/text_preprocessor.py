@@ -140,6 +140,10 @@ FOOD_ALIAS_MAP = {
 # ── Multi-word alias map (phrase-level replacement) ───────────────────────────
 # Maps phrases of 2+ words → canonical name used in mealName / searchKeywords
 MULTI_WORD_ALIAS_MAP = {
+    "aloo sabzi": "aloo curry",
+    "gajar sabzi": "carrot curry",
+    "bhindi sabzi": "okra curry",
+    "mixed sabzi": "mixed vegetable curry",
     "dahi chawal": "curd rice",
     "aloo gobhi": "aloo gobi",
     "aloo gobi": "aloo gobi",

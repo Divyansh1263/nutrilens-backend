@@ -309,6 +309,18 @@ def process_meal_text(text, user_id, date, db=None):
             f"(confidence={conf_str}, priority={priority_score:.1f})"
         )
 
+        # Step 2: Add intent-based rules BEFORE hybrid matcher
+        entity_lower = entity.lower()
+        if "sabzi" in entity_lower:
+            category = "Vegetable"
+            category_confidence = 1.0
+        elif "paneer" in entity_lower:
+            category = "Paneer"
+            category_confidence = 1.0
+        elif "dal" in entity_lower:
+            category = "Dal"
+            category_confidence = 1.0
+
         # Steps 8-11: Hybrid matching (TF-IDF + fuzzy + category + context)
         meal, confidence = resolve_best_meal(
             entity,

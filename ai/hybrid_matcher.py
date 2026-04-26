@@ -20,11 +20,11 @@ from ai.tfidf_matcher import (
 # -----------------------------------------------
 # Scoring weights  (must sum to 1.0)
 # -----------------------------------------------
-W_TFIDF    = 0.55
-W_FUZZY    = 0.25
+W_TFIDF    = 0.65
+W_FUZZY    = 0.15
 W_CATEGORY = 0.10
-W_KEYWORD  = 0.05   # explicit searchKeywords overlap
-W_CONTEXT  = 0.05   # context resolver signal
+W_KEYWORD  = 0.10   # explicit searchKeywords overlap
+W_CONTEXT  = 0.10   # context resolver signal
 
 # Specificity penalty weight per word in meal name
 # Raised 0.05 → 0.07 (TASK 3) for stronger preference of simple names
@@ -32,7 +32,7 @@ SPECIFICITY_PENALTY_PER_WORD = 0.07
 
 # TASK 4: Minimum category confidence below which category filter is disabled
 # Raised 0.50 → 0.60 (TASK 3) for stricter gating
-CATEGORY_CONFIDENCE_THRESHOLD = 0.60
+CATEGORY_CONFIDENCE_THRESHOLD = 0.50
 
 # Minimum hybrid score to accept a match
 CONFIDENCE_THRESHOLD = 0.30
@@ -41,7 +41,7 @@ CONFIDENCE_THRESHOLD = 0.30
 # Set True to zero out category weights during scoring.
 # This prevents the food-category classifier from excluding valid meals
 # when the classifier is uncertain (e.g. 'rice' classified as 'snack').
-IGNORE_CATEGORY = True
+IGNORE_CATEGORY = False
 
 # ── Keyword quality gate (mirrors tfidf_matcher.MIN_KEYWORD_COUNT) ───────────
 # Meals below this threshold are excluded from BOTH TF-IDF and fuzzy pools.
@@ -229,6 +229,13 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
         if tfidf_s < 0.25 and fuzzy_s < 0.60:
             continue
 
+        # ── Step 5: Negative filtering ─────────────────────────────────────────
+        if "sabzi" in query_lower:
+            bad_keywords = {"halwa", "kheer", "dessert", "sweet"}
+            if any(bad in name.lower() for bad in bad_keywords):
+                print(f"[negative_filter] Skipping '{name}' for sabzi query")
+                continue
+
         # ── Acceptance gate (OR logic per spec) ───────────────────────────────
         # Require a meaningful signal from at least one primary method.
         passes_filter = (
@@ -383,49 +390,6 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
     """
     print(f"\n[hybrid] Matching query: '{query}' (priority={entity_priority:.1f})")
 
-    # ── TASK 4: Generic keyword-exact match for single-word queries ───────────
-    GENERIC_KEYWORDS = {"rice", "dal", "roti", "daal", "bread"}
-    query_lower = query.strip().lower()
-
-    is_generic_query = query_lower in GENERIC_KEYWORDS and " " not in query_lower
-
-    if is_generic_query or force_generic:
-        all_meals = get_all_meals()
-        keyword_matches = []
-        for meal in all_meals:
-            kws = [k.lower() for k in (meal.get("searchKeywords") or meal.get("aliases") or [])]
-            meal_name_lower = (meal.get("mealName") or "").lower()
-            if query_lower in kws or meal_name_lower == query_lower:
-                keyword_matches.append(meal)
-
-        if keyword_matches:
-            # Prefer shortest name (most generic = fewest words)
-            keyword_matches.sort(key=lambda m: len((m.get("mealName") or "").split()))
-            best_generic = keyword_matches[0]
-            if force_generic and not is_generic_query:
-                # TASK 3 + TASK 5
-                print(
-                    f"[forced_generic] combo-split triggered base-only selection "
-                    f"for '{query}' → '{best_generic.get('mealName')}' "
-                    f"({len(keyword_matches)} candidates)"
-                )
-            else:
-                # TASK 1 + TASK 5: hard return, no hybrid fallback
-                print(
-                    f"[generic_return] '{query}' → '{best_generic.get('mealName')}' "
-                    f"(keyword-exact, {len(keyword_matches)} candidates) — HARD RETURN"
-                )
-            return best_generic, 1.0  # TASK 1: hard return
-
-        if force_generic:
-            print(f"[forced_generic] No keyword-exact meal for '{query}'; returning None")
-            return None, 0.0
-
-        print(
-            f"[generic_return] No keyword-exact hit for '{query}'; "
-            f"falling back to hybrid scoring"
-        )
-
     # ── Standard hybrid scoring path ─────────────────────────────────────────
     candidates = hybrid_match(
         query,
@@ -437,15 +401,60 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
         force_generic=force_generic,
     )
 
-    if not candidates:
-        print(f"[hybrid] No candidates passed filter for '{query}' → unknown")
-        return None, 0.0
+    best = candidates[0] if candidates else None
+    confidence = best["score"] if best else 0.0
 
-    best = candidates[0]
-    confidence = best["score"]
-
-    # Safety filter: final score below floor → reject
+    # ── Step 7: Restrict fallback usage ───────────────────────────────────────────
+    # Only fallback when score < 0.3
     if confidence < CONFIDENCE_THRESHOLD:
+        print(f"[hybrid] Score {confidence:.3f} < 0.3 for '{query}' — triggering fallback logic")
+        
+        GENERIC_KEYWORDS = {"rice", "dal", "roti", "daal", "bread"}
+        query_lower = query.strip().lower()
+
+        is_generic_query = query_lower in GENERIC_KEYWORDS and " " not in query_lower
+
+        if is_generic_query or force_generic:
+            all_meals = get_all_meals()
+            keyword_matches = []
+            for meal in all_meals:
+                kws = [k.lower() for k in (meal.get("searchKeywords") or meal.get("aliases") or [])]
+                meal_name_lower = (meal.get("mealName") or "").lower()
+                if query_lower in kws or meal_name_lower == query_lower:
+                    keyword_matches.append(meal)
+
+            if keyword_matches:
+                # Step 6: Ensure best score is selected, not first match
+                # Score all keyword matches with hybrid_match to pick the best one instead of the shortest string
+                print(f"[generic_fallback] Scoring {len(keyword_matches)} keyword candidates for '{query}'")
+                
+                # Create candidate map with base fuzzy score
+                fallback_results = []
+                for meal in keyword_matches:
+                    meal_name = (meal.get("mealName") or "").lower()
+                    # We just need to rank them; fuzzy partial ratio is a good fallback ranker
+                    from rapidfuzz import fuzz
+                    f_score = fuzz.partial_ratio(query_lower, meal_name) / 100.0
+                    fallback_results.append({
+                        "meal": meal,
+                        "score": f_score + (0.1 if meal_name == query_lower else 0.0)
+                    })
+                
+                fallback_results.sort(key=lambda x: x["score"], reverse=True)
+                best_generic = fallback_results[0]["meal"]
+                
+                if force_generic and not is_generic_query:
+                    print(
+                        f"[forced_generic] combo-split triggered base-only selection "
+                        f"for '{query}' → '{best_generic.get('mealName')}' "
+                    )
+                else:
+                    print(
+                        f"[generic_return] '{query}' → '{best_generic.get('mealName')}' "
+                        f"(keyword-exact, {len(keyword_matches)} candidates) — HARD RETURN"
+                    )
+                return best_generic, 1.0  # TASK 1: hard return
+
         print(
             f"[hybrid] REJECTED '{query}' — score={confidence:.3f} < "
             f"threshold={CONFIDENCE_THRESHOLD} → unknown"
