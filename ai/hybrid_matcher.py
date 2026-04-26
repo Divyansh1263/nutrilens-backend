@@ -55,6 +55,22 @@ HYBRID_MIN_KEYWORDS = MIN_KEYWORD_COUNT   # = 5
 MIN_TFIDF_FOR_ENTITY = 0.35
 MIN_FUZZY_FOR_ENTITY = 0.65
 
+# ── INGREDIENT EXTRACTION ───────────────────────────────────────────────
+INGREDIENT_MAP = {
+  "palak": ["spinach"],
+  "matar": ["peas"],
+  "aloo": ["potato"],
+  "gajar": ["carrot"],
+  "paneer": ["paneer"]
+}
+
+def _extract_ingredients(text):
+    text_lower = text.lower()
+    ingredients = set()
+    for key, values in INGREDIENT_MAP.items():
+        if key in text_lower or any(v in text_lower for v in values):
+            ingredients.add(key)
+    return ingredients
 
 def fuzzy_match_meal(query, meals, top_k=5):
     """
@@ -207,6 +223,7 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
     # 4. Compute hybrid score for each candidate
     results = []
     query_lower = query.lower()
+    query_ingredients = _extract_ingredients(query_lower)
 
     for name, data in candidate_map.items():
         meal = data["meal"]
@@ -304,11 +321,36 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
                 sabzi_boost = SABZI_BOOST
                 final_score += sabzi_boost
 
+        # ── Ingredient Scoring & Penalties ────────────────────────────
+        meal_name_lower_full = name.lower()
+        meal_kws_full = " ".join([k.lower() for k in keywords])
+        meal_ingredients = _extract_ingredients(meal_name_lower_full + " " + meal_kws_full)
+
+        ingredient_score = 0.0
+        ingredient_penalty = 0.0
+        if query_ingredients:
+            common = query_ingredients.intersection(meal_ingredients)
+            ingredient_score = len(common) / len(query_ingredients)
+            final_score += ingredient_score * 0.15
+            
+            if len(common) < len(query_ingredients):
+                ingredient_penalty = 0.20
+                final_score -= ingredient_penalty
+                
+            print(f"[ingredient] match={ingredient_score:.2f} for '{name}'")
+
         # ── Exact match boost ─────────────────────────────────────────
-        EXACT_MATCH_BOOST = 0.10
+        EXACT_MATCH_BOOST = 0.25
         if name.lower() == query_lower:
             final_score += EXACT_MATCH_BOOST
             print(f"[hybrid] '{name}' EXACT MATCH → +{EXACT_MATCH_BOOST}")
+
+        # ── Strict phrase match boost ──────────────────────────────────
+        words_in_query = set(query_lower.split())
+        words_in_meal = set(name.lower().split())
+        if words_in_query and words_in_query.issubset(words_in_meal):
+            final_score += 0.20
+            print(f"[hybrid] '{name}' STRICT PHRASE MATCH → +0.20")
 
         # ── TASK 2: Plain meal boost ───────────────────────────────────────────
         # Generic/base meals are boosted so they beat flavored variants
