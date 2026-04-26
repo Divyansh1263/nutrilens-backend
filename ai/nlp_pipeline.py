@@ -171,6 +171,25 @@ def process_meal_text(text, user_id, date, db=None):
     print(f"{'='*60}")
 
     # -----------------------------------------------
+    # STEP 0: Multi-item splitting
+    # -----------------------------------------------
+    import re
+    raw_segments = re.split(r'\+|,(?![0-9])|\band\b|\baur\b', text, flags=re.IGNORECASE)
+    raw_segments = [s.strip() for s in raw_segments if s.strip()]
+    
+    if len(raw_segments) > 1:
+        print(f"[split] {len(raw_segments)} meals detected in query: '{text}'")
+        all_logged_items = []
+        for segment in raw_segments:
+            res = process_meal_text(segment, user_id, date, db)
+            all_logged_items.extend(res.get("items", []))
+            
+        return {
+            "message": f"Logged {len(all_logged_items)} items successfully.",
+            "items": all_logged_items
+        }
+
+    # -----------------------------------------------
     # STEP 1: Clean text
     # -----------------------------------------------
     cleaned = clean_text(text)
@@ -260,7 +279,7 @@ def process_meal_text(text, user_id, date, db=None):
 
             # TASK 5: Log with per-part quantities
             print(
-                f"[combo_split] '{entity}' \u2192 {part_qty_map}"
+                f"[combo_split] '{entity}' -> {part_qty_map}"
             )
             debug_log.setdefault("combo_splits", []).append(
                 {"combo": entity, "parts": part_qty_map}
@@ -338,25 +357,33 @@ def process_meal_text(text, user_id, date, db=None):
             "context_score": ctx_score,
         }
 
-        if meal is None:
+        if meal is None or confidence < 0.25:
             print(f"[Step 11] ❌ No match for '{entity}' "
-                  f"(confidence={confidence:.3f})")
-            match_debug["match"] = None
+                  f"(confidence={confidence:.3f}). Using unknown meal fallback.")
+            meal = {
+                "mealName": entity.capitalize(),
+                "calories": 150,
+                "protein": 5,
+                "carbs": 20,
+                "fat": 5
+            }
+            confidence = 0.25
+            match_debug["match"] = meal["mealName"]
+            match_debug["confidence"] = confidence
+            debug_log["matches"].append(match_debug)
+            # Skip user preference boost for unknown
+        else:
+            print(f"[Step 11] ✅ '{entity}' -> '{meal['mealName']}' "
+                  f"(confidence={confidence:.3f}, priority={priority_score:.1f})")
+
+            # Step 12: User preference boost
+            confidence = _apply_user_preference(
+                meal, user_id, confidence, firestore_db
+            )
+
+            match_debug["match"] = meal["mealName"]
             match_debug["confidence"] = round(confidence, 3)
             debug_log["matches"].append(match_debug)
-            continue
-
-        print(f"[Step 11] ✅ '{entity}' → '{meal['mealName']}' "
-              f"(confidence={confidence:.3f}, priority={priority_score:.1f})")
-
-        # Step 12: User preference boost
-        confidence = _apply_user_preference(
-            meal, user_id, confidence, firestore_db
-        )
-
-        match_debug["match"] = meal["mealName"]
-        match_debug["confidence"] = round(confidence, 3)
-        debug_log["matches"].append(match_debug)
 
         # Build result item
         item = {

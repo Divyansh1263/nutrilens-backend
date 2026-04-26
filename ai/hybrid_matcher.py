@@ -177,7 +177,7 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
         effective_category = None
         print(
             f"[hybrid] Low category confidence ({category_confidence:.2f}) "
-            f"< {CATEGORY_CONFIDENCE_THRESHOLD} → category filter DISABLED"
+            f"< {CATEGORY_CONFIDENCE_THRESHOLD} -> category filter DISABLED"
         )
 
     # TASK 7: Log category confidence
@@ -334,7 +334,7 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             final_score += ingredient_score * 0.15
             
             if len(common) < len(query_ingredients):
-                ingredient_penalty = 0.20
+                ingredient_penalty = 0.10
                 final_score -= ingredient_penalty
                 
             print(f"[ingredient] match={ingredient_score:.2f} for '{name}'")
@@ -343,14 +343,14 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
         EXACT_MATCH_BOOST = 0.25
         if name.lower() == query_lower:
             final_score += EXACT_MATCH_BOOST
-            print(f"[hybrid] '{name}' EXACT MATCH → +{EXACT_MATCH_BOOST}")
+            print(f"[hybrid] '{name}' EXACT MATCH -> +{EXACT_MATCH_BOOST}")
 
         # ── Strict phrase match boost ──────────────────────────────────
         words_in_query = set(query_lower.split())
         words_in_meal = set(name.lower().split())
         if words_in_query and words_in_query.issubset(words_in_meal):
             final_score += 0.20
-            print(f"[hybrid] '{name}' STRICT PHRASE MATCH → +0.20")
+            print(f"[hybrid] '{name}' STRICT PHRASE MATCH -> +0.20")
 
         # ── TASK 2: Plain meal boost ───────────────────────────────────────────
         # Generic/base meals are boosted so they beat flavored variants
@@ -387,7 +387,7 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             f"priority={entity_priority:.1f}(+{priority_contribution:.3f})  "
             f"sabzi_boost={sabzi_boost:.2f}  "
             f"words={word_count}  spec_penalty={specificity_penalty:.3f}  "
-            f"→ final_score={final_score:.3f}"
+            f"-> final_score={final_score:.3f}"
         )
 
         results.append({
@@ -488,23 +488,23 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
                 if force_generic and not is_generic_query:
                     print(
                         f"[forced_generic] combo-split triggered base-only selection "
-                        f"for '{query}' → '{best_generic.get('mealName')}' "
+                        f"for '{query}' -> '{best_generic.get('mealName')}' "
                     )
                 else:
                     print(
-                        f"[generic_return] '{query}' → '{best_generic.get('mealName')}' "
+                        f"[generic_return] '{query}' -> '{best_generic.get('mealName')}' "
                         f"(keyword-exact, {len(keyword_matches)} candidates) — HARD RETURN"
                     )
                 return best_generic, 1.0  # TASK 1: hard return
 
         print(
             f"[hybrid] REJECTED '{query}' — score={confidence:.3f} < "
-            f"threshold={CONFIDENCE_THRESHOLD} → unknown"
+            f"threshold={CONFIDENCE_THRESHOLD} -> unknown"
         )
         return None, confidence
 
     print(
-        f"[hybrid] ACCEPTED '{query}' → '{best['meal'].get('mealName')}' "
+        f"[hybrid] ACCEPTED '{query}' -> '{best['meal'].get('mealName')}' "
         f"(score={confidence:.3f})"
     )
     return best["meal"], confidence
