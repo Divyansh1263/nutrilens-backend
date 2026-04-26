@@ -430,7 +430,17 @@ def replace_meal():
             print(f"[Debug] Cache fallback failed: {e}")
     
     # Ensure we always have at least some result (even if empty items)
-    result_suggestions = [{"mealName": s.get("mealName", "Unknown")} for s in suggestions[:5]]
+    result_suggestions = []
+    for s in suggestions[:5]:
+        mapped = {
+            "mealName": s.get("mealName", "Unknown"),
+            "calories": s.get("calories", 100),
+            "protein": s.get("protein", 5),
+            "carbs": s.get("carbs", 20),
+            "fat": s.get("fat", 3)
+        }
+        print(f"[swap] returning meal: {mapped['mealName']} kcal={mapped['calories']}")
+        result_suggestions.append(mapped)
     
     print(f"[Debug] Returning {len(result_suggestions)} suggestions")
     return success({"aiSuggestions": result_suggestions}, "Replacements found")

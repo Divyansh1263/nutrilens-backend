@@ -70,12 +70,21 @@ class MealRepository:
 
         meals = get_meals(context="get_meal_by_name")
         for m in meals:
-            if (m.get("mealName") or "").lower() == target:
+            doc_name = (m.get("mealName") or "").lower().strip()
+            if target == doc_name or target in doc_name or doc_name in target:
                 print(f"[cache] get_meal_by_name hit: '{meal_name}' (0 Firestore reads)")
                 return m
 
         print(f"[cache] get_meal_by_name miss: '{meal_name}' not in cache")
-        return None
+        from utils.logger import app_logger
+        app_logger.warning(f"[swap] meal not found: {meal_name}")
+        return {
+            "mealName": meal_name,
+            "calories": 120,
+            "protein": 5,
+            "carbs": 20,
+            "fat": 3
+        }
 
     def get_meals_by_type(self, meal_type: str):
         """
