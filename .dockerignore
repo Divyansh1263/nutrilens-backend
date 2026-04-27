@@ -1,0 +1,72 @@
+# ── Virtual environments ───────────────────────────────────────────────────────
+venv/
+.venv/
+
+# ── Python bytecode ────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Git ────────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── IDE / OS ───────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+
+# ── Secrets (inject via Cloud Run Secret Manager at runtime) ──────────────────
+serviceAccountKey.json
+
+# ── Large dataset files (used for seeding/training only, not runtime) ─────────
+meal_dataset.json
+meal_dataset2.json
+meals_export.json
+merged_meals.json
+meals_keywords.json
+final_production_meals.json
+ai/nlp_training_dataset.csv
+
+# ── Cache directories ──────────────────────────────────────────────────────────
+.cache/
+.pytest_cache/
+
+# ── Test files ─────────────────────────────────────────────────────────────────
+tests/
+test_*.py
+tmp_*.py
+
+# ── One-off / data-pipeline scripts (not needed at runtime) ───────────────────
+retrain_*.py
+retrain_pipeline.py
+train_knn.py
+tag_meals.py
+upload_*.py
+enrich_*.py
+update_firestore_keywords.py
+extract_meal_names.py
+generate_postman.py
+populate_test_data.py
+run_accuracy_report.py
+verify_*.py
+query_debug.py
+
+# ── Documentation & reports (never exclude requirements.txt!) ────────────────
+*.md
+
+# ── Log / output files ───────────────────────────────────────────────────────
+upload_log.txt
+create_indexes_log.txt
+create_indexes_log.txt
+test_accuracy_ascii.txt
+test_accuracy_results.txt
+test_clean.txt
+test_report_final.txt
+test_results_readable.txt
+meal_names.txt
+routes_dump.json
+
+# Safety net — always include requirements.txt even if above rules change
+!requirements.txt

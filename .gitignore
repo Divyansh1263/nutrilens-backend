@@ -9,6 +9,8 @@ venv/
 
 # Secrets
 serviceAccountKey.json
+.env
+*.env
 
 # IDE
 .idea/
