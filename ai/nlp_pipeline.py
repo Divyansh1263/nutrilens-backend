@@ -10,6 +10,10 @@
 #   - TASK 4: category_confidence extracted + passed to resolve_best_meal
 #   - TASK 7: category confidence logged per entity
 #   - TASK 1/5: COMBO_SPLIT_MAP — combo entities expanded before hybrid matching
+#
+# FIX (v2.6):
+#   - STOPWORDS: Hindi/English connector words filtered before matching
+#   - per_unit macros stored in Firestore so update-log recalculates correctly
 
 from ai.text_preprocessor import (
     init_preprocessor, clean_text, correct_spelling, normalize_aliases
@@ -36,6 +40,21 @@ PIPELINE_CACHE = {
     # "phrases":    set by phrase_detector.init_phrase_detector()
     # "vocab":      set by text_preprocessor.init_preprocessor()
     # "classifier": loaded by food_category_model at import time
+}
+
+# -----------------------------------------------
+# STOPWORD FILTER (FIX v2.6)
+# Hindi connectors and English filler words that appear in user
+# input but are NOT food entities. They must be removed BEFORE
+# hybrid matching so they are never treated as meal names.
+# -----------------------------------------------
+STOPWORDS = {
+    # Hindi connectors / postpositions
+    "ka", "ki", "ke", "aur", "aur",
+    # English connectors / filler
+    "with", "and", "or", "of", "a", "an", "the",
+    # Common quantity/serving noise
+    "some", "little", "bit", "lots",
 }
 
 # -----------------------------------------------
@@ -448,18 +467,22 @@ def process_meal_text(text, user_id, date, db=None):
 
 def _filter_food_entities(phrases):
     """
-    Remove non-food tokens (pure numbers, quantity words, etc.)
+    Remove non-food tokens (pure numbers, quantity words, stopwords)
     from the phrase list.
+
+    FIX v2.6: STOPWORDS (ka, ki, ke, with, and, aur …) are now excluded
+    so they can never become meal entries.
     """
     from ai.quantity_extractor import NUMBER_WORDS, FRACTIONS, PORTION_WORDS
 
-    skip_tokens = set(NUMBER_WORDS.keys()) | set(FRACTIONS.keys()) | PORTION_WORDS
+    skip_tokens = set(NUMBER_WORDS.keys()) | set(FRACTIONS.keys()) | PORTION_WORDS | STOPWORDS
 
     filtered = []
     for phrase in phrases:
         if phrase.isdigit():
             continue
         if phrase.lower() in skip_tokens:
+            print(f"[filter] Dropped stopword/skip token: '{phrase}'")
             continue
         filtered.append(phrase)
 
@@ -510,34 +533,54 @@ def _log_to_firestore(db, user_id, date, raw_text, meal,
                        quantity, confidence, category):
     """
     Write a meal log entry to Firestore.
+
+    FIX v2.6: Store *_per_unit macro fields alongside totals.
+    This allows the /update-log endpoint to recalculate exact macros
+    at any quantity without relying on ratio-based approximation.
     """
     try:
         from firebase_admin import firestore as fs
 
         doc_ref = db.collection("meal_logs").document()
-        # Task 3+5: guard None macros; round to 1 dp
-        cal   = (meal.get("calories") or 0) * quantity
-        prot  = (meal.get("protein")  or 0) * quantity
-        carbs = (meal.get("carbs")    or 0) * quantity
-        fat   = (meal.get("fat")      or 0) * quantity
+
+        # Per-unit base values (guard None with `or 0`)
+        cal_per_unit   = meal.get("calories") or 0
+        prot_per_unit  = meal.get("protein")  or 0
+        carbs_per_unit = meal.get("carbs")    or 0
+        fat_per_unit   = meal.get("fat")      or 0
+
+        # Totals = per_unit × quantity (round to 1 dp)
+        cal   = cal_per_unit   * quantity
+        prot  = prot_per_unit  * quantity
+        carbs = carbs_per_unit * quantity
+        fat   = fat_per_unit   * quantity
 
         log_data = {
-            "userId":     user_id,
-            "date":       date,
-            "mealName":   meal["mealName"],
-            "mealType":   meal.get("category", category),
-            "calories":   round(cal,   1),
-            "protein":    round(prot,  1),
-            "carbs":      round(carbs, 1),
-            "fat":        round(fat,   1),
-            "quantity":   quantity,               # Task 4: always stored
-            "source":     "hybrid_nlp_v2.6",
-            "rawText":    raw_text,
-            "confidence": round(confidence, 2),
-            "timestamp":  fs.SERVER_TIMESTAMP,
-            "logId":      doc_ref.id
+            "userId":             user_id,
+            "date":               date,
+            "mealName":           meal["mealName"],
+            "mealType":           meal.get("category", category),
+            # Totals (quantity-scaled)
+            "calories":           round(cal,   1),
+            "protein":            round(prot,  1),
+            "carbs":              round(carbs, 1),
+            "fat":                round(fat,   1),
+            "quantity":           quantity,
+            # Per-unit base macros — used by /update-log to recalculate
+            "calories_per_unit":  round(cal_per_unit,   1),
+            "protein_per_unit":   round(prot_per_unit,  1),
+            "carbs_per_unit":     round(carbs_per_unit, 1),
+            "fat_per_unit":       round(fat_per_unit,   1),
+            "source":             "hybrid_nlp_v2.6",
+            "rawText":            raw_text,
+            "confidence":         round(confidence, 2),
+            "timestamp":          fs.SERVER_TIMESTAMP,
+            "logId":              doc_ref.id
         }
         doc_ref.set(log_data)
+        print(f"[Step 13] Firestore log written: '{meal['mealName']}' "
+              f"qty={quantity} cal={round(cal,1)} "
+              f"(per_unit: cal={cal_per_unit}, prot={prot_per_unit})")
     except Exception as e:
         print(f"[Step 13] Firestore logging failed: {e}")
 

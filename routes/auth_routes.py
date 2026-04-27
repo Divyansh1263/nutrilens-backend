@@ -48,8 +48,8 @@ def register():
         "height": data.get("height"),
         "weight": data.get("weight"),
         "target_weight": data.get("target_weight"),
-        "activity_level": data.get("activity_level"),
-        "dietary_goal": data.get("dietary_goal"),
+        "activityLevel": data.get("activityLevel", data.get("activity_level")),
+        "goal": data.get("goal", data.get("dietary_goal")),
         "weight_loss_speed": data.get("weight_loss_speed"),
         "dietary_restrictions": data.get("dietary_restrictions", {}),
         "health_conditions": data.get("health_conditions", {}),
@@ -214,10 +214,9 @@ def get_profile():
     # Map Firestore snake_case fields to camelCase for Flutter frontend.
     mapped = {
         **profile,
-        "activityLevel":   profile.get("activity_level"),
-        "dietaryGoal":     profile.get("dietary_goal"),
+        "activityLevel":   profile.get("activityLevel", profile.get("activity_level")),
+        "goal":            profile.get("goal", profile.get("dietary_goal")),
         "weightLossSpeed": profile.get("weight_loss_speed"),
-        "goal":            profile.get("dietary_goal"),
     }
     for key in ("activity_level", "dietary_goal", "weight_loss_speed"):
         mapped.pop(key, None)
@@ -227,12 +226,38 @@ def get_profile():
     return success(mapped)
 
 
-# TODO (Fix F — audit): When a PATCH /user-profile endpoint is added to allow
-# users to update weight/goal/activity, call:
-#
-#   from utils.calorie_utils import invalidate_user_target_cache
-#   invalidate_user_target_cache(user_id)
-#
-# immediately after saving the updated profile to Firestore.
-# Without this, the 10-minute user_target_cache will serve stale calorie
-# targets until it naturally expires.
+# ─────────────────────────────────────────────────────────────────────────────
+# UPDATE USER PROFILE
+# ─────────────────────────────────────────────────────────────────────────────
+@auth_bp.route("/update-profile", methods=["PATCH"])
+@firebase_auth_optional
+def update_profile():
+    data = request.get_json()
+
+    user_id = request.firebase_uid
+    if not user_id:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    update_fields = {}
+
+    for field in ["height", "weight", "activityLevel", "goal"]:
+        if field in data:
+            update_fields[field] = data[field]
+
+    if not update_fields:
+        return {"success": False, "message": "No valid fields"}, 400
+
+    from firebase_admin import firestore
+    db = firestore.client()
+    db.collection("users").document(user_id).update(update_fields)
+    
+    app_logger.info(f"[profile] update user={user_id} data={update_fields}")
+    
+    try:
+        from utils.calorie_utils import invalidate_user_target_cache
+        invalidate_user_target_cache(user_id)
+    except Exception as e:
+        app_logger.error(f"[update-profile] Error invalidating cache: {e}")
+
+    # Return the fields exactly as they were provided for frontend consumption
+    return success(data)

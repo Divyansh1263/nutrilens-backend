@@ -44,18 +44,31 @@ class MealLoggingService:
             }
         
         # 2. Build Log
+        # FIX v2.6: store both *_per_unit (base) and total (quantity-scaled) fields.
+        # /update-log reads *_per_unit so it can recalculate exactly at any qty.
+        unit_cal   = round(float(meal_data.get("calories") or 0), 1)
+        unit_prot  = round(float(meal_data.get("protein")  or 0), 1)
+        unit_carbs = round(float(meal_data.get("carbs")    or 0), 1)
+        unit_fat   = round(float(meal_data.get("fat")      or 0), 1)
+
         log_data = {
-            "userId": user_id,
-            "date": today,
-            "mealName": meal_data.get("mealName", meal_name),
-            "mealType": meal_type,
-            "calories": round((meal_data.get("calories") or 0) * qty, 1),
-            "protein": round((meal_data.get("protein") or 0) * qty, 1),
-            "carbs": round((meal_data.get("carbs") or 0) * qty, 1),
-            "fat": round((meal_data.get("fat") or 0) * qty, 1),
-            "quantity": qty,
-            "source": source,
-            "log_time": firestore.SERVER_TIMESTAMP
+            "userId":             user_id,
+            "date":               today,
+            "mealName":           meal_data.get("mealName", meal_name),
+            "mealType":           meal_type,
+            # Totals
+            "calories":           round(unit_cal   * qty, 1),
+            "protein":            round(unit_prot  * qty, 1),
+            "carbs":              round(unit_carbs * qty, 1),
+            "fat":                round(unit_fat   * qty, 1),
+            "quantity":           qty,
+            # Per-unit base macros — used by /update-log
+            "calories_per_unit":  unit_cal,
+            "protein_per_unit":   unit_prot,
+            "carbs_per_unit":     unit_carbs,
+            "fat_per_unit":       unit_fat,
+            "source":             source,
+            "log_time":           firestore.SERVER_TIMESTAMP
         }
         
         # 3. Store
@@ -83,31 +96,64 @@ class MealLoggingService:
         return log_id, ""
 
     def update_log_quantity(self, log_id, new_quantity):
+        """
+        Update quantity and recalculate macros for a logged meal.
+
+        FIX v2.6: Prefer exact recalculation using *_per_unit fields stored
+        at log time.  Falls back to ratio-based adjustment for old log docs
+        that pre-date the per-unit fields.
+
+        Returns (success: bool, error: str, updated: dict)
+        so the route can return the new values to the frontend.
+        """
         qty = float(new_quantity)
-        
+        print(f"[update-log] logId={log_id} new_qty={qty}")
+        if qty <= 0:
+            return False, "Quantity must be > 0", {}
+
         log_data = tracker_repo.get_log(log_id)
-        if not log_data: return False, "Log not found"
-        
-        # Calculate the ratio to adjust macros proportionally
-        old_qty = float(log_data.get("quantity", 1))
-        ratio = qty / old_qty if old_qty > 0 else 1
-        
-        # Recalculate macros based on new quantity
+        if not log_data:
+            return False, "Log not found", {}
+
+        # — Exact recalculation (preferred) ————————————————————
+        if "calories_per_unit" in log_data:
+            cal   = round((log_data.get("calories_per_unit") or 0) * qty, 1)
+            prot  = round((log_data.get("protein_per_unit")  or 0) * qty, 1)
+            carbs = round((log_data.get("carbs_per_unit")    or 0) * qty, 1)
+            fat   = round((log_data.get("fat_per_unit")      or 0) * qty, 1)
+        else:
+            # — Ratio fallback for legacy docs without per-unit fields —
+            old_qty = float(log_data.get("quantity", 1))
+            ratio   = qty / old_qty if old_qty > 0 else 1
+            cal   = round((log_data.get("calories", 0) or 0) * ratio, 1)
+            prot  = round((log_data.get("protein",  0) or 0) * ratio, 1)
+            carbs = round((log_data.get("carbs",    0) or 0) * ratio, 1)
+            fat   = round((log_data.get("fat",      0) or 0) * ratio, 1)
+
         updates = {
-            "quantity": qty,
-            "calories": round((log_data.get("calories", 0) or 0) * ratio, 1),
-            "protein": round((log_data.get("protein", 0) or 0) * ratio, 1),
-            "carbs": round((log_data.get("carbs", 0) or 0) * ratio, 1),
-            "fat": round((log_data.get("fat", 0) or 0) * ratio, 1),
+            "quantity":   qty,
+            "calories":   cal,
+            "protein":    prot,
+            "carbs":      carbs,
+            "fat":        fat,
             "updated_at": firestore.SERVER_TIMESTAMP
         }
 
         tracker_repo.update_log_quantity(log_id, updates)
-        
+
         from services.tracker_service import tracker_service
         tracker_service.recalculate_daily_tracker(log_data["userId"], log_data["date"])
-        
-        return True, ""
+
+        updated_macros = {
+            "logId":    log_id,
+            "mealName": log_data.get("mealName", ""),
+            "quantity": qty,
+            "calories": cal,
+            "protein":  prot,
+            "carbs":    carbs,
+            "fat":      fat,
+        }
+        return True, "", updated_macros
         
     def delete_log(self, log_id):
         log_data = tracker_repo.get_log(log_id)

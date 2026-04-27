@@ -18,7 +18,7 @@ meal_bp = Blueprint('meal', __name__)
 # DEMO MODE — set True before a presentation to bypass all backend logic and
 # always return a hardcoded meal plan. Flip back to False afterwards.
 # ─────────────────────────────────────────────────────────────────────────────
-DEMO_MODE = True
+DEMO_MODE = False
 
 
 def get_demo_meal_plan() -> dict:
@@ -83,6 +83,7 @@ def generate_meal_plan():
         }), 200
 
 
+    app_logger.info("[meal-plan] REAL MODE ACTIVE — using AI generation")
     data = request.get_json(force=True)
     is_valid, msg = validate_generate_plan(data)
     if not is_valid:
@@ -333,16 +334,26 @@ def log_meal_nlp_ml():
     return success({"items": result.get("items", [])}, result.get("message", "NLP meals logged"))
 
 @meal_bp.route("/update-log", methods=["PUT"])
+@firebase_auth_optional
 def update_log():
     data = request.get_json(force=True)
     is_valid, msg = validate_update_log(data)
     if not is_valid:
-         return error(msg)
-         
-    success_status, err = meal_logging_service.update_log_quantity(data.get("logId") or data.get("log_id"), data.get("quantity"))
+        return error(msg)
+
+    log_id   = data.get("logId") or data.get("log_id")
+    quantity = data.get("quantity")
+
+    # update_log_quantity now returns a 3-tuple: (success, err_msg, updated_macros)
+    result = meal_logging_service.update_log_quantity(log_id, quantity)
+    success_status, err, updated_macros = result
+
     if not success_status:
-         return error(err, 404)
-    return success({}, "Log quantity updated")
+        return error(err, 404)
+
+    # Return updated macro values so the frontend can sync state
+    # without needing a full tracker-summary re-fetch.
+    return success(updated_macros, "Log quantity updated")
 
 @meal_bp.route("/delete-log", methods=["DELETE"])
 def delete_log():
