@@ -18,13 +18,14 @@ from ai.tfidf_matcher import (
 )
 
 # -----------------------------------------------
-# Scoring weights  (must sum to 1.0)
+# Scoring weights  (sum = 1.0)
+# Audit fix: W_CONTEXT was 0.10 extra — rebalanced
 # -----------------------------------------------
-W_TFIDF    = 0.65
+W_TFIDF    = 0.60   # was 0.65 — reduced to absorb context fix
 W_FUZZY    = 0.15
-W_CATEGORY = 0.10
+W_CATEGORY = 0.05   # was 0.10 — reduced; classifier often low-confidence
 W_KEYWORD  = 0.10   # explicit searchKeywords overlap
-W_CONTEXT  = 0.10   # context resolver signal
+W_CONTEXT  = 0.10   # context resolver signal  (now properly budgeted)
 
 # Specificity penalty weight per word in meal name
 # Raised 0.05 → 0.07 (TASK 3) for stronger preference of simple names
@@ -153,6 +154,12 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
       - TASK 2: sabzi-aware keyword boost for vegetable queries
       - TASK 5: logs priority_contribution + sabzi_boost
 
+    GENERIC QUERY REFINEMENT (v2.6):
+      - is_generic_query flag: True when query is 1-2 content words
+      - Generic-exact boost   (+0.30) when mealName == query
+      - Generic-plain boost   (+0.20/+0.15) only for generic queries
+      - Specialization penalty (-0.10) when generic query hits variant name
+
     Args:
         query:               food entity string
         predicted_category:  predicted category from classifier (or None)
@@ -224,6 +231,31 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
     results = []
     query_lower = query.lower()
     query_ingredients = _extract_ingredients(query_lower)
+
+    # ── Generic query detection (Tasks 1-3) ───────────────────────────────────
+    # A query is "generic" when it is a bare food staple with 1-2 content words
+    # (after stripping digits / quantity words).  Generic queries should prefer
+    # the simplest matching meal name over specialised variants.
+    _GENERIC_STAPLES = {
+        "rice", "roti", "dal", "daal", "bread", "chapati", "chapatti",
+        "naan", "paratha", "curd", "dahi", "milk", "doodh", "egg", "anda",
+        "coffee", "tea", "chai", "makhana", "poha", "upma", "idli", "dosa",
+    }
+    _MODIFIER_WORDS = {  # quantity / style words that don't count as content tokens
+        "plain", "simple", "boiled", "steamed", "fried", "roasted",
+        "small", "large", "big", "medium", "half", "whole",
+    }
+    query_content_tokens = [
+        t for t in query_lower.split()
+        if not t.isdigit() and t not in _MODIFIER_WORDS
+    ]
+    is_generic_query = (
+        len(query_content_tokens) <= 2
+        and any(t in _GENERIC_STAPLES for t in query_content_tokens)
+    )
+    if is_generic_query:
+        print(f"[hybrid] Generic query detected: '{query}' "
+              f"(tokens={query_content_tokens})")
 
     for name, data in candidate_map.items():
         meal = data["meal"]
@@ -340,10 +372,14 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             print(f"[ingredient] match={ingredient_score:.2f} for '{name}'")
 
         # ── Exact match boost ─────────────────────────────────────────
-        EXACT_MATCH_BOOST = 0.25
+        # Generic queries get a larger exact-name boost (+0.30) so that
+        # "Roti" beats "Khamiri Roti" / "Butter Roti" etc.
+        # Non-generic queries keep the original +0.25.
+        EXACT_MATCH_BOOST = 0.30 if is_generic_query else 0.25
         if name.lower() == query_lower:
             final_score += EXACT_MATCH_BOOST
-            print(f"[hybrid] '{name}' EXACT MATCH -> +{EXACT_MATCH_BOOST}")
+            print(f"[hybrid] '{name}' EXACT MATCH -> +{EXACT_MATCH_BOOST}"
+                  f"{'  [generic]' if is_generic_query else ''}")
 
         # ── Strict phrase match boost ──────────────────────────────────
         words_in_query = set(query_lower.split())
@@ -352,19 +388,36 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             final_score += 0.20
             print(f"[hybrid] '{name}' STRICT PHRASE MATCH -> +0.20")
 
-        # ── TASK 2: Plain meal boost ───────────────────────────────────────────
-        # Generic/base meals are boosted so they beat flavored variants
-        # when the query is a bare staple like 'rice', 'dal', 'roti'.
-        # +0.20 if 'plain' appears in meal name; +0.15 extra if name STARTS with 'plain'.
+        # ── Plain meal boost (generic queries only) ───────────────────
+        # Boost meals whose name contains/starts with "plain" ONLY when the
+        # query is generic.  Applying it universally was over-boosting plain
+        # variants for specific multi-word queries like "aloo gobi".
         name_lower_plain = name.lower()
         plain_boost = 0.0
-        if "plain" in name_lower_plain:
-            plain_boost += 0.20
-        if name_lower_plain.startswith("plain"):
-            plain_boost += 0.15
+        if is_generic_query:
+            if "plain" in name_lower_plain:
+                plain_boost += 0.20
+            if name_lower_plain.startswith("plain"):
+                plain_boost += 0.15
         if plain_boost > 0.0:
             final_score += plain_boost
-            print(f"[hybrid] '{name}' PLAIN BOOST +{plain_boost:.2f}")
+            print(f"[hybrid] '{name}' PLAIN BOOST +{plain_boost:.2f}  [generic]")
+
+        # ── Specialization penalty (Task 3) ───────────────────────────
+        # When the query is a generic staple (e.g. "roti") and the candidate
+        # meal name contains extra qualifier words (e.g. "khamiri", "butter"),
+        # apply a penalty so plain/generic meals rank above variants.
+        spec_penalty_generic = 0.0
+        if is_generic_query:
+            name_words = set(name.lower().split())
+            query_words_set = set(query_lower.split())
+            # Extra words = words in meal name not in query
+            extra_words = name_words - query_words_set - _MODIFIER_WORDS
+            if extra_words:  # variant meal has qualifiers the query didn't ask for
+                spec_penalty_generic = 0.10
+                final_score -= spec_penalty_generic
+                print(f"[hybrid] '{name}' SPECIALIZATION PENALTY -0.10  "
+                      f"[generic, extra_words={extra_words}]")
 
         # ── TASK 3: Specificity penalty (raised 0.05→0.07) ─────────────────
         # Subtract 0.07 per word in the meal name.
@@ -386,8 +439,10 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             f"kw={keyword_s:.2f}  cat={cat_match:.1f}  ctx={context_score:.1f}  "
             f"priority={entity_priority:.1f}(+{priority_contribution:.3f})  "
             f"sabzi_boost={sabzi_boost:.2f}  "
+            f"plain_boost={plain_boost:.2f}  "
+            f"spec_generic=-{spec_penalty_generic:.2f}  "
             f"words={word_count}  spec_penalty={specificity_penalty:.3f}  "
-            f"-> final_score={final_score:.3f}"
+            f"-> final_score={final_score:.3f}{clamp_note}"
         )
 
         results.append({
@@ -466,25 +521,34 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
                     keyword_matches.append(meal)
 
             if keyword_matches:
-                # Step 6: Ensure best score is selected, not first match
-                # Score all keyword matches with hybrid_match to pick the best one instead of the shortest string
+                # FIX (Task 4): Replace partial_ratio with keyword-overlap ranking.
+                # partial_ratio uses character similarity which causes wrong matches
+                # (e.g. "fox nut" matching "Bikaji Kuch-Kuch" via shared chars).
+                # Keyword overlap is semantic: count how many query tokens appear
+                # in each candidate's searchKeywords list.
                 print(f"[generic_fallback] Scoring {len(keyword_matches)} keyword candidates for '{query}'")
-                
-                # Create candidate map with base fuzzy score
+
+                query_tokens = set(query_lower.split())
                 fallback_results = []
                 for meal in keyword_matches:
                     meal_name = (meal.get("mealName") or "").lower()
-                    # We just need to rank them; fuzzy partial ratio is a good fallback ranker
-                    from rapidfuzz import fuzz
-                    f_score = fuzz.partial_ratio(query_lower, meal_name) / 100.0
-                    fallback_results.append({
-                        "meal": meal,
-                        "score": f_score + (0.1 if meal_name == query_lower else 0.0)
-                    })
-                
+                    kws_lower  = [k.lower() for k in (meal.get("searchKeywords") or [])]
+                    kw_text    = " ".join(kws_lower)
+                    kw_tokens  = set(kw_text.split())
+
+                    # Primary rank: token overlap count
+                    overlap     = len(query_tokens & kw_tokens)
+                    # Tie-break 1: exact meal name match
+                    exact_bonus = 1.0 if meal_name == query_lower else 0.0
+                    # Tie-break 2: query is a substring of meal name (shorter = more generic)
+                    substr_bonus = 0.5 if query_lower in meal_name else 0.0
+                    rank_score  = overlap + exact_bonus + substr_bonus
+
+                    fallback_results.append({"meal": meal, "score": rank_score})
+
                 fallback_results.sort(key=lambda x: x["score"], reverse=True)
                 best_generic = fallback_results[0]["meal"]
-                
+
                 if force_generic and not is_generic_query:
                     print(
                         f"[forced_generic] combo-split triggered base-only selection "
@@ -493,9 +557,9 @@ def resolve_best_meal(query, predicted_category=None, context_score=0.0,
                 else:
                     print(
                         f"[generic_return] '{query}' -> '{best_generic.get('mealName')}' "
-                        f"(keyword-exact, {len(keyword_matches)} candidates) — HARD RETURN"
+                        f"(keyword-overlap rank, {len(keyword_matches)} candidates) — HARD RETURN"
                     )
-                return best_generic, 1.0  # TASK 1: hard return
+                return best_generic, 1.0  # hard return
 
         print(
             f"[hybrid] REJECTED '{query}' — score={confidence:.3f} < "

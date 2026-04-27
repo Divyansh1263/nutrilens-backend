@@ -178,12 +178,14 @@ def process_meal_text(text, user_id, date, db=None):
     raw_segments = [s.strip() for s in raw_segments if s.strip()]
     
     if len(raw_segments) > 1:
-        print(f"[split] {len(raw_segments)} meals detected in query: '{text}'")
+        print(f"[split] {len(raw_segments)} segments detected in query: '{text}'")
         all_logged_items = []
         for segment in raw_segments:
-            res = process_meal_text(segment, user_id, date, db)
+            seg = segment.strip()
+            print(f"[split]   -> segment: {seg!r}")
+            res = process_meal_text(seg, user_id, date, db)
             all_logged_items.extend(res.get("items", []))
-            
+
         return {
             "message": f"Logged {len(all_logged_items)} items successfully.",
             "items": all_logged_items
@@ -303,9 +305,15 @@ def process_meal_text(text, user_id, date, db=None):
 
     for entity in expanded_entities:
         quantity      = expanded_quantities.get(entity, 1)
-        ctx_score     = expanded_context_scores.get(entity, 0.0)
+        # Ensure quantity is always a valid positive number (Task 5: default=1)
+        if not quantity or quantity <= 0:
+            quantity = 1
+        ctx_score      = expanded_context_scores.get(entity, 0.0)
         priority_score = expanded_priorities.get(entity, 0.8)  # TASK 2
         force_generic  = expanded_force_generic.get(entity, False)  # TASK 3
+
+        print(f"[Step 5b] entity='{entity}'  qty={quantity}  "
+              f"force_generic={force_generic}")
 
         # Step 7: Predict category + TASK 4/7: extract confidence
         first_word = entity.split()[0]
@@ -385,17 +393,27 @@ def process_meal_text(text, user_id, date, db=None):
             match_debug["confidence"] = round(confidence, 3)
             debug_log["matches"].append(match_debug)
 
-        # Build result item
+        # Build result item — Task 3: multiply all macros by quantity
+        # Task 5: guard None values with `or 0` before multiplication
+        # Task 2: round to 1 dp to avoid float precision noise
+        cal_per_unit   = meal.get("calories") or 0
+        prot_per_unit  = meal.get("protein")  or 0
+        carbs_per_unit = meal.get("carbs")    or 0
+        fat_per_unit   = meal.get("fat")      or 0
+
         item = {
-            "meal": meal["mealName"],
-            "category": category,
-            "quantity": quantity,
+            "meal":       meal["mealName"],
+            "category":   category,
+            "quantity":   quantity,                                   # Task 4
             "confidence": round(confidence, 2),
-            "calories": meal.get("calories", 0) * quantity,
-            "protein": meal.get("protein", 0) * quantity,
-            "carbs": meal.get("carbs", 0) * quantity,
-            "fat": meal.get("fat", 0) * quantity,
+            "calories":   round(cal_per_unit   * quantity, 1),       # Task 3
+            "protein":    round(prot_per_unit  * quantity, 1),
+            "carbs":      round(carbs_per_unit * quantity, 1),
+            "fat":        round(fat_per_unit   * quantity, 1),
         }
+        print(f"[Step 13] item: meal='{item['meal']}'  qty={quantity}  "
+              f"cal={item['calories']}  prot={item['protein']}  "
+              f"carbs={item['carbs']}  fat={item['fat']}")
         logged_items.append(item)
 
         # Step 13: Log to Firestore
@@ -497,21 +515,27 @@ def _log_to_firestore(db, user_id, date, raw_text, meal,
         from firebase_admin import firestore as fs
 
         doc_ref = db.collection("meal_logs").document()
+        # Task 3+5: guard None macros; round to 1 dp
+        cal   = (meal.get("calories") or 0) * quantity
+        prot  = (meal.get("protein")  or 0) * quantity
+        carbs = (meal.get("carbs")    or 0) * quantity
+        fat   = (meal.get("fat")      or 0) * quantity
+
         log_data = {
-            "userId": user_id,
-            "date": date,
-            "mealName": meal["mealName"],
-            "mealType": meal.get("category", category),
-            "calories": meal.get("calories", 0) * quantity,
-            "protein": meal.get("protein", 0) * quantity,
-            "carbs": meal.get("carbs", 0) * quantity,
-            "fat": meal.get("fat", 0) * quantity,
-            "quantity": quantity,
-            "source": "hybrid_nlp_v2.1",
-            "rawText": raw_text,
+            "userId":     user_id,
+            "date":       date,
+            "mealName":   meal["mealName"],
+            "mealType":   meal.get("category", category),
+            "calories":   round(cal,   1),
+            "protein":    round(prot,  1),
+            "carbs":      round(carbs, 1),
+            "fat":        round(fat,   1),
+            "quantity":   quantity,               # Task 4: always stored
+            "source":     "hybrid_nlp_v2.6",
+            "rawText":    raw_text,
             "confidence": round(confidence, 2),
-            "timestamp": fs.SERVER_TIMESTAMP,
-            "logId": doc_ref.id
+            "timestamp":  fs.SERVER_TIMESTAMP,
+            "logId":      doc_ref.id
         }
         doc_ref.set(log_data)
     except Exception as e:

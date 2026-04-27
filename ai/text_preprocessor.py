@@ -87,7 +87,7 @@ FOOD_ALIAS_MAP = {
     "machli": "fish",
     "machchi": "fish",
     "jhinga": "prawn",
-    "makhana": "fox nut",
+    "makhana": "makhana",   # FIX: was "fox nut" — no Firestore meal named "fox nut"
     # ── Grains / Staples ─────────────────────────────────────────────────────
     "chawal": "rice",
     "chaawal": "rice",

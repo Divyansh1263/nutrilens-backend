@@ -29,6 +29,17 @@ _category_index = {}  # category -> list of indices
 # under-described meals from leaking into pipeline results.
 MIN_KEYWORD_COUNT = 5
 
+# ── Corpus-side stopwords ─────────────────────────────────────────────────────
+# These are removed from TF-IDF training text (document side) to match the
+# query-side STOPWORDS in clean_text(). Without this, tokens like "ate" and
+# "had" appear in hundreds of keyword strings, collapsing their IDF weight to
+# near-zero and wasting feature budget.
+CORPUS_STOPWORDS = {
+    "ate", "had", "have", "drank", "piya", "khaya", "kha", "li", "liya",
+    "khayi", "khate", "consumed", "with", "and", "a", "an", "the", "of",
+    "in", "for", "some", "my", "is", "it", "to", "i",
+}
+
 
 def _has_enough_keywords(meal: dict) -> bool:
     """Return True if the meal meets the minimum keyword quality threshold."""
@@ -121,7 +132,14 @@ def init_tfidf_matcher(meals):
         # Fallback: use mealName as its own keyword if none exist
         if not keywords:
             keywords = [name]
-        text = name.lower() + " " + " ".join(k.lower() for k in keywords)
+        # FIX (Task 3): Strip corpus-side stopwords before vectorisation.
+        # This fixes the query/document asymmetry identified in the audit:
+        # "ate"/"had"/"khaya" are already removed from queries by clean_text()
+        # but were present in document text, collapsing their IDF to ~0.
+        raw_text = name.lower() + " " + " ".join(k.lower() for k in keywords)
+        text = " ".join(
+            tok for tok in raw_text.split() if tok not in CORPUS_STOPWORDS
+        )
         _meal_texts.append(text)
 
         category = meal.get("category", "").lower()

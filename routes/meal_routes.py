@@ -3,8 +3,9 @@ from flask import Blueprint, request
 from datetime import datetime
 from utils.response_utils import success, error
 from utils.logger import app_logger
+from utils.auth_middleware import firebase_auth_optional, get_user_id_from_request
 from validators.meal_validator import (
-    validate_generate_plan, validate_log_meal, 
+    validate_generate_plan, validate_log_meal,
     validate_update_log, validate_delete_log
 )
 from services.meal_generator_service import meal_generator_service
@@ -49,6 +50,7 @@ def get_demo_meal_plan() -> dict:
 # GENERATION
 # =============================================================================
 @meal_bp.route("/generate-meal-plan", methods=["POST"])
+@firebase_auth_optional
 def generate_meal_plan():
     # TASK 3: DEMO MODE — short-circuit everything, return hardcoded plan
     if DEMO_MODE:
@@ -86,7 +88,7 @@ def generate_meal_plan():
     if not is_valid:
         return error(msg)
 
-    user_id = data.get("userId")
+    user_id = get_user_id_from_request(data)
     date_str = data.get("date")
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
@@ -234,14 +236,15 @@ def food_details():
     return success(details)
 
 @meal_bp.route("/log-meal", methods=["POST"])
+@firebase_auth_optional
 def log_meal():
     data = request.get_json(force=True)
     is_valid, msg = validate_log_meal(data)
     if not is_valid:
         return error(msg)
-        
+
     log_id, err = meal_logging_service.log_meal(
-        user_id=data.get("userId"),
+        user_id=get_user_id_from_request(data),  # B2 FIX: token-first
         meal_name=data.get("mealName"),
         quantity=data.get("quantity", 1),
         meal_type=data.get("mealType"),
@@ -304,11 +307,12 @@ def analyze_meal_nlp():
 # ==========================================
 
 @meal_bp.route("/log-meal-nlp-ml", methods=["POST"])
+@firebase_auth_optional
 def log_meal_nlp_ml():
     data = request.get_json(force=True)
-    user_id = data.get("userId")
+    user_id  = get_user_id_from_request(data)
     date_str = data.get("date")
-    text = data.get("text")
+    text     = data.get("text")
     
     if not user_id or not date_str or not text:
         return error("userId, date, and text are required")
