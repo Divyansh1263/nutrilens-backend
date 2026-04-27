@@ -15,6 +15,17 @@ import os
 import uuid
 
 
+def get_cache_path(filename: str) -> str:
+    """Writable cache path — defers to meals_cache helper if available."""
+    try:
+        from meals_cache import get_cache_path as _gcp
+        return _gcp(filename)
+    except ImportError:
+        base = os.environ.get("CACHE_DIR", "/tmp")
+        os.makedirs(base, exist_ok=True)
+        return os.path.join(base, filename)
+
+
 MEALS_CACHE: List[Dict[str, Any]] = []
 
 # Small seed dataset used only when Firestore is unavailable and no cache exists.
@@ -428,18 +439,21 @@ def ensure_meals_available() -> None:
 
 
 def _meals_cache_path() -> str:
-    # Stored under backend/.cache/meals_cache.json
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    cache_dir = os.path.join(base_dir, ".cache")
-    os.makedirs(cache_dir, exist_ok=True)
-    return os.path.join(cache_dir, "meals_cache.json")
+    # Cloud Run: /tmp is the only writable dir. Override via CACHE_DIR.
+    return get_cache_path("meals_cache.json")
 
 
 def save_meals_cache_to_disk() -> None:
-    """Persist meals cache so local dev keeps working even if Firestore quota is hit later."""
-    path = _meals_cache_path()
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(MEALS_CACHE, f, ensure_ascii=False)
+    """Persist meals cache. Silently skips on permission error (Cloud Run read-only FS)."""
+    try:
+        path = _meals_cache_path()
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(MEALS_CACHE, f, ensure_ascii=False)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "[cache] Could not persist meals cache to disk: %s", exc
+        )
 
 
 def load_meals_cache_from_disk() -> bool:
@@ -464,10 +478,8 @@ def load_meals_cache_from_disk() -> bool:
 # ------------------ Users Cache (dev fallback) ------------------
 
 def _users_cache_path() -> str:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    cache_dir = os.path.join(base_dir, ".cache")
-    os.makedirs(cache_dir, exist_ok=True)
-    return os.path.join(cache_dir, "users_cache.json")
+    # Cloud Run: /tmp is the only writable dir. Override via CACHE_DIR.
+    return get_cache_path("users_cache.json")
 
 
 def save_user_to_cache(user: Dict[str, Any]) -> None:

@@ -22,6 +22,23 @@ from typing import Any, Dict, List, Optional
 
 from utils.logger import app_logger
 
+
+# ------------------------------------------------------------------ #
+# Cache path helper — Cloud Run has read-only FS except /tmp         #
+# ------------------------------------------------------------------ #
+
+def get_cache_path(filename: str) -> str:
+    """
+    Return a writable path for a cache file.
+
+    On Cloud Run the app directory is read-only; /tmp is the only
+    writable location.  Set CACHE_DIR env var to override (e.g. for
+    local dev where you want the cache next to the source).
+    """
+    base = os.environ.get("CACHE_DIR", "/tmp")
+    os.makedirs(base, exist_ok=True)
+    return os.path.join(base, filename)
+
 # ------------------------------------------------------------------ #
 # TASK 1 – Global cache variables                                     #
 # ------------------------------------------------------------------ #
@@ -222,13 +239,14 @@ def _load_from_firestore() -> List[Dict[str, Any]]:
 
 
 def _local_cache_path() -> str:
-    base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, ".cache", "meals_cache.json")
+    # Cloud Run: write to /tmp (or CACHE_DIR). Local dev: same unless overridden.
+    return get_cache_path("meals_cache.json")
 
 
 def _load_from_local() -> List[Dict[str, Any]]:
     path = _local_cache_path()
     if not os.path.exists(path):
+        app_logger.warning("[cache] No local cache at %s — using in-memory fallback", path)
         return []
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -236,7 +254,7 @@ def _load_from_local() -> List[Dict[str, Any]]:
         if isinstance(data, list):
             return [d for d in data if isinstance(d, dict)]
     except Exception as exc:
-        app_logger.error("[cache] Local cache load failed: %s", exc)
+        app_logger.warning("[cache] Local cache load failed (%s) — using in-memory fallback", exc)
     return []
 
 
