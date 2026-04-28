@@ -2,6 +2,13 @@
 import random
 from utils.logger import app_logger
 from utils.date_utils import get_days_difference, get_today_str
+from utils.diet_utils import (
+    apply_diet_filter,
+    validate_plan,
+    annotate_plan_item,
+    resolve_explanation,
+)
+from utils.macro_optimizer import optimize_plan, build_macro_targets
 from config.config import (
     BREAKFAST_RANGE, LUNCH_RANGE, DINNER_RANGE, SNACK_RANGE,
     CALORIE_TOLERANCE, MEAL_SPLIT_RATIOS, MAX_DISHES_PER_MEAL,
@@ -46,18 +53,22 @@ class MealGeneratorService:
         all_meals = meal_repo.get_all_meals()
         app_logger.info("[meal-plan] candidate pool: %d meals", len(all_meals))
 
-        filtered_meals = all_meals  # pass-through; dietary filter applied in fallback
-
-        # 4. Resolve vegetarian preference from user profile (best-effort)
-        _is_veg = False
+        # 4. Fetch user profile ONCE — used for dietary filter + explanations
+        _profile = {}
         try:
-            from repositories.user_repository import user_repo as _ur
-            _profile = _ur.get_user_profile(user_id)
-            _is_veg = bool(_profile and _profile.get("is_vegetarian"))
-        except Exception:
-            pass
+            _profile = user_repo.get_user_profile(user_id) or {}
+        except Exception as _e:
+            app_logger.warning("[meal-plan] profile fetch failed: %s", _e)
 
-        _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
+        # 5. Apply dietary filter to the full pool (boolean flags only)
+        filtered_meals = apply_diet_filter(all_meals, _profile)
+        app_logger.info(
+            "[meal-plan] dietary filter: pool %d → %d",
+            len(all_meals), len(filtered_meals)
+        )
+
+        # Build a fast name→source_meal lookup for explanation annotation
+        _meal_lookup = {m.get("mealName", ""): m for m in all_meals}
 
         # TASK 2: slot keys exactly match frontend contract (all lowercase)
         slots = [
@@ -67,109 +78,191 @@ class MealGeneratorService:
             ("dinner",    DINNER_RANGE,    MEAL_SPLIT_RATIOS["Dinner"]),
         ]
 
-        plan = {
-            "target_calories": target_calories,
-            "target_macros": {
-                "protein": round(target_calories * 0.25 / 4),
-                "carbs":   round(target_calories * 0.45 / 4),
-                "fat":     round(target_calories * 0.30 / 9),
-            },
-            # Pre-seed every slot as an empty list so plan keys always exist
-            "breakfast": [],
-            "lunch":     [],
-            "snack":     [],
-            "dinner":    [],
-        }
+        # ── TASK 1.1: 3-attempt regeneration loop with strict validation ────
+        MAX_RETRIES = 3
+        plan = None
+        last_violations = []
 
-        used_today = set()
-
-        # ── Primary generation loop ───────────────────────────────────────────
-        for slot_name, cal_range, split_ratio in slots:
-            slot_target = target_calories * split_ratio
-
-            items = self.build_multi_item_meal(
-                slot_name=slot_name,
-                slot_target=float(slot_target),
-                candidates=filtered_meals,
-                recent_plans=recent_plans,
-                user_history=user_history,
-                used_today=used_today,
-                max_items=4,
-            )
-
-            # TASK 1: always use plan[slot_name] explicitly (in-place)
-            # TASK 2: slot_name is already lowercase from the slots tuple
-            plan[slot_name] = items  # may be [] — fallback handles below
-
-            for i in items:
-                used_today.add(i.get("mealName", ""))
-
-        # ── TASK 5 (execution order): fallback BEFORE total_calories ─────────
-        # ── TASKS 1-4: per-slot fallback ────────────────────────────────────
-        for slot_name, _, split_ratio in slots:
-            # TASK 1: detect empty list
-            if plan[slot_name]:          # non-empty → skip
-                continue
-
-            app_logger.warning(
-                "[meal-plan] slot '%s' empty after primary generation — applying fallback",
-                slot_name
-            )
-
-            _slot_target = target_calories * split_ratio
-
-            # TASK 2: type-correct pool, then widen if needed
-            _pool = [
-                m for m in filtered_meals
-                if (m.get("meal_type") or "").lower() == slot_name
-                or (m.get("category")  or "").lower() == slot_name
-            ]
-            if len(_pool) < 5:
-                _pool = list(filtered_meals)   # widen to full pool
-
-            # TASK 2: vegetarian filter
-            if _is_veg and _pool:
-                _veg = [
-                    m for m in _pool
-                    if m.get("is_vegetarian") is True
-                    and not any(
-                        kw in (m.get("mealName") or "").lower()
-                        for kw in _NON_VEG_KWS
-                    )
-                ]
-                if _veg:
-                    _pool = _veg
-
-            if not _pool:
-                app_logger.error(
-                    "[meal-plan] fallback: pool is empty for slot '%s'", slot_name
-                )
-                continue
-
-            # TASK 3: calorie proximity — no random
-            _pool.sort(key=lambda m: abs((m.get("calories") or 0) - _slot_target))
-            _best = _pool[0]
-            _fb_item = {
-                "mealName": _best.get("mealName", ""),
-                "quantity": 1.0,
-                "calories": round(float(_best.get("calories") or 0), 1),
-                "protein":  round(float(_best.get("protein")  or 0), 1),
-                "carbs":    round(float(_best.get("carbs")    or 0), 1),
-                "fat":      round(float(_best.get("fat")      or 0), 1),
+        for attempt in range(MAX_RETRIES):
+            _plan = {
+                "target_calories": target_calories,
+                "target_macros": {
+                    "protein": round(target_calories * 0.25 / 4),
+                    "carbs":   round(target_calories * 0.45 / 4),
+                    "fat":     round(target_calories * 0.30 / 9),
+                },
+                "breakfast": [],
+                "lunch":     [],
+                "snack":     [],
+                "dinner":    [],
             }
 
-            # TASK 1 + TASK 3: in-place mutation
-            plan[slot_name] = [_fb_item]
+            used_today = set()
 
-            # TASK 4: slot fallback log
-            app_logger.info(
-                "[meal-plan] slot fallback applied → %s: '%s' "
-                "(cal=%.0f, target≈%.0f, pool=%d, veg=%s)",
-                slot_name, _fb_item["mealName"],
-                _fb_item["calories"], _slot_target, len(_pool), _is_veg,
+            # ── Primary generation loop ─────────────────────────────────────
+            for slot_name, cal_range, split_ratio in slots:
+                slot_target = target_calories * split_ratio
+                items = self.build_multi_item_meal(
+                    slot_name=slot_name,
+                    slot_target=float(slot_target),
+                    candidates=filtered_meals,
+                    recent_plans=recent_plans,
+                    user_history=user_history,
+                    used_today=used_today,
+                    max_items=4,
+                )
+                _plan[slot_name] = items
+                for i in items:
+                    used_today.add(i.get("mealName", ""))
+
+            # ── Per-slot fallback ────────────────────────────────────────────
+            _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
+            _dr = _profile.get("dietary_restrictions", {})
+            _is_veg   = bool(_dr.get("is_vegetarian") or _profile.get("is_vegetarian"))
+            _is_vegan = bool(_dr.get("is_vegan")      or _profile.get("is_vegan"))
+
+            for slot_name, _, split_ratio in slots:
+                if _plan[slot_name]:
+                    continue
+
+                app_logger.warning(
+                    "[meal-plan] slot '%s' empty — applying fallback (attempt %d)",
+                    slot_name, attempt + 1
+                )
+                _slot_target = target_calories * split_ratio
+                _pool = [
+                    m for m in filtered_meals
+                    if (m.get("meal_type") or "").lower() == slot_name
+                    or (m.get("category")  or "").lower() == slot_name
+                ]
+                if len(_pool) < 5:
+                    _pool = list(filtered_meals)
+
+                if _is_veg and _pool:
+                    _veg = [
+                        m for m in _pool
+                        if m.get("is_vegetarian") is True
+                        and not any(kw in (m.get("mealName") or "").lower() for kw in _NON_VEG_KWS)
+                    ]
+                    if _veg:
+                        _pool = _veg
+
+                if not _pool:
+                    app_logger.error("[meal-plan] fallback: pool empty for slot '%s'", slot_name)
+                    continue
+
+                _pool.sort(key=lambda m: abs((m.get("calories") or 0) - _slot_target))
+                _best = _pool[0]
+                _plan[slot_name] = [{
+                    "mealName": _best.get("mealName", ""),
+                    "quantity": 1.0,
+                    "calories": round(float(_best.get("calories") or 0), 1),
+                    "protein":  round(float(_best.get("protein")  or 0), 1),
+                    "carbs":    round(float(_best.get("carbs")    or 0), 1),
+                    "fat":      round(float(_best.get("fat")      or 0), 1),
+                }]
+                app_logger.info(
+                    "[meal-plan] fallback → %s: '%s' (cal=%.0f)",
+                    slot_name, _best.get("mealName"), float(_best.get("calories") or 0)
+                )
+
+            # ── Emergency force-fill (all slots still empty) ─────────────────
+            _slot_names = [sn for sn, _, _ in slots]
+            if all(len(_plan[sn]) == 0 for sn in _slot_names):
+                app_logger.error("[meal-plan] ALL SLOTS EMPTY — emergency force-fill")
+                for sn, _, _ in slots:
+                    if filtered_meals:
+                        _em = random.choice(filtered_meals)
+                        _plan[sn] = [{
+                            "mealName": _em.get("mealName", "fallback"),
+                            "quantity": 1.0,
+                            "calories": round(float(_em.get("calories") or 0), 1),
+                            "protein":  round(float(_em.get("protein")  or 0), 1),
+                            "carbs":    round(float(_em.get("carbs")    or 0), 1),
+                            "fat":      round(float(_em.get("fat")      or 0), 1),
+                        }]
+
+            # ── TASK 1.1: Strict dietary validation ─────────────────────────
+            is_valid, violations = validate_plan(_plan, _profile)
+            if is_valid:
+                plan = _plan
+                app_logger.info(
+                    "[meal-plan] dietary validation passed on attempt %d", attempt + 1
+                )
+                break
+            else:
+                last_violations = violations
+                app_logger.warning(
+                    "[meal-plan] attempt %d FAILED validation (%d violations): %s",
+                    attempt + 1, len(violations),
+                    [(v[0], v[1]) for v in violations[:3]]
+                )
+        else:
+            # All 3 attempts failed — log and use last attempt's plan anyway
+            # (better to show a slightly wrong plan than crash the app)
+            app_logger.error(
+                "[meal-plan] ALL %d ATTEMPTS FAILED validation — using last plan. "
+                "Violations: %s",
+                MAX_RETRIES, last_violations
             )
+            plan = _plan
 
-        # ── TASK 5 (total after fallbacks applied) ───────────────────────────
+        # ── Macro optimisation pass (Tasks 1-6) ──────────────────────────────
+        # Returns a 4-tuple: (plan, macro_deviation, optimization_score, score_label)
+        macro_targets = build_macro_targets(target_calories)
+        plan, macro_deviation, optimization_score, score_label = optimize_plan(
+            plan, macro_targets, filtered_meals
+        )
+
+        # ── Post-optimization dietary validation with retry ────────────────────
+        _pre_opt_plan   = plan
+        _pre_opt_dev    = macro_deviation
+        _pre_opt_score  = optimization_score
+        _pre_opt_label  = score_label
+        OPT_RETRIES = 2
+        for _opt_attempt in range(OPT_RETRIES + 1):
+            _opt_valid, _opt_violations = validate_plan(plan, _profile)
+            if _opt_valid:
+                if _opt_attempt > 0:
+                    app_logger.info(
+                        "[meal-plan] Post-opt validation passed on retry %d", _opt_attempt
+                    )
+                else:
+                    app_logger.info("[meal-plan] Post-optimization dietary validation passed")
+                break
+            app_logger.warning(
+                "[meal-plan] Post-opt FAILED attempt %d/%d (%d violations): %s",
+                _opt_attempt + 1, OPT_RETRIES + 1,
+                len(_opt_violations),
+                [(v[0], v[1]) for v in _opt_violations[:3]],
+            )
+            if _opt_attempt < OPT_RETRIES:
+                plan, macro_deviation, optimization_score, score_label = optimize_plan(
+                    _pre_opt_plan, macro_targets, filtered_meals
+                )
+            else:
+                app_logger.error(
+                    "[meal-plan] All post-opt retries failed — reverting to pre-opt plan"
+                )
+                plan               = _pre_opt_plan
+                macro_deviation    = _pre_opt_dev
+                optimization_score = _pre_opt_score
+                score_label        = _pre_opt_label
+
+        # Embed analytics fields in plan (TASK 3, 4, 5)
+        plan["macro_deviation"]    = macro_deviation
+        plan["optimization_score"] = optimization_score
+        plan["score_label"]        = score_label
+
+        # ── TASK 2.3: Annotate every item with explanation + float macros ───
+        for slot_name, _, _ in slots:
+            annotated = []
+            for item in plan.get(slot_name, []):
+                source = _meal_lookup.get(item.get("mealName", ""), item)
+                annotated.append(annotate_plan_item(item, source, _profile))
+            plan[slot_name] = annotated
+
+        # ── Total calories (after annotation, post-fallback) ─────────────────
         total_gen_cals = sum(
             float(i.get("calories") or 0)
             for sn, _, _ in slots
@@ -177,47 +270,77 @@ class MealGeneratorService:
         )
         plan["total_calories"] = round(total_gen_cals)
 
-        # ── TASK 4: FINAL PLAN log before return ─────────────────────────────
         app_logger.info(
-            "[meal-plan] FINAL PLAN: breakfast→%d  lunch→%d  snack→%d  dinner→%d  "
-            "total_cal=%d",
+            "[meal-plan] FINAL PLAN: B→%d L→%d S→%d D→%d total_cal=%d",
             len(plan["breakfast"]), len(plan["lunch"]),
             len(plan["snack"]),     len(plan["dinner"]),
             plan["total_calories"],
         )
 
-        # ── TASK 4: assert non-empty — force-fill if everything is still empty
-        _slot_names = [sn for sn, _, _ in slots]
-        if all(len(plan[sn]) == 0 for sn in _slot_names):
-            app_logger.error(
-                "[meal-plan] ALL SLOTS EMPTY after fallback — emergency force-fill"
-            )
-            import random as _rnd
-            for sn, _, sr in slots:
-                if filtered_meals:
-                    _em = _rnd.choice(filtered_meals)
-                    plan[sn] = [{
-                        "mealName": _em.get("mealName", "fallback"),
-                        "quantity": 1.0,
-                        "calories": round(float(_em.get("calories") or 0), 1),
-                        "protein":  round(float(_em.get("protein")  or 0), 1),
-                        "carbs":    round(float(_em.get("carbs")    or 0), 1),
-                        "fat":      round(float(_em.get("fat")      or 0), 1),
-                    }]
-                    app_logger.info(
-                        "[meal-plan] emergency fill: %s → '%s'", sn, _em.get("mealName")
-                    )
-
-        # ── Save to Firestore ─────────────────────────────────────────────────
+        # ── Save plan to Firestore ────────────────────────────────────────────
         tracker_repo.save_plan({
             "userId": user_id,
             "date":   date_str,
             **plan,
         })
 
+        # ── TASK 4: Persist macro deviation to Daily Ratings (analytics) ─────
+        try:
+            from config.config import COL_DAILY_RATINGS
+            from firebase_admin import firestore as _fs
+            _rating_doc = {
+                "userId":             user_id,
+                "date":               date_str,
+                "macro_deviation":    macro_deviation,
+                "optimization_score": optimization_score,
+                "score_label":        score_label,
+                "target_calories":    target_calories,
+                "created_at":         _fs.SERVER_TIMESTAMP,
+            }
+            tracker_repo.db.collection(COL_DAILY_RATINGS).document(
+                f"{user_id}_{date_str}"
+            ).set(_rating_doc)
+            app_logger.info(
+                "[meal-plan] Daily rating saved: score=%.4f dev=%s",
+                optimization_score, macro_deviation
+            )
+        except Exception as _re:
+            app_logger.warning("[meal-plan] Failed to save daily rating: %s", _re)
+
         return plan, ""
 
 
+
+    # ──────────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _validate_diet_plan(plan, is_veg: bool, is_vegan: bool):
+        """
+        Post-generation dietary validation.
+        Logs an error for every item that violates the user's dietary flag.
+        Does NOT raise — preserving plan delivery is more important than crashing.
+        """
+        _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
+        violations = []
+        for slot in ("breakfast", "lunch", "snack", "dinner"):
+            for item in plan.get(slot, []):
+                if is_vegan and item.get("is_vegan") is not True:
+                    violations.append((slot, item.get("mealName"), "not is_vegan"))
+                elif is_veg:
+                    if item.get("is_vegetarian") is not True:
+                        violations.append((slot, item.get("mealName"), "not is_vegetarian"))
+                    elif any(kw in (item.get("mealName") or "").lower() for kw in _NON_VEG_KWS):
+                        violations.append((slot, item.get("mealName"), "non-veg keyword in name"))
+        if violations:
+            from utils.logger import app_logger as _log
+            for slot, name, reason in violations:
+                _log.error(
+                    "[diet-validate] VIOLATION in %s: '%s' — %s",
+                    slot, name, reason
+                )
+        else:
+            from utils.logger import app_logger as _log
+            _log.info("[diet-validate] All meals pass dietary check (veg=%s vegan=%s)",
+                      is_veg, is_vegan)
 
     def get_user_targets(self, user_id, date_str):
         try:
