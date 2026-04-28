@@ -474,31 +474,17 @@ def replace_meal():
         except Exception as e:
             print(f"[replace-meal] KNN failed: {e}")
     
-    # TIER 3: Top up to 5 using random meals from global cache (0 Firestore reads)
-    if len(suggestions) < 5:
-        try:
-            import random
-            from meals_cache import MEALS_CACHE as _all_meals
-
-            needed = 5 - len(suggestions)
-            existing_names = {s.get("mealName", "") for s in suggestions} | {meal_name}
-
-            available_meals = [
-                m for m in _all_meals
-                if m.get("mealName", "").lower() not in {n.lower() for n in existing_names}
-                and _diet_ok(m)  # dietary filter applied here
-            ]
-            random.shuffle(available_meals)
     # TIER 3: Top up to 5 from in-memory cache (dietary-filtered)
     if len(suggestions) < 5:
         try:
             import random
             from repositories.meal_repository import meal_repo as _mr
+            from utils.diet_utils import apply_diet_filter
 
-            _all_meals  = _mr.get_all_meals()
+            _all_meals    = _mr.get_all_meals()
             _diet_ok_pool = apply_diet_filter(_all_meals, _profile)
 
-            needed        = 5 - len(suggestions)
+            needed         = 5 - len(suggestions)
             existing_names = {s.get("mealName", "").lower() for s in suggestions} | {meal_name.lower()}
 
             available = [
@@ -510,6 +496,7 @@ def replace_meal():
             print(f"[replace-meal] TIER 3 top-up: total={len(suggestions)}")
         except Exception as e:
             print(f"[replace-meal] TIER 3 failed: {e}")
+
 
     # ── Build response (include explanation per TASK 2.3) ───────────────────
     from utils.diet_utils import resolve_explanation
