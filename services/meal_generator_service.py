@@ -40,6 +40,8 @@ class MealGeneratorService:
     }
     
     def generate_daily_plan(self, user_id, date_str):
+        print("STEP: entering function")
+        print(f"DATA: generate_daily_plan(user_id={user_id}, date_str={date_str})")
         app_logger.info("Generating meal plan for user %s", user_id)
 
         # 1. Fetch user targets
@@ -59,6 +61,7 @@ class MealGeneratorService:
         _profile = {}
         try:
             _profile = user_repo.get_user_profile(user_id) or {}
+            print("USER PROFILE:", _profile)
         except Exception as _e:
             app_logger.warning("[meal-plan] profile fetch failed: %s", _e)
 
@@ -72,6 +75,7 @@ class MealGeneratorService:
         # 5b. DEDUPLICATION + HARD VALIDATION — remove impossible/duplicate entries
         pre_clean_count = len(filtered_meals)
         filtered_meals = clean_meal_pool(filtered_meals)
+        print("MEAL POOL SIZE:", len(filtered_meals))
         app_logger.info(
             "[meal-plan] dedup+validate: %d → %d meals (removed %d)",
             pre_clean_count, len(filtered_meals), pre_clean_count - len(filtered_meals)
@@ -220,9 +224,12 @@ class MealGeneratorService:
         # ── Macro optimisation pass (Tasks 1-6) ──────────────────────────────
         # Returns a 4-tuple: (plan, macro_deviation, optimization_score, score_label)
         macro_targets = build_macro_targets(target_calories)
+        print("PLAN BEFORE OPTIMIZATION:", plan)
         plan, macro_deviation, optimization_score, score_label = optimize_plan(
             plan, macro_targets, filtered_meals
         )
+        print("PLAN AFTER OPTIMIZATION:", plan)
+        print("MACRO DEVIATION:", macro_deviation)
 
         # ── ML Daily Rater (Phase 4) ──────────────────────────────────────────
         # Lazy import keeps startup fast; predict_score returns -1 on failure.

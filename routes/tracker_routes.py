@@ -17,18 +17,19 @@ def get_tracker_summary():
         return error("userId and date are required")
 
     try:
+        print(f"[DEBUG] tracker_routes.py: get_tracker_summary called user={user_id} date={date_str}")
         summary = tracker_service.get_tracker_summary(user_id, date_str)
         return success(summary)
     except Exception as e:
         import traceback
-        print(traceback.format_exc())
-        fallback_summary = {
-            "date": date_str,
-            "targets": {"calories": 2000, "protein": 100, "carbs": 250, "fat": 60},
-            "consumed": {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0},
-            "logs": [],
-        }
-        return success(fallback_summary)
+        error_trace = traceback.format_exc()
+        print("ERROR TRACE:", error_trace)
+        from flask import jsonify
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "trace": error_trace
+        }), 500
 
 @tracker_bp.route("/get-streak", methods=["GET"])
 @firebase_auth_optional

@@ -65,6 +65,8 @@ def _invalidate_tracker(user_id: str, date_str: str) -> None:
 
 class TrackerService:
     def get_tracker_summary(self, user_id: str, date_str: str) -> dict:
+        print("STEP: entering function")
+        print(f"DATA: get_tracker_summary(user_id={user_id}, date_str={date_str})")
         # Step 6.1 / 6.3 — cache-first read
         cached = _get_tracker(user_id, date_str)
         if cached is not None:

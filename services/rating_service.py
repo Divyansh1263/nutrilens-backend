@@ -12,6 +12,8 @@ class RatingService:
              pass
 
     def generate_daily_rating(self, user_id, date_str):
+        print("STEP: entering function")
+        print(f"DATA: generate_daily_rating(user_id={user_id}, date_str={date_str})")
         try:
             summary = tracker_service.get_tracker_summary(user_id, date_str)
             
@@ -67,7 +69,8 @@ class RatingService:
             return rating_data, ""
         except Exception as e:
             import traceback
-            print(traceback.format_exc())
-            return {"rating": 0, "message": "Failed to generate rating"}, None
+            error_trace = traceback.format_exc()
+            print("ERROR TRACE:", error_trace)
+            return {"rating": 0, "message": "Failed to generate rating", "error": str(e), "trace": error_trace}, "Exception"
 
 rating_service = RatingService()

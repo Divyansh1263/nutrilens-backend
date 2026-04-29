@@ -178,6 +178,9 @@ def process_meal_text(text, user_id, date, db=None):
 
     firestore_db = db or PIPELINE_CACHE["db"]
 
+    print("STEP: entering function")
+    print(f"DATA: process_meal_text(text={text}, user_id={user_id}, date={date})")
+
     # Debug log accumulator
     debug_log = {
         "raw_text": text,

@@ -119,14 +119,18 @@ def generate_meal_plan():
 
     # Generate (or regenerate) — save_plan() inside overwrites Firestore
     try:
+        print(f"[DEBUG] meal_routes.py: generate_meal_plan called with data={data}")
         plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
     except Exception as exc:
         import traceback
-        app_logger.error(traceback.format_exc())
-        app_logger.exception("generate_daily_plan crashed: %s", exc)
-        # Safe fallback: empty plan
-        plan = {"breakfast": [], "lunch": [], "snack": [], "dinner": []}
-        err = None
+        error_trace = traceback.format_exc()
+        print("ERROR TRACE:", error_trace)
+        from flask import jsonify
+        return jsonify({
+            "success": False,
+            "error": str(exc),
+            "trace": error_trace
+        }), 500
 
     if err:
         return error(err, 500 if "Error" in err else 400)
