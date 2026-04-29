@@ -38,32 +38,74 @@ GOAL_MODIFIERS = {
 # Base Target Calculator
 # -------------------------------
 def compute_base_targets(profile):
-    bmr = mifflin_st_jeor(
-        profile["gender"],
-        profile["weight"],
-        profile["height"],
-        profile["age"]
-    )
+    try:
+        if not isinstance(profile, dict):
+            profile = {}
+            
+        print("PROFILE:", profile)
 
-    activity_factor = ACTIVITY_FACTORS.get(
-        profile.get("activity_level", "sedentary"), 1.2
-    )
+        def safe_float(x, default=0):
+            try:
+                if x is None or str(x).strip() == "":
+                    return default
+                return float(x)
+            except:
+                return default
 
-    tdee = bmr * activity_factor
-    goal_mod = GOAL_MODIFIERS.get(profile.get("dietary_goal", "maintain"), 0)
+        weight = safe_float(profile.get("weight"), 70)
+        height = safe_float(profile.get("height"), 170)
+        age = safe_float(profile.get("age"), 25)
 
-    calories = max(1200, round(tdee + goal_mod))
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+        if bmr <= 0:
+            bmr = 1500
 
-    protein_g = round((0.25 * calories) / 4, 1)
-    carbs_g   = round((0.45 * calories) / 4, 1)
-    fat_g     = round((0.30 * calories) / 9, 1)
+        activity = (
+            profile.get("activityLevel")
+            or profile.get("activity_level")
+            or "sedentary"
+        )
 
-    return {
-        "calories": calories,
-        "protein": protein_g,
-        "carbs": carbs_g,
-        "fat": fat_g
-    }
+        activity_map = {
+            "sedentary": 1.2,
+            "light": 1.375,
+            "moderate": 1.55,
+            "Moderately Active": 1.55,
+            "active": 1.725
+        }
+        multiplier = activity_map.get(activity, 1.2)
+
+        goal = profile.get("goal") or profile.get("dietary_goal") or "maintain"
+
+        if goal == "lose_weight":
+            calories = bmr * multiplier - 400
+        elif goal == "gain_weight":
+            calories = bmr * multiplier + 300
+        else:
+            calories = bmr * multiplier
+
+        calories = max(1200, round(calories))
+        print("CALCULATED CALORIES:", calories)
+
+        protein_g = round((0.25 * calories) / 4, 1)
+        carbs_g   = round((0.45 * calories) / 4, 1)
+        fat_g     = round((0.30 * calories) / 9, 1)
+
+        return {
+            "calories": calories,
+            "protein": protein_g,
+            "carbs": carbs_g,
+            "fat": fat_g
+        }
+    except Exception as e:
+        import traceback
+        print("ERROR in compute_base_targets:", traceback.format_exc())
+        return {
+            "calories": 2000,
+            "protein": 100,
+            "carbs": 250,
+            "fat": 60
+        }
 
 
 # -------------------------------
