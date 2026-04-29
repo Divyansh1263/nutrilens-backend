@@ -1,8 +1,11 @@
 # services/meal_logging_service.py
+import logging
 from datetime import datetime
 from repositories.tracker_repository import tracker_repo
 from repositories.meal_repository import meal_repo
 from firebase_admin import firestore
+
+_log = logging.getLogger(__name__)
 
 class MealLoggingService:
     def log_meal(self, user_id, meal_name, quantity, meal_type, source="manual", provided_macros=None, date_str=None):
@@ -71,9 +74,50 @@ class MealLoggingService:
             "log_time":           firestore.SERVER_TIMESTAMP
         }
         
-        # 3. Store
-        log_id = tracker_repo.log_meal(log_data)
-        
+        # 3. TASK 4 — Duplicate log guard
+        #    If same mealName already logged for this user+date, ADD qty to the
+        #    existing document instead of inserting a second entry.
+        existing = tracker_repo.check_existing_log(user_id, log_data["mealName"], today)
+        if existing:
+            existing_log_id = existing.get("logId") or existing.get("id", "")
+            old_qty = float(existing.get("quantity") or 1)
+            new_qty = old_qty + qty
+
+            # Recalculate totals from per-unit base stored on existing document
+            if "calories_per_unit" in existing:
+                base_cal   = float(existing.get("calories_per_unit") or 0)
+                base_prot  = float(existing.get("protein_per_unit")  or 0)
+                base_carbs = float(existing.get("carbs_per_unit")    or 0)
+                base_fat   = float(existing.get("fat_per_unit")      or 0)
+            else:
+                safe = old_qty if old_qty > 0 else 1.0
+                base_cal   = round(float(existing.get("calories") or 0) / safe, 4)
+                base_prot  = round(float(existing.get("protein")  or 0) / safe, 4)
+                base_carbs = round(float(existing.get("carbs")    or 0) / safe, 4)
+                base_fat   = round(float(existing.get("fat")      or 0) / safe, 4)
+
+            merged_updates = {
+                "quantity":  new_qty,
+                "calories":  round(base_cal   * new_qty, 1),
+                "protein":   round(base_prot  * new_qty, 1),
+                "carbs":     round(base_carbs * new_qty, 1),
+                "fat":       round(base_fat   * new_qty, 1),
+                "updated_at": firestore.SERVER_TIMESTAMP,
+            }
+            tracker_repo.update_log_quantity(existing_log_id, merged_updates)
+            _log.info(
+                "[log-meal] UPDATED existing log '%s' (id=%s): qty %.1f → %.1f",
+                log_data["mealName"], existing_log_id, old_qty, new_qty,
+            )
+            log_id = existing_log_id
+        else:
+            # Normal insert — no duplicate found
+            log_id = tracker_repo.log_meal(log_data)
+            _log.info(
+                "[log-meal] INSERTED new log '%s' (id=%s) qty=%.1f",
+                log_data["mealName"], log_id, qty,
+            )
+
         # 4. Update preference history
         try:
             tracker_repo.update_user_meal_frequency(user_id, meal_name, log_data["date"])
@@ -82,7 +126,7 @@ class MealLoggingService:
                 pass
             else:
                 raise
-        
+
         # 5. Recalculate daily tracker
         from services.tracker_service import tracker_service
         try:
@@ -92,7 +136,7 @@ class MealLoggingService:
                 pass
             else:
                 raise
-        
+
         return log_id, ""
 
     def update_log_quantity(self, log_id, new_quantity):
@@ -107,7 +151,7 @@ class MealLoggingService:
         Returns (success: bool, error: str, updated: dict)
         """
         qty = float(new_quantity)
-        print(f"[update-log] logId={log_id} new_qty={qty}")
+        _log.info("[update-log] logId=%s new_qty=%.2f", log_id, qty)
         if qty <= 0:
             return False, "Quantity must be > 0", {}
 
@@ -121,7 +165,7 @@ class MealLoggingService:
             prot  = round((log_data.get("base_protein")  or 0) * qty, 1)
             carbs = round((log_data.get("base_carbs")    or 0) * qty, 1)
             fat   = round((log_data.get("base_fat")      or 0) * qty, 1)
-            print(f"[update-log] using base_* fields: base_cal={log_data['base_calories']}")
+            _log.info("[update-log] using base_* fields: base_cal=%.4f", log_data['base_calories'])
 
         # Priority 2: calories_per_unit fields (NLP / manual logs)
         elif "calories_per_unit" in log_data:
@@ -129,7 +173,7 @@ class MealLoggingService:
             prot  = round((log_data.get("protein_per_unit")  or 0) * qty, 1)
             carbs = round((log_data.get("carbs_per_unit")    or 0) * qty, 1)
             fat   = round((log_data.get("fat_per_unit")      or 0) * qty, 1)
-            print(f"[update-log] using calories_per_unit fields")
+            _log.info("[update-log] using calories_per_unit fields")
 
         # Priority 3: ratio fallback for legacy docs (pre-v2.6)
         else:
@@ -139,7 +183,7 @@ class MealLoggingService:
             prot  = round((log_data.get("protein",  0) or 0) * ratio, 1)
             carbs = round((log_data.get("carbs",    0) or 0) * ratio, 1)
             fat   = round((log_data.get("fat",      0) or 0) * ratio, 1)
-            print(f"[update-log] ratio fallback: old_qty={old_qty} ratio={ratio:.3f}")
+            _log.warning("[update-log] ratio fallback (legacy doc): old_qty=%.1f ratio=%.3f", old_qty, ratio)
 
         updates = {
             "quantity":   qty,

@@ -9,6 +9,7 @@ from utils.diet_utils import (
     annotate_plan_item,
     resolve_explanation,
 )
+from utils.meal_validation import clean_meal_pool
 from utils.macro_optimizer import optimize_plan, build_macro_targets
 from config.config import (
     BREAKFAST_RANGE, LUNCH_RANGE, DINNER_RANGE, SNACK_RANGE,
@@ -66,6 +67,14 @@ class MealGeneratorService:
         app_logger.info(
             "[meal-plan] dietary filter: pool %d → %d",
             len(all_meals), len(filtered_meals)
+        )
+
+        # 5b. DEDUPLICATION + HARD VALIDATION — remove impossible/duplicate entries
+        pre_clean_count = len(filtered_meals)
+        filtered_meals = clean_meal_pool(filtered_meals)
+        app_logger.info(
+            "[meal-plan] dedup+validate: %d → %d meals (removed %d)",
+            pre_clean_count, len(filtered_meals), pre_clean_count - len(filtered_meals)
         )
 
         # Build a fast name→source_meal lookup for explanation annotation
