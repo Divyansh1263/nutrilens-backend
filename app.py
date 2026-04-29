@@ -158,8 +158,17 @@ app.register_blueprint(analytics_bp)
 app.register_blueprint(system_bp)
 
 # ---------------------------------------------------------
-# 4. GLOBAL ERROR HANDLING & UTILS
+# 4. ROOT HEALTH-CHECK & GLOBAL ERROR HANDLING
 # ---------------------------------------------------------
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "status": "NutriLens Backend Running",
+        "service": "AI Diet Planner",
+        "version": "v1"
+    })
+
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     app_logger.error(f"Unhandled Server Error: {e}")
