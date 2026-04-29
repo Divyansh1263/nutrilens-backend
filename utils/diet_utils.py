@@ -195,63 +195,71 @@ def resolve_explanation(meal: dict, user: dict) -> str:
 
 def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
     """
-    Attach a dynamic 'explanation' field to a plan item dict.
+    Attach explanation, base_* fields, and correctly scaled macros to a plan item.
 
-    Macro handling (FIX 3+4):
-      - If source_meal is the raw Firestore record (different object from item),
-        compute macros as source_meal_base * item_quantity. This is the normal
-        path for meals that exist in the Firestore lookup.
-      - If source_meal IS the item itself (fallback: meal not in lookup, or
-        optimizer-injected item), the macros on item are ALREADY quantity-scaled
-        by the optimizer. Use them directly — do NOT multiply again.
+    Anti-double-scaling guarantee
+    ─────────────────────────────
+    All macro totals are computed as:
+        total_macro = base_macro (per-unit from Firestore) × quantity
 
-    Explanation is always resolved from source_meal (carries 'explanations' dict).
+    The base_* fields are stored on the item so that /update-log and any
+    future re-scaling always has the per-unit ground truth — no division
+    required, no risk of accumulated floating-point drift.
+
+    Paths:
+      A. source_meal ≠ item  →  Firestore record available; use its per-unit
+         macros as the authoritative base.  Ignore item's already-scaled macros.
+      B. source_meal is item  →  meal not in Firestore lookup (fallback / injected).
+         Derive per-unit base by dividing item's scaled macros by quantity.
 
     Args:
-        item:        plan item dict (post-optimizer quantity + macros)
+        item:        plan item dict (post-optimizer; quantity and macros already set)
         source_meal: raw Firestore meal dict OR item itself as fallback
         user:        Firestore user profile dict
 
     Returns:
-        enriched copy of item (macros correct, explanation attached)
+        enriched copy of item with base_*, scaled macros, explanation, servingSize
     """
     enriched = dict(item)
     qty = float(item.get("quantity") or 1.0)
     enriched["quantity"] = qty
 
-    # Detect whether source_meal is a genuine Firestore record or the item itself.
-    # We consider it a "real" source when it has a different identity (is not item)
-    # AND its calories represent a per-unit (single-serving) value.
-    # Heuristic: if source_meal is not the same dict object as item, treat it as
-    # per-unit; otherwise macros on item are already fully scaled.
     is_real_source = source_meal is not item
 
     if is_real_source:
-        # Normal path: source_meal holds per-unit Firestore values.
-        # Apply the item's optimizer-adjusted quantity to get final macros.
-        base_cal   = float(source_meal.get("calories") or item.get("calories") or 0)
-        base_prot  = float(source_meal.get("protein")  or item.get("protein")  or 0)
-        base_carbs = float(source_meal.get("carbs")    or item.get("carbs")    or 0)
-        base_fat   = float(source_meal.get("fat")      or item.get("fat")      or 0)
-        enriched["calories"] = round(base_cal   * qty, 1)
-        enriched["protein"]  = round(base_prot  * qty, 1)
-        enriched["carbs"]    = round(base_carbs * qty, 1)
-        enriched["fat"]      = round(base_fat   * qty, 1)
+        # PATH A: Firestore record available — its macros are per-unit.
+        # Always recalculate totals from the authoritative Firestore base.
+        # Never trust item's macros here: they may have been scaled already
+        # by portion_to_fit() or the macro optimizer.
+        base_cal   = float(source_meal.get("calories") or 0)
+        base_prot  = float(source_meal.get("protein")  or 0)
+        base_carbs = float(source_meal.get("carbs")    or 0)
+        base_fat   = float(source_meal.get("fat")      or 0)
     else:
-        # Fallback / injected-item path: macros on item are already qty-scaled
-        # by the optimizer. Preserve them as-is (cast to float for type safety).
-        enriched["calories"] = round(float(item.get("calories") or 0), 1)
-        enriched["protein"]  = round(float(item.get("protein")  or 0), 1)
-        enriched["carbs"]    = round(float(item.get("carbs")    or 0), 1)
-        enriched["fat"]      = round(float(item.get("fat")      or 0), 1)
+        # PATH B: No Firestore record — item macros are already scaled by qty.
+        # Back-calculate the per-unit base so base_* fields are still correct.
+        safe_qty   = qty if qty > 0 else 1.0
+        base_cal   = round(float(item.get("calories") or 0) / safe_qty, 4)
+        base_prot  = round(float(item.get("protein")  or 0) / safe_qty, 4)
+        base_carbs = round(float(item.get("carbs")    or 0) / safe_qty, 4)
+        base_fat   = round(float(item.get("fat")      or 0) / safe_qty, 4)
+
+    # Stamp per-unit base values — source of truth for any future re-scaling.
+    enriched["base_calories"] = round(base_cal,   4)
+    enriched["base_protein"]  = round(base_prot,  4)
+    enriched["base_carbs"]    = round(base_carbs, 4)
+    enriched["base_fat"]      = round(base_fat,   4)
+
+    # Compute quantity-scaled totals from base (single multiplication — no drift).
+    enriched["calories"] = round(base_cal   * qty, 1)
+    enriched["protein"]  = round(base_prot  * qty, 1)
+    enriched["carbs"]    = round(base_carbs * qty, 1)
+    enriched["fat"]      = round(base_fat   * qty, 1)
 
     # Explanation resolved from source_meal's 'explanations' dict.
-    # source_meal may be item itself — resolve_explanation handles missing keys.
     enriched["explanation"] = resolve_explanation(source_meal, user)
 
-    # TASK 2 FIX: carry servingSize from the Firestore record so the frontend
-    # can display e.g. "1 bowl" without a separate lookup.
-    # Prefer source_meal value; fall back to whatever is already on item.
+    # Carry servingSize from Firestore record for frontend display.
     serving = source_meal.get("servingSize") or item.get("servingSize") or ""
     enriched["servingSize"] = serving
 

@@ -99,12 +99,12 @@ class MealLoggingService:
         """
         Update quantity and recalculate macros for a logged meal.
 
-        FIX v2.6: Prefer exact recalculation using *_per_unit fields stored
-        at log time.  Falls back to ratio-based adjustment for old log docs
-        that pre-date the per-unit fields.
+        Per-unit base priority chain (prevents double-scaling):
+          1. base_calories  — stamped by annotate_plan_item on plan-sourced logs
+          2. calories_per_unit — stamped by log_meal() on NLP/manual logs
+          3. Ratio fallback — legacy docs only (pre v2.6)
 
         Returns (success: bool, error: str, updated: dict)
-        so the route can return the new values to the frontend.
         """
         qty = float(new_quantity)
         print(f"[update-log] logId={log_id} new_qty={qty}")
@@ -115,20 +115,31 @@ class MealLoggingService:
         if not log_data:
             return False, "Log not found", {}
 
-        # — Exact recalculation (preferred) ————————————————————
-        if "calories_per_unit" in log_data:
+        # Priority 1: base_* fields (plan items annotated by annotate_plan_item)
+        if "base_calories" in log_data:
+            cal   = round((log_data.get("base_calories") or 0) * qty, 1)
+            prot  = round((log_data.get("base_protein")  or 0) * qty, 1)
+            carbs = round((log_data.get("base_carbs")    or 0) * qty, 1)
+            fat   = round((log_data.get("base_fat")      or 0) * qty, 1)
+            print(f"[update-log] using base_* fields: base_cal={log_data['base_calories']}")
+
+        # Priority 2: calories_per_unit fields (NLP / manual logs)
+        elif "calories_per_unit" in log_data:
             cal   = round((log_data.get("calories_per_unit") or 0) * qty, 1)
             prot  = round((log_data.get("protein_per_unit")  or 0) * qty, 1)
             carbs = round((log_data.get("carbs_per_unit")    or 0) * qty, 1)
             fat   = round((log_data.get("fat_per_unit")      or 0) * qty, 1)
+            print(f"[update-log] using calories_per_unit fields")
+
+        # Priority 3: ratio fallback for legacy docs (pre-v2.6)
         else:
-            # — Ratio fallback for legacy docs without per-unit fields —
             old_qty = float(log_data.get("quantity", 1))
             ratio   = qty / old_qty if old_qty > 0 else 1
             cal   = round((log_data.get("calories", 0) or 0) * ratio, 1)
             prot  = round((log_data.get("protein",  0) or 0) * ratio, 1)
             carbs = round((log_data.get("carbs",    0) or 0) * ratio, 1)
             fat   = round((log_data.get("fat",      0) or 0) * ratio, 1)
+            print(f"[update-log] ratio fallback: old_qty={old_qty} ratio={ratio:.3f}")
 
         updates = {
             "quantity":   qty,
