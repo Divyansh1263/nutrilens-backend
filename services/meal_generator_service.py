@@ -1,4 +1,5 @@
 # services/meal_generator_service.py
+# ML integration: lazy-import so the model is only loaded after gunicorn forks.
 import random
 from utils.logger import app_logger
 from utils.date_utils import get_days_difference, get_today_str
@@ -214,6 +215,22 @@ class MealGeneratorService:
             plan, macro_targets, filtered_meals
         )
 
+        # ── ML Daily Rater (Phase 4) ──────────────────────────────────────────
+        # Lazy import keeps startup fast; predict_score returns -1 on failure.
+        try:
+            from ml.daily_rater import predict_score, interpret_score as _interpret
+            _ml_raw = predict_score(macro_deviation)
+            if _ml_raw < 0:   # model unavailable — graceful fallback
+                ml_score       = optimization_score
+                ml_score_label = score_label
+            else:
+                ml_score       = _ml_raw
+                ml_score_label = _interpret(ml_score)
+        except Exception as _ml_exc:
+            app_logger.warning("[meal-plan] ML rater unavailable: %s", _ml_exc)
+            ml_score       = optimization_score
+            ml_score_label = score_label
+
         # ── Post-optimization dietary validation with retry ────────────────────
         _pre_opt_plan   = plan
         _pre_opt_dev    = macro_deviation
@@ -249,10 +266,12 @@ class MealGeneratorService:
                 optimization_score = _pre_opt_score
                 score_label        = _pre_opt_label
 
-        # Embed analytics fields in plan (TASK 3, 4, 5)
+        # Embed analytics fields in plan (TASK 3, 4, 5 + Phase 4 ML)
         plan["macro_deviation"]    = macro_deviation
         plan["optimization_score"] = optimization_score
         plan["score_label"]        = score_label
+        plan["ml_score"]           = ml_score
+        plan["ml_score_label"]     = ml_score_label
 
         # ── TASK 2.3: Annotate every item with explanation + float macros ───
         for slot_name, _, _ in slots:
@@ -294,6 +313,8 @@ class MealGeneratorService:
                 "macro_deviation":    macro_deviation,
                 "optimization_score": optimization_score,
                 "score_label":        score_label,
+                "ml_score":           ml_score,
+                "ml_score_label":     ml_score_label,
                 "target_calories":    target_calories,
                 "created_at":         _fs.SERVER_TIMESTAMP,
             }

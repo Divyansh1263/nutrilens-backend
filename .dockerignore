@@ -70,3 +70,12 @@ routes_dump.json
 
 # Safety net — always include requirements.txt even if above rules change
 !requirements.txt
+
+# ML pipeline: exclude large training artefacts; keep only the compiled model
+ml/daily_rater_dataset.csv
+ml/generate_dataset.py
+ml/train_daily_rater.py
+# Explicitly keep the runtime model
+!ml/daily_rater.joblib
+!ml/__init__.py
+!ml/daily_rater.py

@@ -243,6 +243,9 @@ def _meal_plan_response(plan, message):
         "optimization_score":  clean.get("optimization_score"),
         "score_label":         clean.get("score_label"),
         "macro_deviation":     clean.get("macro_deviation"),
+        # Phase 6: ML Daily Rater score — backward-compatible (None if model unavailable)
+        "ml_score":            clean.get("ml_score"),
+        "ml_score_label":      clean.get("ml_score_label"),
     }
 
     assert "data" not in response, "[meal-plan] BUG: 'data' key must not be present"
