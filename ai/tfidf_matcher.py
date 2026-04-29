@@ -27,7 +27,7 @@ _category_index = {}  # category -> list of indices
 # Meals with fewer than MIN_KEYWORD_COUNT searchKeywords are excluded from
 # the TF-IDF candidate pool and from fuzzy matching.  This prevents weak,
 # under-described meals from leaking into pipeline results.
-MIN_KEYWORD_COUNT = 5
+MIN_KEYWORD_COUNT = 1
 
 # ── Corpus-side stopwords ─────────────────────────────────────────────────────
 # These are removed from TF-IDF training text (document side) to match the
@@ -126,12 +126,13 @@ def init_tfidf_matcher(meals):
     _meal_texts = []
     _category_index = {}
 
-    for i, meal in enumerate(meals):
+    for i, meal in enumerate(_meal_list):
         name     = meal.get("mealName", "")
         keywords = meal.get("searchKeywords") or []
         # Fallback: use mealName as its own keyword if none exist
         if not keywords:
             keywords = [name]
+            meal["searchKeywords"] = keywords
         # FIX (Task 3): Strip corpus-side stopwords before vectorisation.
         # This fixes the query/document asymmetry identified in the audit:
         # "ate"/"had"/"khaya" are already removed from queries by clean_text()

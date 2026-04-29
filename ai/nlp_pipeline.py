@@ -389,19 +389,11 @@ def process_meal_text(text, user_id, date, db=None):
 
         if meal is None or confidence < 0.25:
             print(f"[Step 11] ❌ No match for '{entity}' "
-                  f"(confidence={confidence:.3f}). Using unknown meal fallback.")
-            meal = {
-                "mealName": entity.capitalize(),
-                "calories": 150,
-                "protein": 5,
-                "carbs": 20,
-                "fat": 5
-            }
-            confidence = 0.25
-            match_debug["match"] = meal["mealName"]
+                  f"(confidence={confidence:.3f}). Skipping.")
+            match_debug["match"] = "unknown"
             match_debug["confidence"] = confidence
             debug_log["matches"].append(match_debug)
-            # Skip user preference boost for unknown
+            continue
         else:
             print(f"[Step 11] ✅ '{entity}' -> '{meal['mealName']}' "
                   f"(confidence={confidence:.3f}, priority={priority_score:.1f})")

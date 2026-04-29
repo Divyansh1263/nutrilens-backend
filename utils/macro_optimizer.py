@@ -212,72 +212,34 @@ def _is_carb_source(item: dict) -> bool:
 
 def _recompute_macros(item: dict) -> dict:
     """
-    TASK 1 / TASK 2 — Recompute scaled macros using the single authoritative
-    per-unit base.  Priority chain:
-
-      1. base_*          — stamped by annotate_plan_item (post-annotation path)
-      2. calories_per_unit — stamped by log_meal() on NLP / manual logs
-      3. Proportional ratio fallback — legacy items only
-
-    This guarantees only ONE place multiplies macros, eliminating double-scaling.
+    TASK 2 — Recompute scaled macros using the single authoritative per-unit base.
     """
     qty = float(item.get("quantity") or 1.0)
+    base_cal   = float(item.get("base_calories") or 0)
+    base_prot  = float(item.get("base_protein")  or 0)
+    base_carbs = float(item.get("base_carbs")    or 0)
+    base_fat   = float(item.get("base_fat")      or 0)
 
-    # PRIORITY 1: annotate_plan_item base_* fields (most authoritative)
-    if "base_calories" in item:
-        result = {
-            **item,
-            "calories": round(float(item.get("base_calories") or 0) * qty, 1),
-            "protein":  round(float(item.get("base_protein")  or 0) * qty, 1),
-            "carbs":    round(float(item.get("base_carbs")    or 0) * qty, 1),
-            "fat":      round(float(item.get("base_fat")      or 0) * qty, 1),
-        }
-        app_logger.debug(
-            "[scale] '%s' qty=%.2f base_cal=%.1f → cal=%.1f",
-            item.get("mealName", "?"), qty,
-            item.get("base_calories", 0), result["calories"]
-        )
-        return result
-
-    # PRIORITY 2: calories_per_unit fields (NLP / manual logs)
-    if item.get("calories_per_unit"):
-        result = {
-            **item,
-            "calories": round(float(item["calories_per_unit"]) * qty, 1),
-            "protein":  round(float(item.get("protein_per_unit",  0)) * qty, 1),
-            "carbs":    round(float(item.get("carbs_per_unit",    0)) * qty, 1),
-            "fat":      round(float(item.get("fat_per_unit",      0)) * qty, 1),
-        }
-        app_logger.debug(
-            "[scale] '%s' qty=%.2f per_unit=%.1f → cal=%.1f (per_unit path)",
-            item.get("mealName", "?"), qty, item["calories_per_unit"], result["calories"]
-        )
-        return result
-
-    # PRIORITY 3: Proportional ratio fallback (legacy docs without base fields)
-    old_qty = float(item.get("_base_qty") or 1.0)
-    if old_qty > 0:
-        ratio = qty / old_qty
-        app_logger.warning(
-            "[scale] '%s' legacy ratio fallback: old_qty=%.2f new_qty=%.2f ratio=%.3f",
-            item.get("mealName", "?"), old_qty, qty, ratio
-        )
-        return {
-            **item,
-            "calories": round(float(item.get("calories") or 0) * ratio, 1),
-            "protein":  round(float(item.get("protein")  or 0) * ratio, 1),
-            "carbs":    round(float(item.get("carbs")    or 0) * ratio, 1),
-            "fat":      round(float(item.get("fat")      or 0) * ratio, 1),
-        }
-
-    return item
+    result = {
+        **item,
+        "calories": round(base_cal * qty, 1),
+        "protein":  round(base_prot * qty, 1),
+        "carbs":    round(base_carbs * qty, 1),
+        "fat":      round(base_fat * qty, 1),
+    }
+    return result
 
 
 def _stamp_base(item: dict) -> dict:
-    """Store original quantity as _base_qty so we can scale proportionally."""
+    """Store original base macros so we can scale proportionally."""
     stamped = dict(item)
-    if "_base_qty" not in stamped:
-        stamped["_base_qty"] = float(stamped.get("quantity") or 1.0)
+    qty = float(stamped.get("quantity") or 1.0)
+    safe_qty = qty if qty > 0 else 1.0
+    if "base_calories" not in stamped:
+        stamped["base_calories"] = float(stamped.get("calories") or 0) / safe_qty
+        stamped["base_protein"]  = float(stamped.get("protein") or 0) / safe_qty
+        stamped["base_carbs"]    = float(stamped.get("carbs") or 0) / safe_qty
+        stamped["base_fat"]      = float(stamped.get("fat") or 0) / safe_qty
     return stamped
 
 
@@ -580,12 +542,8 @@ def optimize_plan(plan: dict, targets: dict, meal_pool: list) -> tuple:
             {k: f"{v:+.1%}" for k, v in out_of_bounds.items()}
         )
 
-    # Strip internal _base_qty field before returning
-    for slot in ("breakfast", "lunch", "snack", "dinner"):
-        best_plan[slot] = [
-            {k: v for k, v in item.items() if k != "_base_qty"}
-            for item in best_plan.get(slot, [])
-        ]
+    # Strip internal base fields before returning if needed, though they are fine to keep.
+    # We will let annotate_plan_item overwrite them properly.
 
     # TASK 4: macro_deviation (signed % errors, rounded to 4dp)
     macro_deviation = {

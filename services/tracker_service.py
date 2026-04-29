@@ -14,49 +14,9 @@
 #
 import logging
 from repositories.tracker_repository import tracker_repo
-from utils.calorie_utils import get_or_calculate_user_targets
-from utils.cache_utils import _get_cache, _set_cache
-from firebase_admin import firestore
-
-logger = logging.getLogger(__name__)
-
 # ---------------------------------------------------------------------------
-# Cache store
+# Service
 # ---------------------------------------------------------------------------
-_tracker_cache: dict = {}
-_TRACKER_TTL   = 60  # seconds
-
-
-# ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
-
-def _cache_key(user_id: str, date_str: str) -> tuple:
-    return (user_id, date_str)
-
-
-def _get_tracker(user_id: str, date_str: str):
-    """Return cached tracker summary or None (thread-safe via cache_utils)."""
-    result = _get_cache(_cache_key(user_id, date_str), _tracker_cache, _TRACKER_TTL)
-    if result is not None:
-        logger.info("[cache] tracker HIT  — user=%s date=%s", user_id, date_str)
-    else:
-        logger.info("[cache] tracker MISS — user=%s date=%s", user_id, date_str)
-    return result
-
-
-def _set_tracker(user_id: str, date_str: str, data: dict) -> None:
-    _set_cache(_cache_key(user_id, date_str), data, _tracker_cache, _TRACKER_TTL)
-
-
-def _invalidate_tracker(user_id: str, date_str: str) -> None:
-    """Step 6.5 — remove stale entry so the next read fetches fresh data."""
-    # Direct pop is safe: cache_utils lock is per-operation; individual dict
-    # pops are GIL-protected in CPython. Use the lock explicitly for safety.
-    from utils.cache_utils import _cache_lock
-    with _cache_lock:
-        _tracker_cache.pop(_cache_key(user_id, date_str), None)
-    logger.info("[cache] tracker INVALIDATED — user=%s date=%s", user_id, date_str)
 
 
 # ---------------------------------------------------------------------------
@@ -67,13 +27,10 @@ class TrackerService:
     def get_tracker_summary(self, user_id: str, date_str: str) -> dict:
         print("STEP: entering function")
         print(f"DATA: get_tracker_summary(user_id={user_id}, date_str={date_str})")
-        # Step 6.1 / 6.3 — cache-first read
-        cached = _get_tracker(user_id, date_str)
-        if cached is not None:
-            return cached
-
-        # Cache miss — read from Firestore
-        targets = get_or_calculate_user_targets(user_id, date_str)
+        
+        # Read from Firestore (in-memory cache removed to prevent Cloud Run race conditions)
+        from utils.calorie_utils import get_or_calculate_user_targets
+        from firebase_admin import firestore
         logs    = tracker_repo.get_logs_by_date(user_id, date_str)
 
         total_cal = total_protein = total_carbs = total_fat = 0.0
@@ -107,12 +64,10 @@ class TrackerService:
             "logs": logs,
         }
 
-        _set_tracker(user_id, date_str, summary)
         return summary
 
     def recalculate_daily_tracker(self, user_id: str, date_str: str) -> dict:
-        # Step 6.5 — invalidate cache BEFORE refetching
-        _invalidate_tracker(user_id, date_str)
+        from firebase_admin import firestore
 
         summary = self.get_tracker_summary(user_id, date_str)
 

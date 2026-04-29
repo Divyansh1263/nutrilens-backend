@@ -66,10 +66,10 @@ class MealLoggingService:
             "fat":                round(unit_fat   * qty, 1),
             "quantity":           qty,
             # Per-unit base macros — used by /update-log
-            "calories_per_unit":  unit_cal,
-            "protein_per_unit":   unit_prot,
-            "carbs_per_unit":     unit_carbs,
-            "fat_per_unit":       unit_fat,
+            "base_calories":      unit_cal,
+            "base_protein":       unit_prot,
+            "base_carbs":         unit_carbs,
+            "base_fat":           unit_fat,
             "source":             source,
             "log_time":           firestore.SERVER_TIMESTAMP
         }
@@ -84,17 +84,11 @@ class MealLoggingService:
             new_qty = old_qty + qty
 
             # Recalculate totals from per-unit base stored on existing document
-            if "calories_per_unit" in existing:
-                base_cal   = float(existing.get("calories_per_unit") or 0)
-                base_prot  = float(existing.get("protein_per_unit")  or 0)
-                base_carbs = float(existing.get("carbs_per_unit")    or 0)
-                base_fat   = float(existing.get("fat_per_unit")      or 0)
-            else:
-                safe = old_qty if old_qty > 0 else 1.0
-                base_cal   = round(float(existing.get("calories") or 0) / safe, 4)
-                base_prot  = round(float(existing.get("protein")  or 0) / safe, 4)
-                base_carbs = round(float(existing.get("carbs")    or 0) / safe, 4)
-                base_fat   = round(float(existing.get("fat")      or 0) / safe, 4)
+            base_cal   = float(existing.get("base_calories") or 0)
+            base_prot  = float(existing.get("base_protein")  or 0)
+            base_carbs = float(existing.get("base_carbs")    or 0)
+            base_fat   = float(existing.get("base_fat")      or 0)
+
 
             merged_updates = {
                 "quantity":  new_qty,
@@ -159,31 +153,17 @@ class MealLoggingService:
         if not log_data:
             return False, "Log not found", {}
 
-        # Priority 1: base_* fields (plan items annotated by annotate_plan_item)
-        if "base_calories" in log_data or "calories_per_unit" in log_data:
-            base_cal = log_data.get("base_calories") or log_data.get("calories_per_unit") or (float(log_data.get("calories") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
-            base_prot = log_data.get("base_protein") or log_data.get("protein_per_unit") or (float(log_data.get("protein") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
-            base_carbs = log_data.get("base_carbs") or log_data.get("carbs_per_unit") or (float(log_data.get("carbs") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
-            base_fat = log_data.get("base_fat") or log_data.get("fat_per_unit") or (float(log_data.get("fat") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
+        base_cal = log_data.get("base_calories") or 0.0
+        base_prot = log_data.get("base_protein") or 0.0
+        base_carbs = log_data.get("base_carbs") or 0.0
+        base_fat = log_data.get("base_fat") or 0.0
 
-            cal   = round(float(base_cal or 0) * qty, 1)
-            prot  = round(float(base_prot or 0) * qty, 1)
-            carbs = round(float(base_carbs or 0) * qty, 1)
-            fat   = round(float(base_fat or 0) * qty, 1)
-            
-            _log.info("[update-log] using base_* fields: base_cal=%.4f", float(base_cal or 0))
-
-
-
-        # Priority 3: ratio fallback for legacy docs (pre-v2.6)
-        else:
-            old_qty = float(log_data.get("quantity", 1))
-            ratio   = qty / old_qty if old_qty > 0 else 1
-            cal   = round((log_data.get("calories", 0) or 0) * ratio, 1)
-            prot  = round((log_data.get("protein",  0) or 0) * ratio, 1)
-            carbs = round((log_data.get("carbs",    0) or 0) * ratio, 1)
-            fat   = round((log_data.get("fat",      0) or 0) * ratio, 1)
-            _log.warning("[update-log] ratio fallback (legacy doc): old_qty=%.1f ratio=%.3f", old_qty, ratio)
+        cal   = round(float(base_cal) * qty, 1)
+        prot  = round(float(base_prot) * qty, 1)
+        carbs = round(float(base_carbs) * qty, 1)
+        fat   = round(float(base_fat) * qty, 1)
+        
+        _log.info("[update-log] using base_* fields: base_cal=%.4f", float(base_cal))
 
         updates = {
             "quantity":   qty,

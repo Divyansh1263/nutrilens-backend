@@ -78,13 +78,7 @@ class MealRepository:
         print(f"[cache] get_meal_by_name miss: '{meal_name}' not in cache")
         from utils.logger import app_logger
         app_logger.warning(f"[swap] meal not found: {meal_name}")
-        return {
-            "mealName": meal_name,
-            "calories": 120,
-            "protein": 5,
-            "carbs": 20,
-            "fat": 3
-        }
+        return None
 
     def get_meals_by_type(self, meal_type: str):
         """

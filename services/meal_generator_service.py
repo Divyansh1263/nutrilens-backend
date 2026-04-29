@@ -45,9 +45,13 @@ class MealGeneratorService:
         app_logger.info("Generating meal plan for user %s", user_id)
 
         # 1. Fetch user targets
-        target_calories = self.get_user_targets(user_id, date_str)
-        if not target_calories:
+        macro_targets = self.get_user_targets(user_id, date_str)
+        if not macro_targets:
             return None, "Error calculating targets"
+            
+        target_calories = macro_targets.get("calories", 2000)
+        if "protein" not in macro_targets:
+            macro_targets = build_macro_targets(target_calories)
 
         # 2. Fetch History
         recent_plans = tracker_repo.get_recent_plans(user_id, limit=7)
@@ -101,9 +105,9 @@ class MealGeneratorService:
             _plan = {
                 "target_calories": target_calories,
                 "target_macros": {
-                    "protein": round(target_calories * 0.25 / 4),
-                    "carbs":   round(target_calories * 0.45 / 4),
-                    "fat":     round(target_calories * 0.30 / 9),
+                    "protein": macro_targets.get("protein"),
+                    "carbs":   macro_targets.get("carbs"),
+                    "fat":     macro_targets.get("fat"),
                 },
                 "breakfast": [],
                 "lunch":     [],
@@ -223,7 +227,6 @@ class MealGeneratorService:
 
         # ── Macro optimisation pass (Tasks 1-6) ──────────────────────────────
         # Returns a 4-tuple: (plan, macro_deviation, optimization_score, score_label)
-        macro_targets = build_macro_targets(target_calories)
         print("PLAN BEFORE OPTIMIZATION:", plan)
         plan, macro_deviation, optimization_score, score_label = optimize_plan(
             plan, macro_targets, filtered_meals
@@ -384,20 +387,20 @@ class MealGeneratorService:
             target_doc = user_repo.get_daily_target(user_id, date_str)
         except Exception as e:
             if "Quota exceeded" in str(e) or "429" in str(e):
-                return 2000
+                return {"calories": 2000}
             raise
         if target_doc:
-            return target_doc.get("calories")
+            return target_doc
         try:
             profile = user_repo.get_user_profile(user_id)
         except Exception as e:
             if "Quota exceeded" in str(e) or "429" in str(e):
-                return 2000
+                return {"calories": 2000}
             raise
         if not profile:
-             return 2000 # default fallback
+             return {"calories": 2000} # default fallback
         # In a fully integrated map, call utils here
-        return 2000 
+        return {"calories": 2000} 
 
     def fetch_candidate_meals(self):
         # We start by using the meal combos
