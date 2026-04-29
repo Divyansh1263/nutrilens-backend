@@ -32,7 +32,7 @@ class TrackerService:
         from utils.calorie_utils import get_or_calculate_user_targets
         from firebase_admin import firestore
         
-        targets = get_or_calculate_user_targets(user_id)
+        targets = get_or_calculate_user_targets(user_id, date_str)
         logs    = tracker_repo.get_logs_by_date(user_id, date_str)
 
         total_cal = total_protein = total_carbs = total_fat = 0.0
