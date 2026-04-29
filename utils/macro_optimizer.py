@@ -57,10 +57,13 @@ def _plan_totals(plan: dict) -> dict:
     totals = {"calories": 0.0, "protein": 0.0, "fat": 0.0, "carbs": 0.0}
     for slot in ("breakfast", "lunch", "snack", "dinner"):
         for item in plan.get(slot, []):
-            totals["calories"] += float(item.get("calories") or 0)
-            totals["protein"]  += float(item.get("protein")  or 0)
-            totals["fat"]      += float(item.get("fat")      or 0)
-            totals["carbs"]    += float(item.get("carbs")    or 0)
+            try:
+                totals["calories"] += float(item.get("calories") or 0)
+                totals["protein"]  += float(item.get("protein")  or 0)
+                totals["fat"]      += float(item.get("fat")      or 0)
+                totals["carbs"]    += float(item.get("carbs")    or 0)
+            except (ValueError, TypeError):
+                pass
     return totals
 
 
@@ -82,7 +85,13 @@ def evaluate_plan(plan: dict, targets: dict) -> dict:
     totals = _plan_totals(plan)
 
     def _err(key_actual, key_target, divisor_key="calories"):
-        t = float(targets.get(key_target) or targets.get(divisor_key) or 1)
+        try:
+            val1 = targets.get(key_target)
+            val2 = targets.get(divisor_key)
+            t = float(val1 if val1 not in (None, "") else (val2 if val2 not in (None, "") else 1))
+        except (ValueError, TypeError):
+            t = 1.0
+
         if t == 0:
             return 0.0
         return (totals[key_actual] - t) / t
@@ -93,6 +102,7 @@ def evaluate_plan(plan: dict, targets: dict) -> dict:
         "fat_error":     _err("fat",      "fat"),
         "carb_error":    _err("carbs",    "carbs"),
     }
+
 
 
 def _total_error(errors: dict) -> float:

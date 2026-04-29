@@ -16,10 +16,19 @@ def get_tracker_summary():
     if not user_id or not date_str:
         return error("userId and date are required")
 
-    summary = tracker_service.get_tracker_summary(user_id, date_str)
-
-    # Return full summary with targets, consumed, and logs
-    return success(summary)
+    try:
+        summary = tracker_service.get_tracker_summary(user_id, date_str)
+        return success(summary)
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        fallback_summary = {
+            "date": date_str,
+            "targets": {"calories": 2000, "protein": 100, "carbs": 250, "fat": 60},
+            "consumed": {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0},
+            "logs": [],
+        }
+        return success(fallback_summary)
 
 @tracker_bp.route("/get-streak", methods=["GET"])
 @firebase_auth_optional

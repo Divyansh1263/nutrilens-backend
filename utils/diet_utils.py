@@ -236,10 +236,10 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
         # Always recalculate totals from the authoritative Firestore base.
         # Never trust item's macros here: they may have been scaled already
         # by portion_to_fit() or the macro optimizer.
-        base_cal   = float(source_meal.get("calories") or 0)
-        base_prot  = float(source_meal.get("protein")  or 0)
-        base_carbs = float(source_meal.get("carbs")    or 0)
-        base_fat   = float(source_meal.get("fat")      or 0)
+        base_cal   = float(source_meal.get("calories", 0) or 0)
+        base_prot  = float(source_meal.get("protein", 0)  or 0)
+        base_carbs = float(source_meal.get("carbs", 0)    or 0)
+        base_fat   = float(source_meal.get("fat", 0)      or 0)
         _ann_log.debug(
             "[annotate] PATH-A '%s' base_cal=%.1f qty=%.2f → total_cal=%.1f",
             source_meal.get("mealName", "?"), base_cal, qty, base_cal * qty

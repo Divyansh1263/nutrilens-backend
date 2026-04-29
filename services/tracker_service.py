@@ -75,11 +75,18 @@ class TrackerService:
         logs    = tracker_repo.get_logs_by_date(user_id, date_str)
 
         total_cal = total_protein = total_carbs = total_fat = 0.0
+        
+        def safe_float(val):
+            try:
+                return float(val or 0)
+            except (ValueError, TypeError):
+                return 0.0
+
         for log in logs:
-            total_cal     += float(log.get("calories") or 0)
-            total_protein += float(log.get("protein")  or 0)
-            total_carbs   += float(log.get("carbs")    or 0)
-            total_fat     += float(log.get("fat")      or 0)
+            total_cal     += safe_float(log.get("calories", 0))
+            total_protein += safe_float(log.get("protein", 0))
+            total_carbs   += safe_float(log.get("carbs", 0))
+            total_fat     += safe_float(log.get("fat", 0))
 
         summary = {
             "date": date_str,

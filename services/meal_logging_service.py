@@ -160,20 +160,20 @@ class MealLoggingService:
             return False, "Log not found", {}
 
         # Priority 1: base_* fields (plan items annotated by annotate_plan_item)
-        if "base_calories" in log_data:
-            cal   = round((log_data.get("base_calories") or 0) * qty, 1)
-            prot  = round((log_data.get("base_protein")  or 0) * qty, 1)
-            carbs = round((log_data.get("base_carbs")    or 0) * qty, 1)
-            fat   = round((log_data.get("base_fat")      or 0) * qty, 1)
-            _log.info("[update-log] using base_* fields: base_cal=%.4f", log_data['base_calories'])
+        if "base_calories" in log_data or "calories_per_unit" in log_data:
+            base_cal = log_data.get("base_calories") or log_data.get("calories_per_unit") or (float(log_data.get("calories") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
+            base_prot = log_data.get("base_protein") or log_data.get("protein_per_unit") or (float(log_data.get("protein") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
+            base_carbs = log_data.get("base_carbs") or log_data.get("carbs_per_unit") or (float(log_data.get("carbs") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
+            base_fat = log_data.get("base_fat") or log_data.get("fat_per_unit") or (float(log_data.get("fat") or 0) / max(float(log_data.get("quantity") or 1), 1.0))
 
-        # Priority 2: calories_per_unit fields (NLP / manual logs)
-        elif "calories_per_unit" in log_data:
-            cal   = round((log_data.get("calories_per_unit") or 0) * qty, 1)
-            prot  = round((log_data.get("protein_per_unit")  or 0) * qty, 1)
-            carbs = round((log_data.get("carbs_per_unit")    or 0) * qty, 1)
-            fat   = round((log_data.get("fat_per_unit")      or 0) * qty, 1)
-            _log.info("[update-log] using calories_per_unit fields")
+            cal   = round(float(base_cal or 0) * qty, 1)
+            prot  = round(float(base_prot or 0) * qty, 1)
+            carbs = round(float(base_carbs or 0) * qty, 1)
+            fat   = round(float(base_fat or 0) * qty, 1)
+            
+            _log.info("[update-log] using base_* fields: base_cal=%.4f", float(base_cal or 0))
+
+
 
         # Priority 3: ratio fallback for legacy docs (pre-v2.6)
         else:

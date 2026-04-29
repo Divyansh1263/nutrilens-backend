@@ -121,8 +121,12 @@ def generate_meal_plan():
     try:
         plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
     except Exception as exc:
+        import traceback
+        app_logger.error(traceback.format_exc())
         app_logger.exception("generate_daily_plan crashed: %s", exc)
-        return error(f"Internal error: {exc}", 500)
+        # Safe fallback: empty plan
+        plan = {"breakfast": [], "lunch": [], "snack": [], "dinner": []}
+        err = None
 
     if err:
         return error(err, 500 if "Error" in err else 400)
