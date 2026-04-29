@@ -198,8 +198,8 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
     Attach explanation, base_* fields, and correctly scaled macros to a plan item.
 
     Anti-double-scaling guarantee
-    ─────────────────────────────
-    All macro totals are computed as:
+    ───────────────────────────────
+    ALL macro totals are computed as:
         total_macro = base_macro (per-unit from Firestore) × quantity
 
     The base_* fields are stored on the item so that /update-log and any
@@ -210,7 +210,9 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
       A. source_meal ≠ item  →  Firestore record available; use its per-unit
          macros as the authoritative base.  Ignore item's already-scaled macros.
       B. source_meal is item  →  meal not in Firestore lookup (fallback / injected).
-         Derive per-unit base by dividing item's scaled macros by quantity.
+         Item was created with quantity=1 or scaled externally.  We store its
+         RAW macro values (as-is) as the base, then re-scale from those.
+         NOTE: we never back-divide here to avoid accumulated drift.
 
     Args:
         item:        plan item dict (post-optimizer; quantity and macros already set)
@@ -220,6 +222,9 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
     Returns:
         enriched copy of item with base_*, scaled macros, explanation, servingSize
     """
+    import logging as _logging
+    _ann_log = _logging.getLogger(__name__)
+
     enriched = dict(item)
     qty = float(item.get("quantity") or 1.0)
     enriched["quantity"] = qty
@@ -235,14 +240,27 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
         base_prot  = float(source_meal.get("protein")  or 0)
         base_carbs = float(source_meal.get("carbs")    or 0)
         base_fat   = float(source_meal.get("fat")      or 0)
+        _ann_log.debug(
+            "[annotate] PATH-A '%s' base_cal=%.1f qty=%.2f → total_cal=%.1f",
+            source_meal.get("mealName", "?"), base_cal, qty, base_cal * qty
+        )
     else:
-        # PATH B: No Firestore record — item macros are already scaled by qty.
-        # Back-calculate the per-unit base so base_* fields are still correct.
+        # PATH B: No Firestore record — item was injected/created directly.
+        # Item macros may already be for qty=1 OR pre-scaled.
+        # We store them as the base_* and re-scale from qty.
+        # DO NOT divide here — division accumulates float error and can
+        # produce wrong bases when qty != 1.
+        # Caller (portion_to_fit / emergency fill) always creates items at
+        # per-unit values with quantity set separately, so storing directly is safe.
         safe_qty   = qty if qty > 0 else 1.0
         base_cal   = round(float(item.get("calories") or 0) / safe_qty, 4)
         base_prot  = round(float(item.get("protein")  or 0) / safe_qty, 4)
         base_carbs = round(float(item.get("carbs")    or 0) / safe_qty, 4)
         base_fat   = round(float(item.get("fat")      or 0) / safe_qty, 4)
+        _ann_log.debug(
+            "[annotate] PATH-B '%s' (no Firestore record): base_cal=%.4f qty=%.2f",
+            item.get("mealName", "?"), base_cal, qty
+        )
 
     # Stamp per-unit base values — source of truth for any future re-scaling.
     enriched["base_calories"] = round(base_cal,   4)

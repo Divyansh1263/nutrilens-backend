@@ -26,9 +26,14 @@ from utils.logger import app_logger
 
 QTY_STEP   = 0.2          # portion increment/decrement step
 QTY_MIN    = 0.5          # minimum allowed quantity
-QTY_MAX    = 3.0          # maximum allowed quantity
+QTY_MAX    = 2.5          # maximum allowed quantity (clamped per TASK 3)
 TOLERANCE  = 0.05         # ±5 %  target window
 MAX_ITERS  = 20           # max adjustment iterations per optimize call
+
+
+def clamp_qty(q: float) -> float:
+    """TASK 3 — Hard clamp quantity to [QTY_MIN, QTY_MAX] rounded to 2 dp."""
+    return round(max(QTY_MIN, min(QTY_MAX, float(q))), 2)
 
 # Tag sets — primary macro contribution per item
 # Populated from Firestore fields: tags, category, searchKeywords
@@ -197,26 +202,56 @@ def _is_carb_source(item: dict) -> bool:
 
 def _recompute_macros(item: dict) -> dict:
     """
-    Recompute scaled macros from per-unit base fields and current quantity.
-    Falls back to proportional scaling from the stored totals if base fields
-    are not present (backward compatibility).
-    """
-    qty      = float(item.get("quantity") or 1.0)
-    old_qty  = float(item.get("_base_qty") or 1.0)  # original quantity at insertion
+    TASK 1 / TASK 2 — Recompute scaled macros using the single authoritative
+    per-unit base.  Priority chain:
 
-    # Prefer explicit *_per_unit fields (stored by nlp_pipeline v2.6)
+      1. base_*          — stamped by annotate_plan_item (post-annotation path)
+      2. calories_per_unit — stamped by log_meal() on NLP / manual logs
+      3. Proportional ratio fallback — legacy items only
+
+    This guarantees only ONE place multiplies macros, eliminating double-scaling.
+    """
+    qty = float(item.get("quantity") or 1.0)
+
+    # PRIORITY 1: annotate_plan_item base_* fields (most authoritative)
+    if "base_calories" in item:
+        result = {
+            **item,
+            "calories": round(float(item.get("base_calories") or 0) * qty, 1),
+            "protein":  round(float(item.get("base_protein")  or 0) * qty, 1),
+            "carbs":    round(float(item.get("base_carbs")    or 0) * qty, 1),
+            "fat":      round(float(item.get("base_fat")      or 0) * qty, 1),
+        }
+        app_logger.debug(
+            "[scale] '%s' qty=%.2f base_cal=%.1f → cal=%.1f",
+            item.get("mealName", "?"), qty,
+            item.get("base_calories", 0), result["calories"]
+        )
+        return result
+
+    # PRIORITY 2: calories_per_unit fields (NLP / manual logs)
     if item.get("calories_per_unit"):
-        return {
+        result = {
             **item,
             "calories": round(float(item["calories_per_unit"]) * qty, 1),
             "protein":  round(float(item.get("protein_per_unit",  0)) * qty, 1),
             "carbs":    round(float(item.get("carbs_per_unit",    0)) * qty, 1),
             "fat":      round(float(item.get("fat_per_unit",      0)) * qty, 1),
         }
+        app_logger.debug(
+            "[scale] '%s' qty=%.2f per_unit=%.1f → cal=%.1f (per_unit path)",
+            item.get("mealName", "?"), qty, item["calories_per_unit"], result["calories"]
+        )
+        return result
 
-    # Proportional fallback: scale from stored totals via old_qty
+    # PRIORITY 3: Proportional ratio fallback (legacy docs without base fields)
+    old_qty = float(item.get("_base_qty") or 1.0)
     if old_qty > 0:
         ratio = qty / old_qty
+        app_logger.warning(
+            "[scale] '%s' legacy ratio fallback: old_qty=%.2f new_qty=%.2f ratio=%.3f",
+            item.get("mealName", "?"), old_qty, qty, ratio
+        )
         return {
             **item,
             "calories": round(float(item.get("calories") or 0) * ratio, 1),
@@ -253,11 +288,14 @@ def increase_portion(plan: dict, tag: str, delta: float = QTY_STEP) -> bool:
             if qty >= QTY_MAX:
                 continue
             if classify_item(item) == tag:
-                # TASK 2.3: hard clamp
-                new_qty = max(QTY_MIN, min(round(qty + delta, 2), QTY_MAX))
+                new_qty = clamp_qty(qty + delta)   # TASK 3: clamp_qty
                 updated = dict(item)
                 updated["quantity"] = new_qty
                 updated = _recompute_macros(updated)
+                app_logger.debug(
+                    "[optimizer] increase_portion '%s': %.2f → %.2f",
+                    item.get("mealName", "?"), qty, new_qty
+                )
                 plan[slot][i] = updated
                 return True
     return False
@@ -280,11 +318,14 @@ def decrease_portion(plan: dict, tag: str, delta: float = QTY_STEP) -> bool:
             if qty <= QTY_MIN:
                 continue
             if classify_item(item) == tag:
-                # TASK 2.3: hard clamp
-                new_qty = max(QTY_MIN, min(round(qty - delta, 2), QTY_MAX))
+                new_qty = clamp_qty(qty - delta)   # TASK 3: clamp_qty
                 updated = dict(item)
                 updated["quantity"] = new_qty
                 updated = _recompute_macros(updated)
+                app_logger.debug(
+                    "[optimizer] decrease_portion '%s': %.2f → %.2f",
+                    item.get("mealName", "?"), qty, new_qty
+                )
                 plan[slot][i] = updated
                 return True
     return False
