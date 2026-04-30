@@ -73,11 +73,14 @@ class MealLoggingService:
             "source":             source,
             "log_time":           firestore.SERVER_TIMESTAMP
         }
-        
+        print("LOG MEAL:", log_data["mealName"], "qty:", log_data["quantity"], "final_cal:", log_data["calories"])
+        meal_id = meal_data.get("id", meal_data.get("mealId")) if meal_data else None
+        log_data["mealId"] = meal_id
+
         # 3. TASK 4 — Duplicate log guard
         #    If same mealName already logged for this user+date, ADD qty to the
         #    existing document instead of inserting a second entry.
-        existing = tracker_repo.check_existing_log(user_id, log_data["mealName"], today)
+        existing = tracker_repo.check_existing_log(user_id, log_data["mealName"], today, meal_id)
         if existing:
             existing_log_id = existing.get("logId") or existing.get("id", "")
             old_qty = float(existing.get("quantity") or 1)

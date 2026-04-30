@@ -99,23 +99,17 @@ def generate_meal_plan():
     # TASK 3: bypass stale cached plans — force AI regeneration every request.
     # Original cache lookup kept below for future re-enable.
     from repositories.tracker_repository import tracker_repo
-    existing = None  # Cache bypass: was tracker_repo.get_plan_by_date(user_id, date_str)
+    existing = tracker_repo.get_plan_by_date(user_id, date_str)
 
-    # --- ORIGINAL CACHE LOGIC (re-enable when cache invalidation is implemented) ---
-    # existing = tracker_repo.get_plan_by_date(user_id, date_str)
-    # if existing:
-    #     existing = _normalize_plan_structure(existing)
-    #     if not _is_plan_empty(existing):
-    #         app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
-    #         return _meal_plan_response(existing, "Meal plan retrieved")
-    #     app_logger.warning(
-    #         "[meal-plan] cached plan empty → regenerating for user=%s date=%s",
-    #         user_id, date_str
-    #     )
-    # --- END ORIGINAL CACHE LOGIC ---
-
-    if existing:  # always False with bypass, kept for structural parity
-        pass
+    if existing:
+        existing = _normalize_plan_structure(existing)
+        if not _is_plan_empty(existing):
+            app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
+            return _meal_plan_response(existing, "Meal plan retrieved")
+        app_logger.warning(
+            "[meal-plan] cached plan empty → regenerating for user=%s date=%s",
+            user_id, date_str
+        )
 
     # Generate (or regenerate) — save_plan() inside overwrites Firestore
     try:
@@ -192,13 +186,20 @@ def _is_plan_empty(plan: dict) -> bool:
     """
     if not plan:
         return True
+    
+    # Check if total_calories or finalCalories is missing/0
+    cals = plan.get("total_calories", plan.get("finalCalories", 0))
+    if not cals or float(cals) <= 0:
+        return True
+
+    # Check if ANY meal slot is empty
     for key in ("breakfast", "lunch", "snack", "dinner"):
         val = plan.get(key)
         if isinstance(val, dict):
             val = list(val.values())
-        if val and len(val) > 0:
-            return False
-    return True
+        if not val or len(val) == 0:
+            return True # Missing/empty slot -> regenerate
+    return False
 
 
 
@@ -442,9 +443,11 @@ def replace_meal():
 
     print(f"[replace-meal] request: {meal_name}")
 
-    from app import knn_model
+    from ai.smart_swap_knn import get_knn_model
     from repositories.meal_repository import meal_repo
     from utils.diet_utils import apply_diet_filter
+
+    knn_model = get_knn_model()
 
     # ── Resolve user profile (for dietary filter + explanations) ───────────────
     _profile = {}
@@ -526,6 +529,15 @@ def replace_meal():
         result_suggestions.append(mapped)
 
     print(f"[replace-meal] returning {len(result_suggestions)} suggestions")
+    
+    if not result_suggestions:
+        from flask import jsonify
+        return jsonify({
+            "success": False,
+            "message": "No similar meals found",
+            "fallback": True
+        }), 200
+
     return success({"aiSuggestions": result_suggestions}, "Replacements found")
 
 

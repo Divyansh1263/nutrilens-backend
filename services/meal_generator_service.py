@@ -115,11 +115,32 @@ class MealGeneratorService:
         app_logger.info(f"[meal-plan] before_calories={before_cal}, after_calories={after_cal}")
         app_logger.info(f"[meal-plan] before_protein={before_prot}, after_protein={after_prot}")
 
+        # --- STEP 1: FINAL DIET SAFETY GUARANTEE (CRITICAL) ---
+        final_plan = self.apply_knn_validation(final_plan, all_meals, profile)
+        
+        # --- STEP 2: FINAL MACRO CONSISTENCY ---
+        final_plan = self._recompute_totals(final_plan)
+        after_cal = final_plan["actual_calories"]
+        after_prot = final_plan["actual_protein"]
+
         cal_diff = abs(after_cal - user_target_calories) / user_target_calories if user_target_calories > 0 else 0
         prot_diff = abs(after_prot - target_protein) / target_protein if target_protein > 0 else 0
 
         if cal_diff > 0.05 or prot_diff > 0.10:
             app_logger.warning(f"[meal-plan] STEP 3: Final plan still out of bounds after loop. Cal error: {cal_diff:.1%}, Prot error: {prot_diff:.1%}")
+
+        # --- NEW CODE: Annotate items (explanations, servingSize) ---
+        from utils.diet_utils import annotate_plan_item
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            annotated_slot = []
+            for item in final_plan.get("meals", {}).get(slot, []):
+                name = item.get("mealName", "").lower()
+                full_meal = next((m for m in all_meals if m.get("mealName", "").lower() == name), None)
+                if not full_meal:
+                    full_meal = next((m for m in all_meals if name in m.get("mealName", "").lower()), None)
+                annotated = annotate_plan_item(item, full_meal if full_meal else item, profile)
+                annotated_slot.append(annotated)
+            final_plan.setdefault("meals", {})[slot] = annotated_slot
 
         # Save plan to Firestore under user's logs
         user_plan = {
@@ -140,6 +161,9 @@ class MealGeneratorService:
             "source_plan_id": final_plan.get("planId"),
             "source_plan_name": final_plan.get("planName")
         }
+
+        # --- STEP 3: RESPONSE INTEGRITY FIX ---
+        app_logger.info(f"FINAL PLAN SENT: {user_plan}")
 
         tracker_repo.save_plan(user_plan)
         return user_plan, ""
@@ -297,6 +321,7 @@ class MealGeneratorService:
         is_vegan = bool(user.get("is_vegan", False))
         is_veg = bool(user.get("is_vegetarian", False))
 
+        # Helper to get high protein candidates
         high_protein_candidates = []
         for meal in meals_db:
             if not meal.get("is_high_protein"): continue
@@ -312,89 +337,25 @@ class MealGeneratorService:
 
         high_protein_candidates.sort(key=density, reverse=True)
 
-        existing_meals = set()
+        meal_counts = {}
         for slot in ["breakfast", "lunch", "snack", "dinner"]:
             for item in plan.get("meals", {}).get(slot, []):
-                existing_meals.add(item.get("mealName", "").lower())
+                name = item.get("mealName", "").lower()
+                meal_counts[name] = meal_counts.get(name, 0) + 1
 
-        additions = 0
         target_calories = plan.get("targetCalories", 2000)
         if "user_target_calories" in plan:
              target_calories = plan["user_target_calories"]
-        max_cals = target_calories * 1.05
+        max_cals = target_calories * 1.10
 
-        for candidate in high_protein_candidates:
-            if additions >= 2 or deficit <= 5:
-                break
-                
-            name = candidate.get("mealName", "")
-            if name.lower() in existing_meals:
-                continue
-
-            cand_prot = float(candidate.get("protein") or 0)
-            cand_cals = float(candidate.get("calories") or 0)
-
-            if plan.get("actual_calories", 0) + cand_cals > max_cals:
-                continue
-
-            new_item = {
-                "mealName": name,
-                "quantity": 1.0,
-                "calories": cand_cals,
-                "protein": cand_prot,
-                "carbs": float(candidate.get("carbs") or 0),
-                "fat": float(candidate.get("fat") or 0)
-            }
-            
-            meals_dict = plan.get("meals", {})
-            if "snack" not in meals_dict:
-                meals_dict["snack"] = []
-            meals_dict["snack"].append(new_item)
-            
-            existing_meals.add(name.lower())
-            plan["actual_protein"] += cand_prot
-            plan["actual_calories"] += cand_cals
-            deficit -= cand_prot
-            additions += 1
-
-        if plan["actual_protein"] < target_protein - 5:
-            plan = self.apply_protein_swap(plan, meals_db, user, target_protein)
-
-        return plan
-
-    def final_protein_check(self, plan, meals_db, user, target_protein, user_target_calories):
-        """STEP 4: Final Protein Correction"""
-        plan = self._recompute_totals(plan)
-        current_protein = plan.get("actual_protein", 0)
-        
-        # Protein deficit > 10%
-        if target_protein > 0 and (target_protein - current_protein) / target_protein > 0.10:
-            plan = self.fix_protein(plan, meals_db, user, target_protein)
-            plan = self._recompute_totals(plan)
-        return plan
-
-    def apply_protein_swap(self, plan, meals_db, user, target_protein):
-        current_protein = plan.get("actual_protein", 0)
-        deficit = target_protein - current_protein
-        if deficit <= 5:
-            return plan
-
-        is_vegan = bool(user.get("is_vegan", False))
-        is_veg = bool(user.get("is_vegetarian", False))
-
-        target_calories = plan.get("target_calories", 2000)
-        if "user_target_calories" in plan:
-             target_calories = plan["user_target_calories"]
-        max_cals = target_calories * 1.05
-
+        # STEP 1: PRIORITY SWAPS
         swaps = 0
-
         low_protein_items = []
         for slot in ["breakfast", "lunch", "snack", "dinner"]:
             items = plan.get("meals", {}).get(slot, [])
             for idx, item in enumerate(items):
                 prot = float(item.get("protein", 0))
-                if prot < 10:
+                if prot < 8:
                     low_protein_items.append({
                         "slot": slot,
                         "index": idx,
@@ -404,13 +365,8 @@ class MealGeneratorService:
         
         low_protein_items.sort(key=lambda x: x["protein"])
 
-        existing_meals = set()
-        for slot in ["breakfast", "lunch", "snack", "dinner"]:
-            for item in plan.get("meals", {}).get(slot, []):
-                existing_meals.add(item.get("mealName", "").lower())
-
         for lp in low_protein_items:
-            if swaps >= 2 or current_protein >= target_protein - 5:
+            if swaps >= 5 or current_protein >= target_protein - 5:
                 break
                 
             slot = lp["slot"]
@@ -419,10 +375,7 @@ class MealGeneratorService:
             old_prot = float(old_item.get("protein", 0))
 
             candidates = []
-            for meal in meals_db:
-                if is_vegan and not meal.get("is_vegan"): continue
-                if is_veg and not (meal.get("is_vegetarian") or meal.get("is_vegan")): continue
-
+            for meal in high_protein_candidates:
                 valid_types = [t.lower() for t in meal.get("validMealTypes", [])] + [t.lower() for t in meal.get("meal_type", [])] + [meal.get("category", "").lower()]
                 if slot not in valid_types and "main course" not in valid_types:
                     continue
@@ -430,8 +383,8 @@ class MealGeneratorService:
                 cand_prot = float(meal.get("protein", 0))
                 cand_cal = float(meal.get("calories", 0))
                 
-                if cand_prot <= old_prot: continue
-                if meal.get("mealName", "").lower() in existing_meals: continue
+                if cand_prot <= old_prot + 5: continue
+                if meal_counts.get(meal.get("mealName", "").lower(), 0) >= 2: continue
 
                 new_plan_cal = plan.get("actual_calories", 0) - old_cal + cand_cal
                 if new_plan_cal > max_cals: continue
@@ -441,8 +394,7 @@ class MealGeneratorService:
             if not candidates:
                 continue
 
-            candidates.sort(key=lambda m: (float(m.get("protein") or 0)) / (float(m.get("calories") or 1)), reverse=True)
-            best_candidate = candidates[0]
+            best_candidate = candidates[0] # already sorted by density
 
             cand_prot = float(best_candidate.get("protein", 0))
             cand_cal = float(best_candidate.get("calories", 0))
@@ -457,13 +409,66 @@ class MealGeneratorService:
             }
 
             plan["meals"][slot][lp["index"]] = new_item
-            existing_meals.add(new_item["mealName"].lower())
+            added_name = new_item["mealName"].lower()
+            meal_counts[added_name] = meal_counts.get(added_name, 0) + 1
 
             plan["actual_calories"] += (cand_cal - old_cal)
             plan["actual_protein"] += (cand_prot - old_prot)
             current_protein += (cand_prot - old_prot)
             swaps += 1
 
+        # STEP 2: ADDITIONS IF STILL DEFICIT
+        if current_protein < target_protein - 5:
+            additions = 0
+            slots_cycle = ["breakfast", "snack", "dinner", "lunch"]
+            
+            for candidate in high_protein_candidates:
+                if additions >= 4 or current_protein >= target_protein - 5:
+                    break
+                    
+                name = candidate.get("mealName", "")
+                if meal_counts.get(name.lower(), 0) >= 2:
+                    continue
+
+                cand_prot = float(candidate.get("protein") or 0)
+                cand_cals = float(candidate.get("calories") or 0)
+
+                if plan.get("actual_calories", 0) + cand_cals > max_cals:
+                    continue
+                    
+                slot = slots_cycle[additions % len(slots_cycle)]
+
+                new_item = {
+                    "mealName": name,
+                    "quantity": 1.0,
+                    "calories": cand_cals,
+                    "protein": cand_prot,
+                    "carbs": float(candidate.get("carbs") or 0),
+                    "fat": float(candidate.get("fat") or 0)
+                }
+                
+                meals_dict = plan.setdefault("meals", {})
+                meals_dict.setdefault(slot, []).append(new_item)
+                
+                added_name = name.lower()
+                meal_counts[added_name] = meal_counts.get(added_name, 0) + 1
+                plan["actual_protein"] += cand_prot
+                plan["actual_calories"] += cand_cals
+                current_protein += cand_prot
+                additions += 1
+
+        plan = self._recompute_totals(plan)
+        return plan
+
+    def final_protein_check(self, plan, meals_db, user, target_protein, user_target_calories):
+        """STEP 4: Final Protein Correction"""
+        plan = self._recompute_totals(plan)
+        current_protein = plan.get("actual_protein", 0)
+        
+        # Protein deficit > 10%
+        if target_protein > 0 and (target_protein - current_protein) / target_protein > 0.10:
+            plan = self.fix_protein(plan, meals_db, user, target_protein)
+            plan = self._recompute_totals(plan)
         return plan
 
     def apply_knn_validation(self, plan, meals_db, user):
@@ -491,21 +496,27 @@ class MealGeneratorService:
             for idx, item in enumerate(items):
                 name = item.get("mealName", "").lower()
                 full_meal = next((m for m in meals_db if m.get("mealName", "").lower() == name), None)
-                if not full_meal:
-                    continue
 
                 invalid = False
-                if is_vegan and not full_meal.get("is_vegan"): invalid = True
-                elif is_veg and not (full_meal.get("is_vegetarian") or full_meal.get("is_vegan")): invalid = True
-                elif is_gf and not full_meal.get("is_gluten_free"): invalid = True
-                elif is_nf and not full_meal.get("is_nut_free"): invalid = True
+                if full_meal:
+                    if is_vegan and not full_meal.get("is_vegan"): invalid = True
+                    elif is_veg and not (full_meal.get("is_vegetarian") or full_meal.get("is_vegan")): invalid = True
+                    elif is_gf and not full_meal.get("is_gluten_free"): invalid = True
+                    elif is_nf and not full_meal.get("is_nut_free"): invalid = True
+                else:
+                    # If not in DB, fallback to string matching to protect veg users
+                    from utils.diet_utils import _NON_VEG_KWS
+                    if is_vegan or is_veg:
+                        if any(kw in name for kw in _NON_VEG_KWS):
+                            invalid = True
+                            full_meal = {"mealName": name, "calories": item.get("calories", 300), "protein": item.get("protein", 10), "carbs": item.get("carbs", 30), "fat": item.get("fat", 10)}
 
                 if invalid:
                     invalid_items.append({
                         "slot": slot,
                         "index": idx,
                         "item": item,
-                        "full_meal": full_meal
+                        "full_meal": full_meal or item
                     })
 
         if not invalid_items:
@@ -521,8 +532,9 @@ class MealGeneratorService:
                 existing_meals.add(item.get("mealName", "").lower())
 
         for inv in invalid_items:
-            if replacements >= 3:
-                break
+            # Replace ALL invalid items for dietary safety!
+            # if replacements >= 3:
+            #     break
             
             old_item = inv["item"]
             

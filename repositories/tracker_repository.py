@@ -41,29 +41,22 @@ class TrackerRepository:
                 return mem_log_meal(log_data)
             raise
 
-    def check_existing_log(self, user_id: str, meal_name: str, date_str: str):
+    def check_existing_log(self, user_id: str, meal_name: str, date_str: str, meal_id: str = None):
         """
-        TASK 4: Check for a duplicate log with the same mealName+date+userId.
-        Returns the first matching log dict (with 'logId' key) or None.
-        Prevents inserting duplicate entries when the same meal is logged twice.
+        Check for a duplicate log with the same mealName+date+userId.
+        Uses get_logs_by_date to avoid Firestore composite index requirements.
         """
         try:
-            from google.cloud.firestore_v1.base_query import FieldFilter
-            docs = (
-                self.db.collection(COL_MEAL_LOGS)
-                .where(filter=FieldFilter("userId",   "==", user_id))
-                .where(filter=FieldFilter("date",     "==", date_str))
-                .where(filter=FieldFilter("mealName", "==", meal_name))
-                .limit(1)
-                .stream()
-            )
-            for d in docs:
-                data = d.to_dict()
-                data["logId"] = d.id
-                return data
+            logs = self.get_logs_by_date(user_id, date_str)
+            for log in logs:
+                if meal_id and log.get("mealId") == meal_id:
+                    log["logId"] = log.get("id", log.get("logId"))
+                    return log
+                elif log.get("mealName") == meal_name:
+                    log["logId"] = log.get("id", log.get("logId"))
+                    return log
             return None
         except Exception:
-            # Safe fallback — if check fails, allow the new insert to proceed
             return None
 
     def get_log(self, log_id):

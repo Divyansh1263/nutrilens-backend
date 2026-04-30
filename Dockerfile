@@ -1,5 +1,5 @@
 # ── Base image ────────────────────────────────────────────────────────────────
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # ── System dependencies ────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,4 +27,4 @@ EXPOSE 8080
 RUN adduser --disabled-password --gecos "" appuser
 USER appuser
 
-CMD ["sh", "-c", "gunicorn --bind :$PORT -w 2 --threads 4 --timeout 0 app:app"]
+CMD ["sh", "-c", "gunicorn --bind :$PORT -w 2 --threads 4 --timeout 60 app:app"]
