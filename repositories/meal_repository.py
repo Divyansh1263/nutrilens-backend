@@ -69,11 +69,36 @@ class MealRepository:
             return None
 
         meals = get_meals(context="get_meal_by_name")
+        
+        # 1. Exact match first
         for m in meals:
             doc_name = (m.get("mealName") or "").lower().strip()
-            if target == doc_name or target in doc_name or doc_name in target:
-                print(f"[cache] get_meal_by_name hit: '{meal_name}' (0 Firestore reads)")
+            if target == doc_name:
+                print(f"[cache] get_meal_by_name exact hit: '{meal_name}' (0 Firestore reads)")
                 return m
+                
+        # 2. Normalized exact match (ignore spaces)
+        target_norm = target.replace(" ", "")
+        for m in meals:
+            doc_name = (m.get("mealName") or "").lower().strip().replace(" ", "")
+            if target_norm == doc_name:
+                print(f"[cache] get_meal_by_name norm hit: '{meal_name}' (0 Firestore reads)")
+                return m
+
+        # 3. Fallback ONLY if high similarity
+        import difflib
+        best_match = None
+        best_ratio = 0
+        for m in meals:
+            doc_name = (m.get("mealName") or "").lower().strip()
+            ratio = difflib.SequenceMatcher(None, target, doc_name).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_match = m
+        
+        if best_match and best_ratio > 0.85:
+            print(f"[cache] get_meal_by_name sim hit: '{meal_name}' -> '{best_match.get('mealName')}' (ratio: {best_ratio:.2f})")
+            return best_match
 
         print(f"[cache] get_meal_by_name miss: '{meal_name}' not in cache")
         from utils.logger import app_logger

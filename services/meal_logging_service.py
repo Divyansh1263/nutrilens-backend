@@ -32,44 +32,47 @@ class MealLoggingService:
             date_str = str(datetime.now().date())
         today = date_str
 
-        # Use provided macros if meal lookup failed
-        if not meal_data and provided_macros:
-            unit_cal = float(provided_macros.get("calories") or 0)
-            unit_prot = float(provided_macros.get("protein") or 0)
-            unit_carbs = float(provided_macros.get("carbs") or 0)
-            unit_fat = float(provided_macros.get("fat") or 0)
-            meal_data = {
-                "mealName": meal_name,
-                "calories": unit_cal,
-                "protein": unit_prot,
-                "carbs": unit_carbs,
-                "fat": unit_fat,
-            }
-        
-        # 2. Build Log
-        # FIX v2.6: store both *_per_unit (base) and total (quantity-scaled) fields.
-        # /update-log reads *_per_unit so it can recalculate exactly at any qty.
-        unit_cal   = round(float(meal_data.get("calories") or 0), 1)
-        unit_prot  = round(float(meal_data.get("protein")  or 0), 1)
-        unit_carbs = round(float(meal_data.get("carbs")    or 0), 1)
-        unit_fat   = round(float(meal_data.get("fat")      or 0), 1)
+        if provided_macros and "calories" in provided_macros:
+            # Step 1: Fix Logging - Use provided macros as final scaled truth, DO NOT multiply by quantity again.
+            final_cal = float(provided_macros.get("calories") or 0)
+            final_prot = float(provided_macros.get("protein") or 0)
+            final_carbs = float(provided_macros.get("carbs") or 0)
+            final_fat = float(provided_macros.get("fat") or 0)
+            
+            # Base macros derived by dividing by quantity
+            safe_qty = qty if qty > 0 else 1.0
+            base_cal = round(final_cal / safe_qty, 4)
+            base_prot = round(final_prot / safe_qty, 4)
+            base_carbs = round(final_carbs / safe_qty, 4)
+            base_fat = round(final_fat / safe_qty, 4)
+        else:
+            # Fallback to meal_data (base values) and scale by quantity
+            base_cal   = round(float(meal_data.get("calories") or 0), 1)
+            base_prot  = round(float(meal_data.get("protein")  or 0), 1)
+            base_carbs = round(float(meal_data.get("carbs")    or 0), 1)
+            base_fat   = round(float(meal_data.get("fat")      or 0), 1)
+            
+            final_cal = round(base_cal * qty, 1)
+            final_prot = round(base_prot * qty, 1)
+            final_carbs = round(base_carbs * qty, 1)
+            final_fat = round(base_fat * qty, 1)
 
         log_data = {
             "userId":             user_id,
             "date":               today,
-            "mealName":           meal_data.get("mealName", meal_name),
+            "mealName":           meal_data.get("mealName", meal_name) if meal_data else meal_name,
             "mealType":           meal_type,
             # Totals
-            "calories":           round(unit_cal   * qty, 1),
-            "protein":            round(unit_prot  * qty, 1),
-            "carbs":              round(unit_carbs * qty, 1),
-            "fat":                round(unit_fat   * qty, 1),
+            "calories":           final_cal,
+            "protein":            final_prot,
+            "carbs":              final_carbs,
+            "fat":                final_fat,
             "quantity":           qty,
             # Per-unit base macros — used by /update-log
-            "base_calories":      unit_cal,
-            "base_protein":       unit_prot,
-            "base_carbs":         unit_carbs,
-            "base_fat":           unit_fat,
+            "base_calories":      base_cal,
+            "base_protein":       base_prot,
+            "base_carbs":         base_carbs,
+            "base_fat":           base_fat,
             "source":             source,
             "log_time":           firestore.SERVER_TIMESTAMP
         }
