@@ -95,7 +95,7 @@ CALORIE_CORRECTIONS = {
 
 def fix_meal_calories(db):
     """Task 4: Update calorie values for named meals in Firestore."""
-    meals_col = db.collection("meals")
+    meals_col = db.collection("meals_v3")
     updated = 0
     skipped = 0
     errors  = 0

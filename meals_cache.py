@@ -84,18 +84,10 @@ def load_meals_cache() -> None:
         meals = _load_from_firestore()
         source = "firestore"
 
-        # ── Attempt 2: Local JSON fallback ───────────────────────── #
+        # ── Attempt 2: dev_store seed (last resort) ──────────────── #
         if not meals:
             app_logger.warning(
-                "[cache-fallback] Firestore returned 0 meals — loading from local cache."
-            )
-            meals = _load_from_local()
-            source = "local"
-
-        # ── Attempt 3: dev_store seed (last resort) ──────────────── #
-        if not meals:
-            app_logger.warning(
-                "[cache-fallback] Local cache also empty — using seed meals."
+                "[cache-fallback] Firestore returned 0 meals — using seed meals."
             )
             from dev_store import SEED_MEALS
             meals = list(SEED_MEALS)
@@ -123,10 +115,6 @@ def load_meals_cache() -> None:
             app_logger.warning(
                 "[cache-fallback] Loaded %d meals from %s", len(MEALS_CACHE), source
             )
-
-        # Persist to disk so next crash/restart has a warm local copy
-        if source == "firestore":
-            _persist_to_disk(MEALS_CACHE)
 
         # Keep dev_store.MEALS_CACHE in sync for legacy code paths
         try:
@@ -173,8 +161,6 @@ def refresh_meals_cache() -> None:
         app_logger.info(
             "[cache-refresh] Refreshed: %d meals from firestore", len(MEALS_CACHE)
         )
-
-        _persist_to_disk(MEALS_CACHE)
 
         try:
             from dev_store import set_meals_cache
@@ -226,7 +212,7 @@ def _load_from_firestore() -> List[Dict[str, Any]]:
     try:
         from firebase_admin import firestore
         db = firestore.client()
-        docs = db.collection("meals").stream()
+        docs = db.collection("meals_v3").stream()
         meals: List[Dict[str, Any]] = []
         for d in docs:
             m = d.to_dict()

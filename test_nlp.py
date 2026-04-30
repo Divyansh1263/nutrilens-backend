@@ -16,7 +16,7 @@ from ai.nlp_pipeline import init_pipeline, log_meal_nlp
 from ai.hybrid_matcher import get_all_meals
 
 print("Fetching meals...")
-meal_docs = db.collection("meals").stream()
+meal_docs = db.collection("meals_v3").stream()
 MEALS = []
 for d in meal_docs:
     m = d.to_dict()

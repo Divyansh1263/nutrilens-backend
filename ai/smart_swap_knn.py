@@ -4,10 +4,31 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 import joblib
+import os
+import logging
 
 from utils.diet_utils import apply_diet_filter
 
+logger = logging.getLogger(__name__)
+
 FEATURE_COLS = ["calories", "protein", "carbs", "fat"]
+
+_knn_model = None
+_KNN_MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "knn_meal_swap.joblib")
+
+def get_knn_model():
+    global _knn_model
+    if _knn_model is None:
+        logger.info("[smart_swap_knn] Loading KNN model from %s", _KNN_MODEL_PATH)
+        if os.path.exists(_KNN_MODEL_PATH):
+            model = SmartSwapKNN()
+            model.load(_KNN_MODEL_PATH)
+            _knn_model = model
+            logger.info("[smart_swap_knn] KNN model loaded successfully.")
+        else:
+            logger.warning("[smart_swap_knn] Model file not found: %s", _KNN_MODEL_PATH)
+            _knn_model = SmartSwapKNN() # Fallback to empty model
+    return _knn_model
 
 class SmartSwapKNN:
     def __init__(self):

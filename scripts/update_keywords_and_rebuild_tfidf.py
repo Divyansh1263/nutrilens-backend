@@ -47,7 +47,7 @@ SOURCE_FILE         = BASE_DIR / "final_production_meals.json"
 MODELS_DIR          = BASE_DIR / "models"
 TFIDF_CACHE_PATH    = MODELS_DIR / "tfidf_meal_matcher.joblib"
 SERVICE_ACCOUNT_KEY = BASE_DIR / "serviceAccountKey.json"
-COLLECTION_NAME     = "meals"
+COLLECTION_NAME = "meals_v3"
 
 # ── Quality gate ──────────────────────────────────────────────────────────────
 MIN_KEYWORDS       = 5

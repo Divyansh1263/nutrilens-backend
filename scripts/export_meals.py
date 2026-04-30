@@ -17,7 +17,7 @@ def export_meals():
 
     db = firestore.client()
     print("[export] Fetching documents from 'meals' collection...")
-    docs = db.collection("meals").stream()
+    docs = db.collection("meals_v3").stream()
     
     meals_list = []
     for doc in docs:

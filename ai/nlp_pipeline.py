@@ -288,9 +288,15 @@ def process_meal_text(text, user_id, date, db=None):
     expanded_priorities     = {}   # TASK 2: entity → priority_score
     expanded_force_generic  = {}   # TASK 3: True for entities from combo splits
 
+    combo_map_lower = {k.lower(): v for k, v in COMBO_SPLIT_MAP.items()}
+    # Also add reverse mappings explicitly for safety
+    combo_map_lower["roti dal"] = ["roti", "dal"]
+    combo_map_lower["dal roti"] = ["dal", "roti"]
+
     for entity in resolved_entities:
-        if entity in COMBO_SPLIT_MAP:
-            parts     = COMBO_SPLIT_MAP[entity]
+        entity_lower = entity.lower()
+        if entity_lower in combo_map_lower:
+            parts     = combo_map_lower[entity_lower]
             combo_qty = resolved_quantities.get(entity, 1)
 
             # TASK 1: Smart quantity per part
@@ -359,7 +365,7 @@ def process_meal_text(text, user_id, date, db=None):
         )
 
         # Step 2: Add intent-based rules BEFORE hybrid matcher
-        entity_lower = entity.lower()
+        entity_lower = entity.lower().strip()
         if "sabzi" in entity_lower:
             category = "Vegetable"
             category_confidence = 1.0
@@ -369,6 +375,65 @@ def process_meal_text(text, user_id, date, db=None):
         elif "dal" in entity_lower:
             category = "Dal"
             category_confidence = 1.0
+            
+        # NLP PRIORITY RULE FOR TEA, ROTI, DAL
+        meal = None
+        confidence = 0.0
+        if entity_lower in ["tea", "chai", "plain tea"]:
+            print(f"[Step 2] Applying NLP Priority Rule for Tea")
+            meal = {
+                "mealName": "Plain Tea",
+                "category": "Beverage",
+                "calories": 35.0,
+                "protein": 1.0,
+                "carbs": 5.0,
+                "fat": 1.0
+            }
+            confidence = 1.0
+        elif entity_lower in ["roti", "chapati"]:
+            print(f"[Step 2] Applying NLP Priority Rule for Roti")
+            meal = {
+                "mealName": "Plain Roti",
+                "category": "Staple",
+                "calories": 100.0,
+                "protein": 3.0,
+                "carbs": 15.0,
+                "fat": 1.0
+            }
+            category = "Staple"
+            confidence = 1.0
+        elif entity_lower in ["dal", "daal"]:
+            print(f"[Step 2] Applying NLP Priority Rule for Dal")
+            meal = {
+                "mealName": "Plain Dal",
+                "category": "Dal",
+                "calories": 150.0,
+                "protein": 9.0,
+                "carbs": 20.0,
+                "fat": 4.0
+            }
+            category = "Dal"
+            confidence = 1.0
+            
+        if confidence == 1.0 and meal is not None:
+            # Jump straight to building the item
+            cal_per_unit   = meal.get("calories") or 0
+            prot_per_unit  = meal.get("protein")  or 0
+            carbs_per_unit = meal.get("carbs")    or 0
+            fat_per_unit   = meal.get("fat")      or 0
+    
+            item = {
+                "meal":       meal["mealName"],
+                "category":   category,
+                "quantity":   quantity,
+                "confidence": round(confidence, 2),
+                "calories":   round(cal_per_unit   * quantity, 1),
+                "protein":    round(prot_per_unit  * quantity, 1),
+                "carbs":      round(carbs_per_unit * quantity, 1),
+                "fat":        round(fat_per_unit   * quantity, 1),
+            }
+            logged_items.append(item)
+            continue
 
         # Steps 8-11: Hybrid matching (TF-IDF + fuzzy + category + context)
         meal, confidence = resolve_best_meal(

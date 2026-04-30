@@ -32,7 +32,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 # ── Configuration ─────────────────────────────────────────────────────────────
 SERVICE_ACCOUNT_KEY  = "serviceAccountKey.json"
 LOCAL_CACHE_PATH     = os.path.join(".cache", "meals_cache.json")
-COLLECTION_NAME      = "meals"
+COLLECTION_NAME = "meals_v3"
 FIRESTORE_BATCH_SIZE = 400       # Firestore hard limit is 500; we use 400 for safety
 LOG_SAMPLE_LIMIT     = 5         # How many [update]/[skip] lines to print inline
 

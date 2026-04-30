@@ -29,7 +29,7 @@ db = firestore.client()
 # Load meals from Firestore
 # -----------------------------------------------
 print("Loading meals from Firestore...")
-meal_docs = db.collection("meals").stream()
+meal_docs = db.collection("meals_v3").stream()
 
 meals = []
 texts = []

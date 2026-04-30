@@ -1,5 +1,5 @@
 # ── Base image ────────────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # ── System dependencies ────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,7 +27,4 @@ EXPOSE 8080
 RUN adduser --disabled-password --gecos "" appuser
 USER appuser
 
-# ── Start server ───────────────────────────────────────────────────────────────
-# Shell form required so $PORT resolves at container start time.
-# 1 worker + 8 threads matches Cloud Run's recommended concurrency config.
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
+CMD ["sh", "-c", "gunicorn --bind :$PORT -w 2 --threads 4 --timeout 0 app:app"]

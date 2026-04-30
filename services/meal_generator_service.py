@@ -1,722 +1,575 @@
 # services/meal_generator_service.py
-# ML integration: lazy-import so the model is only loaded after gunicorn forks.
-import random
 from utils.logger import app_logger
-from utils.date_utils import get_days_difference, get_today_str
-from utils.diet_utils import (
-    apply_diet_filter,
-    validate_plan,
-    annotate_plan_item,
-    resolve_explanation,
-)
-from utils.meal_validation import clean_meal_pool
-from utils.macro_optimizer import optimize_plan, build_macro_targets
-from config.config import (
-    BREAKFAST_RANGE, LUNCH_RANGE, DINNER_RANGE, SNACK_RANGE,
-    CALORIE_TOLERANCE, MEAL_SPLIT_RATIOS, MAX_DISHES_PER_MEAL,
-    PENALTY_YESTERDAY, PENALTY_LAST_3_DAYS, PENALTY_WEEK_FREQ_3,
-    PENALTY_WEEK_FREQ_2, PREFERENCE_MULTIPLIER
-)
 from repositories.user_repository import user_repo
-from repositories.meal_repository import meal_repo
 from repositories.tracker_repository import tracker_repo
+from ai.plan_selector import PlanSelector
+from ai.smart_swap_knn import SmartSwapKNN, get_knn_model
+from repositories.meal_repository import meal_repo
+import copy
 
 class MealGeneratorService:
-    # ---------------------------------------------------------------------
-    # Category keywords (simple heuristic filtering)
-    # ---------------------------------------------------------------------
-    BREAKFAST_KEYWORDS = {
-        "poha", "upma", "idli", "dosa", "paratha", "egg", "eggs", "milk", "banana",
-        "fruit", "oats", "bread", "toast", "curd", "yogurt", "pancake", "sprouts",
-        "sandwich"
-    }
-    LUNCH_DINNER_KEYWORDS = {
-        "roti", "chapati", "rice", "dal", "sabzi", "paneer", "chicken", "rajma",
-        "chole", "curd", "yogurt", "salad", "khichdi", "biryani", "fish"
-    }
-    SNACK_KEYWORDS = {
-        "fruit", "nuts", "peanut", "buttermilk", "chaas", "sprouts", "sandwich",
-        "juice", "shake", "tea", "coffee", "biscuit"
-    }
     
+    def _recompute_totals(self, plan):
+        """STEP 1: Recompute totals from all meal items dynamically."""
+        total_calories = 0.0
+        total_protein = 0.0
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            for item in plan.get("meals", {}).get(slot, []):
+                total_calories += float(item.get("calories", 0))
+                total_protein += float(item.get("protein", 0))
+        
+        plan["actual_calories"] = round(total_calories, 1)
+        plan["actual_protein"] = round(total_protein, 1)
+        plan["finalCalories"] = plan["actual_calories"]
+        plan["finalProtein"] = plan["actual_protein"]
+        return plan
+
     def generate_daily_plan(self, user_id, date_str):
-        print("STEP: entering function")
-        print(f"DATA: generate_daily_plan(user_id={user_id}, date_str={date_str})")
-        app_logger.info("Generating meal plan for user %s", user_id)
+        app_logger.info("Generating meal plan for user %s using PlanSelector", user_id)
 
-        # 1. Fetch user targets
-        macro_targets = self.get_user_targets(user_id, date_str)
-        if not macro_targets:
-            return None, "Error calculating targets"
-            
-        target_calories = macro_targets.get("calories", 2000)
-        if "protein" not in macro_targets:
-            macro_targets = build_macro_targets(target_calories)
-
-        # 2. Fetch History
-        recent_plans = tracker_repo.get_recent_plans(user_id, limit=7)
-        user_history = tracker_repo.get_user_meal_history(user_id)
-
-        # 3. Candidate meals from global in-memory cache (0 Firestore reads)
-        all_meals = meal_repo.get_all_meals()
-        app_logger.info("[meal-plan] candidate pool: %d meals", len(all_meals))
-
-        # 4. Fetch user profile ONCE — used for dietary filter + explanations
-        _profile = {}
+        # 1. Fetch user profile
         try:
-            _profile = user_repo.get_user_profile(user_id) or {}
-            print("USER PROFILE:", _profile)
+            profile = user_repo.get_user_profile(user_id) or {}
+            profile["userId"] = user_id
         except Exception as _e:
             app_logger.warning("[meal-plan] profile fetch failed: %s", _e)
+            return None, "Error fetching profile"
 
-        # 5. Apply dietary filter to the full pool (boolean flags only)
-        filtered_meals = apply_diet_filter(all_meals, _profile)
-        app_logger.info(
-            "[meal-plan] dietary filter: pool %d → %d",
-            len(all_meals), len(filtered_meals)
-        )
+        # 2. Use PlanSelector to pick the best whole-day plan
+        selector = PlanSelector(tracker_repo.db)
+        best_plan_raw = selector.select_plan(profile)
 
-        # 5b. DEDUPLICATION + HARD VALIDATION — remove impossible/duplicate entries
-        pre_clean_count = len(filtered_meals)
-        filtered_meals = clean_meal_pool(filtered_meals)
-        print("MEAL POOL SIZE:", len(filtered_meals))
-        app_logger.info(
-            "[meal-plan] dedup+validate: %d → %d meals (removed %d)",
-            pre_clean_count, len(filtered_meals), pre_clean_count - len(filtered_meals)
-        )
+        if not best_plan_raw:
+            app_logger.error("[meal-plan] PlanSelector found no valid plans.")
+            return None, "No suitable meal plan found."
+            
+        best_plan = copy.deepcopy(best_plan_raw)
 
-        # Build a fast name→source_meal lookup for explanation annotation
-        _meal_lookup = {m.get("mealName", ""): m for m in all_meals}
+        user_target_calories = best_plan.get("user_target_calories", 2000)
+        target_protein = best_plan.get("user_target_protein", 0)
 
-        # TASK 2: slot keys exactly match frontend contract (all lowercase)
-        slots = [
-            ("breakfast", BREAKFAST_RANGE, MEAL_SPLIT_RATIOS["Breakfast"]),
-            ("lunch",     LUNCH_RANGE,     MEAL_SPLIT_RATIOS["Lunch"]),
-            ("snack",     SNACK_RANGE,     MEAL_SPLIT_RATIOS["Snack"]),
-            ("dinner",    DINNER_RANGE,    MEAL_SPLIT_RATIOS["Dinner"]),
-        ]
+        app_logger.info("[meal-plan] Selected Plan ID: %s (Score based on %s target cals)", 
+                        best_plan.get("planId"), user_target_calories)
 
-        # ── TASK 1.1: 3-attempt regeneration loop with strict validation ────
-        MAX_RETRIES = 3
-        plan = None
-        last_violations = []
+        # 3. Scale Plan Quantities
+        all_meals = meal_repo.get_all_meals()
+        scaled_plan = self.scale_plan(best_plan, user_target_calories, all_meals)
+        scaled_plan = self._recompute_totals(scaled_plan)
+        before_cal = scaled_plan["actual_calories"]
+        before_prot = scaled_plan["actual_protein"]
 
-        for attempt in range(MAX_RETRIES):
-            _plan = {
-                "target_calories": target_calories,
-                "target_macros": {
-                    "protein": macro_targets.get("protein"),
-                    "carbs":   macro_targets.get("carbs"),
-                    "fat":     macro_targets.get("fat"),
-                },
-                "breakfast": [],
-                "lunch":     [],
-                "snack":     [],
-                "dinner":    [],
-            }
+        # 4. Protein Correction Layer
+        corrected_plan = self.fix_protein(scaled_plan, all_meals, profile, target_protein)
+        corrected_plan = self._recompute_totals(corrected_plan)
 
-            used_today = set()
+        # 5. Final Validation Layer (Dietary Strictness)
+        validated_plan = self.apply_knn_validation(corrected_plan, all_meals, profile)
+        validated_plan = self._recompute_totals(validated_plan)
 
-            # ── Primary generation loop ─────────────────────────────────────
-            for slot_name, cal_range, split_ratio in slots:
-                slot_target = target_calories * split_ratio
-                items = self.build_multi_item_meal(
-                    slot_name=slot_name,
-                    slot_target=float(slot_target),
-                    candidates=filtered_meals,
-                    recent_plans=recent_plans,
-                    user_history=user_history,
-                    used_today=used_today,
-                    max_items=4,
-                )
-                _plan[slot_name] = items
-                for i in items:
-                    used_today.add(i.get("mealName", ""))
+        # 6. Micro Adjustments (Moved to end)
+        adjusted_plan = self.micro_adjust_plan(validated_plan, user_target_calories)
+        adjusted_plan = self._recompute_totals(adjusted_plan)
 
-            # ── Per-slot fallback ────────────────────────────────────────────
-            _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
-            _dr = _profile.get("dietary_restrictions", {})
-            _is_veg   = bool(_dr.get("is_vegetarian") or _profile.get("is_vegetarian"))
-            _is_vegan = bool(_dr.get("is_vegan")      or _profile.get("is_vegan"))
+        # 7. Final Protein Correction (If still low after calorie adjustments)
+        final_plan = self.final_protein_check(adjusted_plan, all_meals, profile, target_protein, user_target_calories)
+        final_plan = self._recompute_totals(final_plan)
 
-            for slot_name, _, split_ratio in slots:
-                if _plan[slot_name]:
-                    continue
+        # 8. STEP 1 & 2: Final Correction Loop
+        for i in range(3):
+            final_plan = self._recompute_totals(final_plan)
+            after_cal = final_plan["actual_calories"]
+            after_prot = final_plan["actual_protein"]
 
-                app_logger.warning(
-                    "[meal-plan] slot '%s' empty — applying fallback (attempt %d)",
-                    slot_name, attempt + 1
-                )
-                _slot_target = target_calories * split_ratio
-                _pool = [
-                    m for m in filtered_meals
-                    if (m.get("meal_type") or "").lower() == slot_name
-                    or (m.get("category")  or "").lower() == slot_name
-                ]
-                if len(_pool) < 5:
-                    _pool = list(filtered_meals)
+            cal_diff = abs(after_cal - user_target_calories) / user_target_calories if user_target_calories > 0 else 0
+            prot_diff = abs(after_prot - target_protein) / target_protein if target_protein > 0 else 0
 
-                if _is_veg and _pool:
-                    _veg = [
-                        m for m in _pool
-                        if m.get("is_vegetarian") is True
-                        and not any(kw in (m.get("mealName") or "").lower() for kw in _NON_VEG_KWS)
-                    ]
-                    if _veg:
-                        _pool = _veg
-
-                if not _pool:
-                    app_logger.error("[meal-plan] fallback: pool empty for slot '%s'", slot_name)
-                    continue
-
-                _pool.sort(key=lambda m: abs((m.get("calories") or 0) - _slot_target))
-                _best = _pool[0]
-                _plan[slot_name] = [{
-                    "mealName": _best.get("mealName", ""),
-                    "quantity": 1.0,
-                    "calories": round(float(_best.get("calories") or 0), 1),
-                    "protein":  round(float(_best.get("protein")  or 0), 1),
-                    "carbs":    round(float(_best.get("carbs")    or 0), 1),
-                    "fat":      round(float(_best.get("fat")      or 0), 1),
-                }]
-                app_logger.info(
-                    "[meal-plan] fallback → %s: '%s' (cal=%.0f)",
-                    slot_name, _best.get("mealName"), float(_best.get("calories") or 0)
-                )
-
-            # ── Emergency force-fill (all slots still empty) ─────────────────
-            _slot_names = [sn for sn, _, _ in slots]
-            if all(len(_plan[sn]) == 0 for sn in _slot_names):
-                app_logger.error("[meal-plan] ALL SLOTS EMPTY — emergency force-fill")
-                for sn, _, _ in slots:
-                    if filtered_meals:
-                        _em = random.choice(filtered_meals)
-                        _plan[sn] = [{
-                            "mealName": _em.get("mealName", "fallback"),
-                            "quantity": 1.0,
-                            "calories": round(float(_em.get("calories") or 0), 1),
-                            "protein":  round(float(_em.get("protein")  or 0), 1),
-                            "carbs":    round(float(_em.get("carbs")    or 0), 1),
-                            "fat":      round(float(_em.get("fat")      or 0), 1),
-                        }]
-
-            # ── TASK 1.1: Strict dietary validation ─────────────────────────
-            is_valid, violations = validate_plan(_plan, _profile)
-            if is_valid:
-                plan = _plan
-                app_logger.info(
-                    "[meal-plan] dietary validation passed on attempt %d", attempt + 1
-                )
+            if cal_diff <= 0.05 and (target_protein == 0 or prot_diff <= 0.10):
                 break
-            else:
-                last_violations = violations
-                app_logger.warning(
-                    "[meal-plan] attempt %d FAILED validation (%d violations): %s",
-                    attempt + 1, len(violations),
-                    [(v[0], v[1]) for v in violations[:3]]
-                )
-        else:
-            # All 3 attempts failed — log and use last attempt's plan anyway
-            # (better to show a slightly wrong plan than crash the app)
-            app_logger.error(
-                "[meal-plan] ALL %d ATTEMPTS FAILED validation — using last plan. "
-                "Violations: %s",
-                MAX_RETRIES, last_violations
-            )
-            plan = _plan
 
-        # ── Macro optimisation pass (Tasks 1-6) ──────────────────────────────
-        # Returns a 4-tuple: (plan, macro_deviation, optimization_score, score_label)
-        print("PLAN BEFORE OPTIMIZATION:", plan)
-        plan, macro_deviation, optimization_score, score_label = optimize_plan(
-            plan, macro_targets, filtered_meals
-        )
-        print("PLAN AFTER OPTIMIZATION:", plan)
-        print("MACRO DEVIATION:", macro_deviation)
-
-        # ── ML Daily Rater (Phase 4) ──────────────────────────────────────────
-        # Lazy import keeps startup fast; predict_score returns -1 on failure.
-        try:
-            from ml.daily_rater import predict_score, interpret_score as _interpret
-            _ml_raw = predict_score(macro_deviation)
-            if _ml_raw < 0:   # model unavailable — graceful fallback
-                ml_score       = optimization_score
-                ml_score_label = score_label
-            else:
-                ml_score       = _ml_raw
-                ml_score_label = _interpret(ml_score)
-        except Exception as _ml_exc:
-            app_logger.warning("[meal-plan] ML rater unavailable: %s", _ml_exc)
-            ml_score       = optimization_score
-            ml_score_label = score_label
-
-        # ── Post-optimization dietary validation with retry ────────────────────
-        _pre_opt_plan   = plan
-        _pre_opt_dev    = macro_deviation
-        _pre_opt_score  = optimization_score
-        _pre_opt_label  = score_label
-        OPT_RETRIES = 2
-        for _opt_attempt in range(OPT_RETRIES + 1):
-            _opt_valid, _opt_violations = validate_plan(plan, _profile)
-            if _opt_valid:
-                if _opt_attempt > 0:
-                    app_logger.info(
-                        "[meal-plan] Post-opt validation passed on retry %d", _opt_attempt
-                    )
+            # STEP 4: Priority Rule 1 (Calorie Accuracy)
+            if cal_diff > 0.05:
+                if after_cal > user_target_calories:
+                    prev_cal = final_plan["actual_calories"]
+                    final_plan = self._adjust_item_qty(final_plan, ["rice", "chawal"], -0.5)
+                    if final_plan["actual_calories"] == prev_cal:
+                        final_plan = self._adjust_item_qty(final_plan, ["roti", "chapati", "naan", "paratha"], -1.0)
                 else:
-                    app_logger.info("[meal-plan] Post-optimization dietary validation passed")
-                break
-            app_logger.warning(
-                "[meal-plan] Post-opt FAILED attempt %d/%d (%d violations): %s",
-                _opt_attempt + 1, OPT_RETRIES + 1,
-                len(_opt_violations),
-                [(v[0], v[1]) for v in _opt_violations[:3]],
-            )
-            if _opt_attempt < OPT_RETRIES:
-                plan, macro_deviation, optimization_score, score_label = optimize_plan(
-                    _pre_opt_plan, macro_targets, filtered_meals
-                )
-            else:
-                app_logger.error(
-                    "[meal-plan] All post-opt retries failed — reverting to pre-opt plan"
-                )
-                plan               = _pre_opt_plan
-                macro_deviation    = _pre_opt_dev
-                optimization_score = _pre_opt_score
-                score_label        = _pre_opt_label
+                    prev_cal = final_plan["actual_calories"]
+                    final_plan = self._adjust_item_qty(final_plan, ["rice", "chawal"], 0.5)
+                    if final_plan["actual_calories"] == prev_cal:
+                        final_plan = self._adjust_item_qty(final_plan, ["dal", "sabzi"], 0.5)
+            
+            # STEP 4: Priority Rule 2 (Protein Accuracy)
+            final_plan = self._recompute_totals(final_plan)
+            if target_protein > 0:
+                new_prot_diff = abs(final_plan["actual_protein"] - target_protein) / target_protein
+                if new_prot_diff > 0.10 and target_protein > final_plan["actual_protein"]:
+                    final_plan = self.final_protein_check(final_plan, all_meals, profile, target_protein, user_target_calories)
 
-        # Embed analytics fields in plan (TASK 3, 4, 5 + Phase 4 ML)
-        plan["macro_deviation"]    = macro_deviation
-        plan["optimization_score"] = optimization_score
-        plan["score_label"]        = score_label
-        plan["ml_score"]           = ml_score
-        plan["ml_score_label"]     = ml_score_label
+        # 9. STEP 3: Final Check & Logging
+        final_plan = self._recompute_totals(final_plan)
+        after_cal = final_plan["actual_calories"]
+        after_prot = final_plan["actual_protein"]
 
-        # ── TASK 2.3: Annotate every item with explanation + float macros ───
-        for slot_name, _, _ in slots:
-            annotated = []
-            for item in plan.get(slot_name, []):
-                source = _meal_lookup.get(item.get("mealName", ""), item)
-                annotated.append(annotate_plan_item(item, source, _profile))
-            plan[slot_name] = annotated
+        app_logger.info("[meal-plan] STEP 6: DEBUG LOGGING")
+        app_logger.info(f"[meal-plan] before_calories={before_cal}, after_calories={after_cal}")
+        app_logger.info(f"[meal-plan] before_protein={before_prot}, after_protein={after_prot}")
 
-        # ── Total calories (after annotation, post-fallback) ─────────────────
-        total_gen_cals = sum(
-            float(i.get("calories") or 0)
-            for sn, _, _ in slots
-            for i in plan[sn]
-        )
-        plan["total_calories"] = round(total_gen_cals)
+        cal_diff = abs(after_cal - user_target_calories) / user_target_calories if user_target_calories > 0 else 0
+        prot_diff = abs(after_prot - target_protein) / target_protein if target_protein > 0 else 0
 
-        app_logger.info(
-            "[meal-plan] FINAL PLAN: B→%d L→%d S→%d D→%d total_cal=%d",
-            len(plan["breakfast"]), len(plan["lunch"]),
-            len(plan["snack"]),     len(plan["dinner"]),
-            plan["total_calories"],
-        )
+        if cal_diff > 0.05 or prot_diff > 0.10:
+            app_logger.warning(f"[meal-plan] STEP 3: Final plan still out of bounds after loop. Cal error: {cal_diff:.1%}, Prot error: {prot_diff:.1%}")
 
-        # ── Save plan to Firestore ────────────────────────────────────────────
-        tracker_repo.save_plan({
+        # Save plan to Firestore under user's logs
+        user_plan = {
             "userId": user_id,
             "date":   date_str,
-            **plan,
-        })
+            "target_calories": user_target_calories,
+            "target_macros": {
+                "protein": target_protein
+            },
+            "actual_calories": after_cal,
+            "actual_protein": after_prot,
+            "finalCalories": after_cal,
+            "finalProtein": after_prot,
+            "breakfast": final_plan.get("meals", {}).get("breakfast", []),
+            "lunch":     final_plan.get("meals", {}).get("lunch", []),
+            "snack":     final_plan.get("meals", {}).get("snack", []),
+            "dinner":    final_plan.get("meals", {}).get("dinner", []),
+            "source_plan_id": final_plan.get("planId"),
+            "source_plan_name": final_plan.get("planName")
+        }
 
-        # ── TASK 4: Persist macro deviation to Daily Ratings (analytics) ─────
-        try:
-            from config.config import COL_DAILY_RATINGS
-            from firebase_admin import firestore as _fs
-            _rating_doc = {
-                "userId":             user_id,
-                "date":               date_str,
-                "macro_deviation":    macro_deviation,
-                "optimization_score": optimization_score,
-                "score_label":        score_label,
-                "ml_score":           ml_score,
-                "ml_score_label":     ml_score_label,
-                "target_calories":    target_calories,
-                "created_at":         _fs.SERVER_TIMESTAMP,
-            }
-            tracker_repo.db.collection(COL_DAILY_RATINGS).document(
-                f"{user_id}_{date_str}"
-            ).set(_rating_doc)
-            app_logger.info(
-                "[meal-plan] Daily rating saved: score=%.4f dev=%s",
-                optimization_score, macro_deviation
-            )
-        except Exception as _re:
-            app_logger.warning("[meal-plan] Failed to save daily rating: %s", _re)
+        tracker_repo.save_plan(user_plan)
+        return user_plan, ""
 
-        return plan, ""
+    def scale_plan(self, plan, user_target_calories, all_meals):
+        plan_cals = float(plan.get("targetCalories") or 2000)
+        ratio = user_target_calories / plan_cals if plan_cals > 0 else 1.0
+        ratio = max(0.7, min(ratio, 1.5))
+        
+        meals = plan.get("meals", {})
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            items = meals.get(slot, [])
+            for item in items:
+                name = item.get("mealName", "").lower()
+                old_qty = float(item.get("quantity", 1.0))
+                
+                # Populate missing base macros using all_meals
+                if not item.get("calories"):
+                    full_meal = next((m for m in all_meals if m.get("mealName", "").lower() == name), None)
+                    if not full_meal:
+                        # Fallback to partial match if exact match fails
+                        full_meal = next((m for m in all_meals if name in m.get("mealName", "").lower()), None)
+                        
+                    if full_meal:
+                        item["calories"] = float(full_meal.get("calories", 0)) * old_qty
+                        item["protein"] = float(full_meal.get("protein", 0)) * old_qty
+                        item["carbs"] = float(full_meal.get("carbs", 0)) * old_qty
+                        item["fat"] = float(full_meal.get("fat", 0)) * old_qty
 
+                raw_new_qty = old_qty * ratio
+                new_qty = raw_new_qty
+                
+                if any(k in name for k in ["roti", "chapati", "paratha", "naan", "bread"]):
+                    new_qty = round(raw_new_qty)
+                    new_qty = max(1.0, new_qty)
+                elif any(k in name for k in ["rice", "chawal", "dal", "sabzi", "paneer", "chicken", "rajma", "chole", "oats", "poha", "upma"]):
+                    new_qty = round(raw_new_qty * 2) / 2
+                    new_qty = max(0.5, new_qty)
+                elif "whey" in name or "protein shake" in name:
+                    new_qty = round(raw_new_qty * 2) / 2
+                    new_qty = min(1.5, max(0.5, new_qty))
+                elif "egg" in name:
+                    new_qty = round(raw_new_qty)
+                    new_qty = min(4.0, max(1.0, new_qty))
+                elif any(k in name for k in ["milk", "tea", "coffee", "lassi", "chaas", "juice", "beverage", "buttermilk"]):
+                    diff = raw_new_qty - old_qty
+                    if diff > 0.25:
+                        new_qty = old_qty + 0.5
+                    elif diff < -0.25:
+                        new_qty = old_qty - 0.5
+                    else:
+                        new_qty = old_qty
+                    new_qty = max(0.5, new_qty)
+                else:
+                    new_qty = round(raw_new_qty * 2) / 2
+                    new_qty = max(1.0, new_qty)
+                
+                qty_ratio = new_qty / old_qty if old_qty > 0 else 1.0
+                
+                item["quantity"] = new_qty
+                item["calories"] = round(float(item.get("calories", 0)) * qty_ratio, 1)
+                item["protein"] = round(float(item.get("protein", 0)) * qty_ratio, 1)
+                item["carbs"] = round(float(item.get("carbs", 0)) * qty_ratio, 1)
+                item["fat"] = round(float(item.get("fat", 0)) * qty_ratio, 1)
 
+        return plan
 
-    # ──────────────────────────────────────────────────────────────────────────
-    @staticmethod
-    def _validate_diet_plan(plan, is_veg: bool, is_vegan: bool):
-        """
-        Post-generation dietary validation.
-        Logs an error for every item that violates the user's dietary flag.
-        Does NOT raise — preserving plan delivery is more important than crashing.
-        """
-        _NON_VEG_KWS = {"chicken", "mutton", "fish", "egg"}
-        violations = []
-        for slot in ("breakfast", "lunch", "snack", "dinner"):
-            for item in plan.get(slot, []):
-                if is_vegan and item.get("is_vegan") is not True:
-                    violations.append((slot, item.get("mealName"), "not is_vegan"))
-                elif is_veg:
-                    if item.get("is_vegetarian") is not True:
-                        violations.append((slot, item.get("mealName"), "not is_vegetarian"))
-                    elif any(kw in (item.get("mealName") or "").lower() for kw in _NON_VEG_KWS):
-                        violations.append((slot, item.get("mealName"), "non-veg keyword in name"))
-        if violations:
-            from utils.logger import app_logger as _log
-            for slot, name, reason in violations:
-                _log.error(
-                    "[diet-validate] VIOLATION in %s: '%s' — %s",
-                    slot, name, reason
-                )
-        else:
-            from utils.logger import app_logger as _log
-            _log.info("[diet-validate] All meals pass dietary check (veg=%s vegan=%s)",
-                      is_veg, is_vegan)
-
-    def get_user_targets(self, user_id, date_str):
-        try:
-            target_doc = user_repo.get_daily_target(user_id, date_str)
-        except Exception as e:
-            if "Quota exceeded" in str(e) or "429" in str(e):
-                return {"calories": 2000}
-            raise
-        if target_doc:
-            return target_doc
-        try:
-            profile = user_repo.get_user_profile(user_id)
-        except Exception as e:
-            if "Quota exceeded" in str(e) or "429" in str(e):
-                return {"calories": 2000}
-            raise
-        if not profile:
-             return {"calories": 2000} # default fallback
-        # In a fully integrated map, call utils here
-        return {"calories": 2000} 
-
-    def fetch_candidate_meals(self):
-        # We start by using the meal combos
-        combos = meal_repo.get_meal_combos()
-        if not combos:
-            # fallback to ordinary meals if combos dataset is empty during dev
-            combos = meal_repo.get_all_meals()
-        return combos
-
-    # ---------------------------------------------------------------------
-    # Multi-item meal generation (2–4 foods)
-    # ---------------------------------------------------------------------
-    def build_multi_item_meal(
-        self,
-        slot_name,
-        slot_target,
-        candidates,
-        recent_plans,
-        user_history,
-        used_today,
-        max_items=4,
-    ):
-        """
-        Build a meal as a list of food items (2–4) that roughly matches slot_target.
-        Uses:
-          - category filtering (heuristics + existing meal fields)
-          - greedy calorie fill
-          - portion scaling for staples
-          - no duplicates in the same day
-        """
-        slot_target = float(slot_target or 0)
-        if slot_target <= 0:
-            return []
-
-        pool = self.filter_by_slot_category(slot_name, candidates)
-        pool = [m for m in pool if (m.get("mealName") or "") and (m.get("calories") or 0) > 0]
-
-        # As a fallback, if category filtering over-prunes.
-        if len(pool) < 10:
-            pool = [m for m in candidates if (m.get("mealName") or "") and (m.get("calories") or 0) > 0]
-
-        # Sort by preference score / variety penalty (reuse existing signals)
-        def score(m):
-            name = m.get("mealName", "")
-            pref = self.calculate_preference_score(name, user_history)
-            rep_pen = self.apply_repetition_penalty(name, recent_plans)
-            div_pen = self.apply_diversity_penalty(name, recent_plans)
-            # We want higher preference and lower penalties
-            return pref - rep_pen - div_pen
-
-        pool.sort(key=score, reverse=True)
-
-        items = []
-        meal_cals = 0.0
-        min_items = 2
-
-        # Greedy loop: keep adding until we're close enough or hit max_items
-        while len(items) < max_items and meal_cals < (slot_target - CALORIE_TOLERANCE):
-            remaining = slot_target - meal_cals
-
-            candidate = self.pick_food_for_remaining(pool, slot_name, remaining, used_today)
-            if not candidate:
+    def micro_adjust_plan(self, plan, user_target_calories):
+        """STEP 3: Final Micro Adjustment (moved to end)."""
+        difference = user_target_calories - plan["actual_calories"]
+        
+        while abs(difference) > user_target_calories * 0.05: # Loop until within 5%
+            made_adjustment = False
+            
+            for keyword, step, max_limit in [(["rice", "chawal"], 0.5, 2.0), 
+                                             (["roti", "chapati", "naan", "paratha"], 1.0, 4.0), 
+                                             (["dal"], 0.5, 2.0)]:
+                for slot in ["breakfast", "lunch", "snack", "dinner"]:
+                    items = plan.get("meals", {}).get(slot, [])
+                    for item in items:
+                        name = item.get("mealName", "").lower()
+                        if any(k in name for k in keyword):
+                            old_qty = item["quantity"]
+                            
+                            if difference > 0:
+                                new_qty = old_qty + step
+                            else:
+                                new_qty = old_qty - step
+                                
+                            if new_qty < 0.5 or new_qty > max_limit:
+                                continue
+                                
+                            base_cal = float(item["calories"]) / old_qty if old_qty > 0 else 0
+                            base_prot = float(item["protein"]) / old_qty if old_qty > 0 else 0
+                            base_carbs = float(item["carbs"]) / old_qty if old_qty > 0 else 0
+                            base_fat = float(item["fat"]) / old_qty if old_qty > 0 else 0
+                            
+                            cal_change = (base_cal * new_qty) - item["calories"]
+                            
+                            # Do not overshoot in the opposite direction
+                            if difference > 0 and cal_change > difference + 20: continue
+                            if difference < 0 and cal_change < difference - 20: continue
+                            
+                            item["quantity"] = new_qty
+                            item["calories"] = round(base_cal * new_qty, 1)
+                            item["protein"] = round(base_prot * new_qty, 1)
+                            item["carbs"] = round(base_carbs * new_qty, 1)
+                            item["fat"] = round(base_fat * new_qty, 1)
+                            
+                            difference -= cal_change
+                            made_adjustment = True
+                            break
+                    if made_adjustment: break
+                if made_adjustment: break
+                
+            if not made_adjustment:
+                # Can't fix further with these constraints
                 break
 
-            portioned = self.portion_to_fit(candidate, remaining)
-            if not portioned:
-                used_today.add(candidate.get("mealName", ""))
+        return plan
+
+    def _adjust_item_qty(self, plan, keywords, step):
+        """Helper to increment/decrement a specific item matching the keywords."""
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            items = plan.get("meals", {}).get(slot, [])
+            for item in items:
+                name = item.get("mealName", "").lower()
+                if any(k in name for k in keywords):
+                    old_qty = item["quantity"]
+                    new_qty = old_qty + step
+                    
+                    if new_qty < 0.5 or new_qty > 4.0:
+                        continue
+                        
+                    base_cal = float(item["calories"]) / old_qty if old_qty > 0 else 0
+                    base_prot = float(item["protein"]) / old_qty if old_qty > 0 else 0
+                    base_carbs = float(item["carbs"]) / old_qty if old_qty > 0 else 0
+                    base_fat = float(item["fat"]) / old_qty if old_qty > 0 else 0
+                    
+                    item["quantity"] = new_qty
+                    item["calories"] = round(base_cal * new_qty, 1)
+                    item["protein"] = round(base_prot * new_qty, 1)
+                    item["carbs"] = round(base_carbs * new_qty, 1)
+                    item["fat"] = round(base_fat * new_qty, 1)
+                    
+                    return self._recompute_totals(plan)
+        return plan
+
+    def fix_protein(self, plan, meals_db, user, target_protein):
+        current_protein = plan.get("actual_protein", 0)
+        deficit = target_protein - current_protein
+        if deficit <= 5:
+            return plan
+
+        is_vegan = bool(user.get("is_vegan", False))
+        is_veg = bool(user.get("is_vegetarian", False))
+
+        high_protein_candidates = []
+        for meal in meals_db:
+            if not meal.get("is_high_protein"): continue
+            if is_vegan and not meal.get("is_vegan"): continue
+            if is_veg and not (meal.get("is_vegetarian") or meal.get("is_vegan")): continue
+            high_protein_candidates.append(meal)
+
+        def density(m):
+            cals = float(m.get("calories") or 1)
+            if cals <= 0: cals = 1
+            prot = float(m.get("protein") or 0)
+            return prot / cals
+
+        high_protein_candidates.sort(key=density, reverse=True)
+
+        existing_meals = set()
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            for item in plan.get("meals", {}).get(slot, []):
+                existing_meals.add(item.get("mealName", "").lower())
+
+        additions = 0
+        target_calories = plan.get("targetCalories", 2000)
+        if "user_target_calories" in plan:
+             target_calories = plan["user_target_calories"]
+        max_cals = target_calories * 1.05
+
+        for candidate in high_protein_candidates:
+            if additions >= 2 or deficit <= 5:
+                break
+                
+            name = candidate.get("mealName", "")
+            if name.lower() in existing_meals:
                 continue
 
-            items.append(portioned)
-            used_today.add(portioned.get("mealName", ""))
-            meal_cals += float(portioned.get("calories") or 0)
+            cand_prot = float(candidate.get("protein") or 0)
+            cand_cals = float(candidate.get("calories") or 0)
 
-        # Ensure at least 2 items if possible
-        if len(items) < min_items:
-            attempts = 0
-            while len(items) < min_items and attempts < 8:
-                attempts += 1
-                remaining = max(50.0, slot_target - meal_cals)
-                candidate = self.pick_food_for_remaining(pool, slot_name, remaining, used_today)
-                if not candidate:
-                    break
-                portioned = self.portion_to_fit(candidate, remaining)
-                if not portioned:
-                    used_today.add(candidate.get("mealName", ""))
-                    continue
-                items.append(portioned)
-                used_today.add(portioned.get("mealName", ""))
-                meal_cals += float(portioned.get("calories") or 0)
-
-        # If we overshot a lot and we have more than 1 item, drop the last one
-        if len(items) > 1 and meal_cals > (slot_target + CALORIE_TOLERANCE):
-            last = items[-1]
-            if (meal_cals - float(last.get("calories") or 0)) >= (slot_target - CALORIE_TOLERANCE):
-                items.pop()
-
-        return items
-
-    def filter_by_slot_category(self, slot_name, candidates):
-        slot = (slot_name or "").lower()
-        out = []
-        for m in candidates:
-            name = (m.get("mealName") or "").strip()
-            if not name:
+            if plan.get("actual_calories", 0) + cand_cals > max_cals:
                 continue
 
-            # Prefer any explicit backend category hints
-            raw_cat = m.get("category")
-            raw_types = m.get("meal_type")
-            type_tokens = []
-            if isinstance(raw_cat, str):
-                type_tokens.append(raw_cat.lower())
-            if isinstance(raw_types, list):
-                type_tokens.extend([str(t).lower() for t in raw_types])
+            new_item = {
+                "mealName": name,
+                "quantity": 1.0,
+                "calories": cand_cals,
+                "protein": cand_prot,
+                "carbs": float(candidate.get("carbs") or 0),
+                "fat": float(candidate.get("fat") or 0)
+            }
+            
+            meals_dict = plan.get("meals", {})
+            if "snack" not in meals_dict:
+                meals_dict["snack"] = []
+            meals_dict["snack"].append(new_item)
+            
+            existing_meals.add(name.lower())
+            plan["actual_protein"] += cand_prot
+            plan["actual_calories"] += cand_cals
+            deficit -= cand_prot
+            additions += 1
 
-            # If a doc already declares its meal slot, use that.
-            if slot in type_tokens:
-                out.append(m)
-                continue
+        if plan["actual_protein"] < target_protein - 5:
+            plan = self.apply_protein_swap(plan, meals_db, user, target_protein)
 
-            lowered = name.lower()
-            if slot == "breakfast":
-                if any(k in lowered for k in self.BREAKFAST_KEYWORDS):
-                    out.append(m)
-            elif slot == "snack":
-                if any(k in lowered for k in self.SNACK_KEYWORDS):
-                    out.append(m)
-            elif slot in ("lunch", "dinner"):
-                if any(k in lowered for k in self.LUNCH_DINNER_KEYWORDS):
-                    out.append(m)
-            else:
-                out.append(m)
-        return out
+        return plan
 
-    def pick_food_for_remaining(self, pool, slot_name, remaining, used_today):
-        if remaining <= 0:
-            return None
-
-        # Prefer foods not already used today
-        available = [m for m in pool if m.get("mealName") not in used_today]
-        if not available:
-            return None
-
-        # Heuristic: choose foods that aren't too large relative to remaining.
-        # If remaining is big, allow larger items too.
-        filtered = []
-        for m in available:
-            cal = float(m.get("calories") or 0)
-            if cal <= 0:
-                continue
-            if cal <= remaining + 80:
-                filtered.append(m)
-
-        if not filtered:
-            filtered = available
-
-        # Take from the top (preference-sorted) but add randomness
-        top_n = filtered[:25] if len(filtered) > 25 else filtered
-        return random.choice(top_n) if top_n else None
-
-    def portion_to_fit(self, meal, remaining):
-        """
-        Portion scaling:
-          - If remaining calories suggest multiple units, increase quantity.
-          - Allow 0.5 increments (0.5..4.0) to support small "side" additions.
-        """
-        base_cal = float(meal.get("calories") or 0)
-        if base_cal <= 0:
-            return None
-
-        # Compute quantity to best fill remaining.
-        # Use 0.5 steps so we can add small sides without huge overshoot.
-        raw_qty = remaining / base_cal
-        # Round to nearest 0.5
-        qty = round(raw_qty * 2) / 2
-        qty = max(0.5, min(qty, 4.0))
-
-        # If base is already close, keep 1
-        if abs(base_cal - remaining) <= 80:
-            qty = 1.0
-
-        item = {
-            "mealName": meal.get("mealName"),
-            "quantity": qty,
-            "calories": round(base_cal * qty, 1),
-            "protein": round(float(meal.get("protein") or 0) * qty, 1),
-            "carbs": round(float(meal.get("carbs") or 0) * qty, 1),
-            "fat": round(float(meal.get("fat") or 0) * qty, 1),
-        }
-        return item
-
-    def select_best_meal(self, candidates, meal_type, target_cal, cal_range, recent_plans, user_history, used_today):
-        best_candidate = None
-        best_score = -9999
+    def final_protein_check(self, plan, meals_db, user, target_protein, user_target_calories):
+        """STEP 4: Final Protein Correction"""
+        plan = self._recompute_totals(plan)
+        current_protein = plan.get("actual_protein", 0)
         
-        # Base validation boundaries (using Tolerance)
-        min_cal = target_cal - CALORIE_TOLERANCE
-        max_cal = target_cal + CALORIE_TOLERANCE
+        # Protein deficit > 10%
+        if target_protein > 0 and (target_protein - current_protein) / target_protein > 0.10:
+            plan = self.fix_protein(plan, meals_db, user, target_protein)
+            plan = self._recompute_totals(plan)
+        return plan
 
-        for meal in candidates:
-             name = meal.get("mealName", "")
-             
-             # Prevent double eating same meal today
-             if name in used_today: continue
-             
-             # Check valid meal types (allow breakfast for lunch)
-             valid_types = [t.lower() for t in meal.get("meal_type", [])]
-             if not valid_types: 
-                 valid_types = [t.lower() for t in meal.get("category", ["lunch", "dinner", "breakfast"])]
-             
-             if meal_type.lower() not in valid_types:
-                  if meal_type.lower() == "lunch" and ("breakfast" in valid_types or meal.get("allow_for_lunch")):
-                      pass
-                  else:
-                      continue
+    def apply_protein_swap(self, plan, meals_db, user, target_protein):
+        current_protein = plan.get("actual_protein", 0)
+        deficit = target_protein - current_protein
+        if deficit <= 5:
+            return plan
 
-             # Calculate Scoring
-             nut_score = self.calculate_nutrition_score(meal, target_cal)
-             rep_pen = self.apply_repetition_penalty(name, recent_plans)
-             div_pen = self.apply_diversity_penalty(name, recent_plans)
-             pref_score = self.calculate_preference_score(name, user_history)
-             
-             score = nut_score + pref_score - rep_pen - div_pen
-             
-             if score > best_score:
-                  best_score = score
-                  best_candidate = meal
+        is_vegan = bool(user.get("is_vegan", False))
+        is_veg = bool(user.get("is_vegetarian", False))
 
-        if best_candidate:
-             app_logger.info(f"Selected meal: {best_candidate.get('mealName')} with score {best_score}")
-        return best_candidate
+        target_calories = plan.get("target_calories", 2000)
+        if "user_target_calories" in plan:
+             target_calories = plan["user_target_calories"]
+        max_cals = target_calories * 1.05
 
-    def calculate_nutrition_score(self, meal, target_cal):
-         diff = abs((meal.get("calories") or 0) - target_cal)
-         # Higher score for closer match
-         return max(0, 100 - diff)
+        swaps = 0
 
-    def apply_repetition_penalty(self, meal_name, recent_plans):
-        today_str = get_today_str()
-        penalty = 0
-        if not isinstance(recent_plans, list):
-            return penalty
-        for p in recent_plans:
-            if not isinstance(p, dict):
+        low_protein_items = []
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            items = plan.get("meals", {}).get(slot, [])
+            for idx, item in enumerate(items):
+                prot = float(item.get("protein", 0))
+                if prot < 10:
+                    low_protein_items.append({
+                        "slot": slot,
+                        "index": idx,
+                        "item": item,
+                        "protein": prot
+                    })
+        
+        low_protein_items.sort(key=lambda x: x["protein"])
+
+        existing_meals = set()
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            for item in plan.get("meals", {}).get(slot, []):
+                existing_meals.add(item.get("mealName", "").lower())
+
+        for lp in low_protein_items:
+            if swaps >= 2 or current_protein >= target_protein - 5:
+                break
+                
+            slot = lp["slot"]
+            old_item = lp["item"]
+            old_cal = float(old_item.get("calories", 0))
+            old_prot = float(old_item.get("protein", 0))
+
+            candidates = []
+            for meal in meals_db:
+                if is_vegan and not meal.get("is_vegan"): continue
+                if is_veg and not (meal.get("is_vegetarian") or meal.get("is_vegan")): continue
+
+                valid_types = [t.lower() for t in meal.get("validMealTypes", [])] + [t.lower() for t in meal.get("meal_type", [])] + [meal.get("category", "").lower()]
+                if slot not in valid_types and "main course" not in valid_types:
+                    continue
+
+                cand_prot = float(meal.get("protein", 0))
+                cand_cal = float(meal.get("calories", 0))
+                
+                if cand_prot <= old_prot: continue
+                if meal.get("mealName", "").lower() in existing_meals: continue
+
+                new_plan_cal = plan.get("actual_calories", 0) - old_cal + cand_cal
+                if new_plan_cal > max_cals: continue
+
+                candidates.append(meal)
+
+            if not candidates:
                 continue
-            for slot in ["breakfast", "lunch", "dinner", "snack"]:
-                slot_data = p.get(slot)
-                if not slot_data:
-                    continue
-                # Firestore saves slots as plain lists; legacy shape may wrap in {"items": [...]}
-                if isinstance(slot_data, list):
-                    items = slot_data
-                elif isinstance(slot_data, dict):
-                    items = slot_data.get("items") or []
-                else:
-                    continue
-                for item in items:
-                    if isinstance(item, dict) and item.get("mealName") == meal_name:
-                        days_diff = get_days_difference(today_str, p.get("date"))
-                        if days_diff == 1:
-                            return PENALTY_YESTERDAY
-                        elif days_diff <= 3:
-                            return max(penalty, PENALTY_LAST_3_DAYS)
-        return penalty
 
-    def apply_diversity_penalty(self, meal_name, recent_plans):
-        freq = 0
-        if not isinstance(recent_plans, list):
-            return freq
-        for p in recent_plans:
-            if not isinstance(p, dict):
+            candidates.sort(key=lambda m: (float(m.get("protein") or 0)) / (float(m.get("calories") or 1)), reverse=True)
+            best_candidate = candidates[0]
+
+            cand_prot = float(best_candidate.get("protein", 0))
+            cand_cal = float(best_candidate.get("calories", 0))
+
+            new_item = {
+                "mealName": best_candidate.get("mealName", ""),
+                "quantity": 1.0,
+                "calories": cand_cal,
+                "protein": cand_prot,
+                "carbs": float(best_candidate.get("carbs") or 0),
+                "fat": float(best_candidate.get("fat") or 0)
+            }
+
+            plan["meals"][slot][lp["index"]] = new_item
+            existing_meals.add(new_item["mealName"].lower())
+
+            plan["actual_calories"] += (cand_cal - old_cal)
+            plan["actual_protein"] += (cand_prot - old_prot)
+            current_protein += (cand_prot - old_prot)
+            swaps += 1
+
+        return plan
+
+    def apply_knn_validation(self, plan, meals_db, user):
+        is_vegan = bool(user.get("is_vegan", False))
+        is_veg = bool(user.get("is_vegetarian", False))
+        is_gf = bool(user.get("is_gluten_free", False))
+        is_nf = bool(user.get("is_nut_free", False))
+
+        if not (is_vegan or is_veg or is_gf or is_nf):
+            return plan
+
+        target_calories = plan.get("target_calories", 2000)
+        if "user_target_calories" in plan:
+             target_calories = plan["user_target_calories"]
+        
+        target_protein = float(plan.get("target_macros", {}).get("protein", 0))
+        if "user_target_protein" in plan:
+             target_protein = plan["user_target_protein"]
+
+        replacements = 0
+        invalid_items = []
+
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            items = plan.get("meals", {}).get(slot, [])
+            for idx, item in enumerate(items):
+                name = item.get("mealName", "").lower()
+                full_meal = next((m for m in meals_db if m.get("mealName", "").lower() == name), None)
+                if not full_meal:
+                    continue
+
+                invalid = False
+                if is_vegan and not full_meal.get("is_vegan"): invalid = True
+                elif is_veg and not (full_meal.get("is_vegetarian") or full_meal.get("is_vegan")): invalid = True
+                elif is_gf and not full_meal.get("is_gluten_free"): invalid = True
+                elif is_nf and not full_meal.get("is_nut_free"): invalid = True
+
+                if invalid:
+                    invalid_items.append({
+                        "slot": slot,
+                        "index": idx,
+                        "item": item,
+                        "full_meal": full_meal
+                    })
+
+        if not invalid_items:
+            return plan
+
+        knn = get_knn_model()
+        if not knn.knn: # In case the model wasn't loaded or trained
+            knn.fit(meals_db)
+
+        existing_meals = set()
+        for slot in ["breakfast", "lunch", "snack", "dinner"]:
+            for item in plan.get("meals", {}).get(slot, []):
+                existing_meals.add(item.get("mealName", "").lower())
+
+        for inv in invalid_items:
+            if replacements >= 3:
+                break
+            
+            old_item = inv["item"]
+            
+            candidates = knn.find_replacements_for_user(inv["full_meal"], user, k=10)
+            
+            best_cand = None
+            best_qty = 1.0
+            
+            for cand in candidates:
+                if cand.get("mealName", "").lower() in existing_meals: continue
+                
+                base_cand_cal = float(cand.get("calories", 1))
+                if base_cand_cal == 0: base_cand_cal = 1
+                
+                target_item_cal = float(old_item.get("calories", 0))
+                req_qty = target_item_cal / base_cand_cal
+                
+                if req_qty < 0.25 or req_qty > 4.0:
+                    continue
+
+                best_cand = cand
+                best_qty = round(req_qty * 2) / 2
+                if best_qty < 0.5: best_qty = 0.5
+                break
+
+            if not best_cand:
                 continue
-            for slot in ["breakfast", "lunch", "dinner", "snack"]:
-                slot_data = p.get(slot)
-                if not slot_data:
-                    continue
-                if isinstance(slot_data, list):
-                    items = slot_data
-                elif isinstance(slot_data, dict):
-                    items = slot_data.get("items") or []
-                else:
-                    continue
-                for item in items:
-                    if isinstance(item, dict) and item.get("mealName") == meal_name:
-                        freq += 1
-        if freq >= 3:
-            return PENALTY_WEEK_FREQ_3
-        elif freq == 2:
-            return PENALTY_WEEK_FREQ_2
-        return 0
 
-    def calculate_preference_score(self, meal_name, user_history):
-        if not isinstance(user_history, dict):
-            return 0
-        history = user_history.get(meal_name)
-        if isinstance(history, dict):
-            return history.get("count", 0) * PREFERENCE_MULTIPLIER
-        return 0
+            cand_cal = float(best_cand.get("calories", 0)) * best_qty
+            cand_prot = float(best_cand.get("protein", 0)) * best_qty
 
-    def adjust_portion_size(self, meal, slot_target):
-         # Scale meal calories to slot_target if deviation is large
-         original_cal = meal.get("calories") or 0
-         if original_cal == 0: return meal
-         
-         safe_meal = meal.copy()
-         ratio = slot_target / original_cal
-         
-         # Bound the scaling realistically (.5 to 2.0)
-         ratio = min(max(ratio, 0.5), 2.0)
-         
-         for macro in ["calories", "protein", "carbs", "fat"]:
-              val = safe_meal.get(macro)
-              if val is not None:
-                   safe_meal[macro] = round((val or 0) * ratio, 1)
-                   
-         safe_meal["quantity"] = round((safe_meal.get("quantity") or 1) * ratio, 2)
-         return safe_meal
+            new_item = {
+                "mealName": best_cand.get("mealName", ""),
+                "quantity": best_qty,
+                "calories": round(cand_cal, 1),
+                "protein": round(cand_prot, 1),
+                "carbs": round(float(best_cand.get("carbs", 0)) * best_qty, 1),
+                "fat": round(float(best_cand.get("fat", 0)) * best_qty, 1)
+            }
+
+            plan["actual_calories"] += (new_item["calories"] - float(old_item.get("calories", 0)))
+            plan["actual_protein"] += (new_item["protein"] - float(old_item.get("protein", 0)))
+            
+            plan["meals"][inv["slot"]][inv["index"]] = new_item
+            existing_meals.add(new_item["mealName"].lower())
+            replacements += 1
+
+        return plan
 
 meal_generator_service = MealGeneratorService()

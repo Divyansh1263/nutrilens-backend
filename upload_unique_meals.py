@@ -27,7 +27,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 SERVICE_ACCOUNT_KEY  = "serviceAccountKey.json"   # path relative to this script
 OLD_DATASET_FILE     = "meal_dataset.json"         # already-uploaded reference
 NEW_DATASET_FILE     = "meal_dataset2.json"        # new meals to evaluate
-COLLECTION_NAME      = "meals"
+COLLECTION_NAME = "meals_v3"
 FIRESTORE_BATCH_SIZE = 500                         # Firestore hard limit per batch
 
 # ──────────────────────────── helpers ────────────────────────────────────────

@@ -124,12 +124,18 @@ except Exception:
 # Load KNN model for meal replacement suggestions
 print("[KNN Model] Loading SmartSwapKNN model …")
 try:
-    knn_model = SmartSwapKNN()
-    knn_model.load("models/knn_meal_swap.joblib")
-    print("[KNN Model] KNN model loaded successfully")
+    from ai.smart_swap_knn import get_knn_model
+    get_knn_model()
 except Exception as e:
     print(f"[KNN Model] Warning: Could not load KNN model: {e}")
-    knn_model = None
+
+# Load Daily Rater Random Forest
+print("[Daily Rater] Loading RandomForest model …")
+try:
+    from ml.daily_rater import get_model as get_daily_rater_model
+    get_daily_rater_model()
+except Exception as e:
+    print(f"[Daily Rater] Warning: Could not load RandomForest model: {e}")
 
 # If this index is missing, /generate-meal-plan will return a 400 error
 # with a URL to auto-create the index. Create it in Firebase Console:

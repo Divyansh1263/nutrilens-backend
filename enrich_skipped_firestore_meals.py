@@ -30,7 +30,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 SERVICE_ACCOUNT_KEY  = "serviceAccountKey.json"
-COLLECTION_NAME      = "meals"
+COLLECTION_NAME = "meals_v3"
 DEFAULT_MIN_KW       = 5
 DEFAULT_BATCH_SIZE   = 400
 

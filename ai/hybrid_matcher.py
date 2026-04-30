@@ -284,6 +284,18 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             if any(bad in name.lower() for bad in bad_keywords):
                 print(f"[negative_filter] Skipping '{name}' for sabzi query")
                 continue
+                
+        if "dal" in query_lower or "daal" in query_lower:
+            bad_keywords = {"namkeen", "snack", "bhujia", "mixture", "chips"}
+            if any(bad in name.lower() for bad in bad_keywords):
+                print(f"[negative_filter] Skipping '{name}' for dal query")
+                continue
+                
+        if "roti" in query_lower:
+            bad_keywords = {"stuffed", "pizza", "wrap", "roll", "paneer roti"}
+            if any(bad in name.lower() for bad in bad_keywords):
+                print(f"[negative_filter] Skipping '{name}' for roti query")
+                continue
 
         # ── Acceptance gate (OR logic per spec) ───────────────────────────────
         # Require a meaningful signal from at least one primary method.
@@ -320,10 +332,18 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
 
         # Category match: 1.0 if meal's category equals predicted
         cat_match = 0.0
+        meal_category = meal.get("category", "").lower()
         if predicted_category and not IGNORE_CATEGORY:
-            meal_category = meal.get("category", "").lower()
             if meal_category == predicted_category.lower():
                 cat_match = 1.0
+                
+        # NLP PRIORITY FIX: Boost specific categories 
+        if "dal" in query_lower or "daal" in query_lower:
+            if meal_category == "dal":
+                cat_match += 1.0
+        elif "roti" in query_lower:
+            if meal_category == "staple":
+                cat_match += 1.0
 
         # ── 5-signal weighted formula ─────────────────────────────────────────
         final_score = (
@@ -333,6 +353,14 @@ def hybrid_match(query, predicted_category=None, context_score=0.0, top_k=5,
             W_KEYWORD  * keyword_s +
             W_CONTEXT  * context_score
         )
+        
+        # NLP PRIORITY FIX: penalize wrong categories
+        if "dal" in query_lower or "daal" in query_lower:
+            if meal_category in ["snack", "packaged food", "beverage"]:
+                final_score -= 0.3  # heavy penalty for snack/packaged
+        elif "roti" in query_lower:
+            if meal_category in ["snack", "packaged food", "beverage"]:
+                final_score -= 0.3
 
         # ── TASK 1: Priority contribution ──────────────────────────────────
         # Primary foods (rice/roti) get entity_priority=1.0 from pipeline

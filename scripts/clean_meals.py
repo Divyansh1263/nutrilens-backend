@@ -19,7 +19,7 @@ db = firestore.client()
 
 def clean_meals():
     print("Fetching all meals from Firestore...")
-    meals_ref = db.collection("meals")
+    meals_ref = db.collection("meals_v3")
     docs = list(meals_ref.stream())
     
     seen = {}
