@@ -281,22 +281,8 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
     serving = source_meal.get("servingSize") or item.get("servingSize") or ""
     serving_grams = source_meal.get("servingGrams") or item.get("servingGrams") or ""
 
-    if qty != 1.0:
-        if serving:
-            import re
-            match = re.match(r"^(\d+(?:\.\d+)?)\s*(.*)", serving)
-            if match:
-                num_val = float(match.group(1))
-                new_val = num_val * qty
-                serving = f"{new_val:g} {match.group(2)}"
-        if serving_grams:
-            try:
-                grams = float(serving_grams)
-                serving_grams = f"{grams * qty:g}"
-            except ValueError:
-                pass
-
     enriched["servingSize"] = serving
+    enriched["servingGrams"] = serving_grams
     enriched["servingGrams"] = serving_grams
 
     return enriched

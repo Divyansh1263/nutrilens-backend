@@ -181,30 +181,36 @@ class MealGeneratorService:
                 old_qty = float(item.get("quantity", 1.0))
                 
                 # Populate missing base macros using all_meals
-                if not item.get("calories"):
-                    full_meal = next((m for m in all_meals if m.get("mealName", "").lower() == name), None)
-                    if not full_meal:
-                        # Fallback to partial match if exact match fails
-                        full_meal = next((m for m in all_meals if name in m.get("mealName", "").lower()), None)
-                        
-                    if full_meal:
-                        item["calories"] = float(full_meal.get("calories", 0)) * old_qty
-                        item["protein"] = float(full_meal.get("protein", 0)) * old_qty
-                        item["carbs"] = float(full_meal.get("carbs", 0)) * old_qty
-                        item["fat"] = float(full_meal.get("fat", 0)) * old_qty
+                full_meal = next((m for m in all_meals if m.get("mealName", "").lower() == name), None)
+                if not full_meal:
+                    full_meal = next((m for m in all_meals if name in m.get("mealName", "").lower()), None)
+                    
+                if full_meal:
+                    item["base_calories"] = float(full_meal.get("calories", 0))
+                    item["base_protein"] = float(full_meal.get("protein", 0))
+                    item["base_carbs"] = float(full_meal.get("carbs", 0))
+                    item["base_fat"] = float(full_meal.get("fat", 0))
+                else:
+                    item["base_calories"] = float(item.get("calories", 0)) / old_qty if old_qty > 0 else 0
+                    item["base_protein"] = float(item.get("protein", 0)) / old_qty if old_qty > 0 else 0
+                    item["base_carbs"] = float(item.get("carbs", 0)) / old_qty if old_qty > 0 else 0
+                    item["base_fat"] = float(item.get("fat", 0)) / old_qty if old_qty > 0 else 0
 
                 raw_new_qty = old_qty * ratio
                 new_qty = raw_new_qty
                 
                 if any(k in name for k in ["roti", "chapati", "paratha", "naan", "bread"]):
                     new_qty = round(raw_new_qty)
-                    new_qty = max(1.0, new_qty)
-                elif any(k in name for k in ["rice", "chawal", "dal", "sabzi", "paneer", "chicken", "rajma", "chole", "oats", "poha", "upma"]):
+                    new_qty = min(4.0, max(1.0, new_qty))
+                elif any(k in name for k in ["rice", "chawal"]):
                     new_qty = round(raw_new_qty * 2) / 2
-                    new_qty = max(0.5, new_qty)
+                    new_qty = min(2.0, max(0.5, new_qty))
+                elif any(k in name for k in ["poha", "upma", "oats"]):
+                    new_qty = round(raw_new_qty * 2) / 2
+                    new_qty = min(2.0, max(0.5, new_qty))
                 elif "whey" in name or "protein shake" in name:
                     new_qty = round(raw_new_qty * 2) / 2
-                    new_qty = min(1.5, max(0.5, new_qty))
+                    new_qty = min(2.0, max(0.5, new_qty))
                 elif "egg" in name:
                     new_qty = round(raw_new_qty)
                     new_qty = min(4.0, max(1.0, new_qty))
@@ -219,15 +225,13 @@ class MealGeneratorService:
                     new_qty = max(0.5, new_qty)
                 else:
                     new_qty = round(raw_new_qty * 2) / 2
-                    new_qty = max(1.0, new_qty)
-                
-                qty_ratio = new_qty / old_qty if old_qty > 0 else 1.0
+                    new_qty = max(0.5, new_qty)
                 
                 item["quantity"] = new_qty
-                item["calories"] = round(float(item.get("calories", 0)) * qty_ratio, 1)
-                item["protein"] = round(float(item.get("protein", 0)) * qty_ratio, 1)
-                item["carbs"] = round(float(item.get("carbs", 0)) * qty_ratio, 1)
-                item["fat"] = round(float(item.get("fat", 0)) * qty_ratio, 1)
+                item["calories"] = round(item["base_calories"] * new_qty, 1)
+                item["protein"] = round(item["base_protein"] * new_qty, 1)
+                item["carbs"] = round(item["base_carbs"] * new_qty, 1)
+                item["fat"] = round(item["base_fat"] * new_qty, 1)
 
         return plan
 
@@ -256,12 +260,12 @@ class MealGeneratorService:
                             if new_qty < 0.5 or new_qty > max_limit:
                                 continue
                                 
-                            base_cal = float(item["calories"]) / old_qty if old_qty > 0 else 0
-                            base_prot = float(item["protein"]) / old_qty if old_qty > 0 else 0
-                            base_carbs = float(item["carbs"]) / old_qty if old_qty > 0 else 0
-                            base_fat = float(item["fat"]) / old_qty if old_qty > 0 else 0
+                            base_cal = item.get("base_calories", float(item["calories"]) / old_qty if old_qty > 0 else 0)
+                            base_prot = item.get("base_protein", float(item["protein"]) / old_qty if old_qty > 0 else 0)
+                            base_carbs = item.get("base_carbs", float(item["carbs"]) / old_qty if old_qty > 0 else 0)
+                            base_fat = item.get("base_fat", float(item["fat"]) / old_qty if old_qty > 0 else 0)
                             
-                            cal_change = (base_cal * new_qty) - item["calories"]
+                            cal_change = (base_cal * new_qty) - float(item["calories"])
                             
                             # Do not overshoot in the opposite direction
                             if difference > 0 and cal_change > difference + 20: continue
@@ -298,10 +302,10 @@ class MealGeneratorService:
                     if new_qty < 0.5 or new_qty > 4.0:
                         continue
                         
-                    base_cal = float(item["calories"]) / old_qty if old_qty > 0 else 0
-                    base_prot = float(item["protein"]) / old_qty if old_qty > 0 else 0
-                    base_carbs = float(item["carbs"]) / old_qty if old_qty > 0 else 0
-                    base_fat = float(item["fat"]) / old_qty if old_qty > 0 else 0
+                    base_cal = item.get("base_calories", float(item["calories"]) / old_qty if old_qty > 0 else 0)
+                    base_prot = item.get("base_protein", float(item["protein"]) / old_qty if old_qty > 0 else 0)
+                    base_carbs = item.get("base_carbs", float(item["carbs"]) / old_qty if old_qty > 0 else 0)
+                    base_fat = item.get("base_fat", float(item["fat"]) / old_qty if old_qty > 0 else 0)
                     
                     item["quantity"] = new_qty
                     item["calories"] = round(base_cal * new_qty, 1)
@@ -346,7 +350,8 @@ class MealGeneratorService:
         target_calories = plan.get("targetCalories", 2000)
         if "user_target_calories" in plan:
              target_calories = plan["user_target_calories"]
-        max_cals = target_calories * 1.10
+        # Limit target_calories to 1.05 for strict calorie boundary
+        max_cals = target_calories * 1.05
 
         # STEP 1: PRIORITY SWAPS
         swaps = 0
@@ -366,6 +371,10 @@ class MealGeneratorService:
         low_protein_items.sort(key=lambda x: x["protein"])
 
         for lp in low_protein_items:
+            # Check calorie limit FIRST before proceeding
+            if plan.get("actual_calories", 0) >= target_calories * 1.05:
+                break
+                
             if swaps >= 5 or current_protein >= target_protein - 5:
                 break
                 
@@ -402,6 +411,10 @@ class MealGeneratorService:
             new_item = {
                 "mealName": best_candidate.get("mealName", ""),
                 "quantity": 1.0,
+                "base_calories": cand_cal,
+                "base_protein": cand_prot,
+                "base_carbs": float(best_candidate.get("carbs") or 0),
+                "base_fat": float(best_candidate.get("fat") or 0),
                 "calories": cand_cal,
                 "protein": cand_prot,
                 "carbs": float(best_candidate.get("carbs") or 0),
@@ -418,16 +431,19 @@ class MealGeneratorService:
             swaps += 1
 
         # STEP 2: ADDITIONS IF STILL DEFICIT
-        if current_protein < target_protein - 5:
+        if current_protein < target_protein - 5 and plan.get("actual_calories", 0) < target_calories * 1.05:
             additions = 0
             slots_cycle = ["breakfast", "snack", "dinner", "lunch"]
             
             for candidate in high_protein_candidates:
-                if additions >= 4 or current_protein >= target_protein - 5:
+                if additions >= 2 or current_protein >= target_protein - 5:
+                    break
+                    
+                if plan.get("actual_calories", 0) >= target_calories * 1.05:
                     break
                     
                 name = candidate.get("mealName", "")
-                if meal_counts.get(name.lower(), 0) >= 2:
+                if meal_counts.get(name.lower(), 0) >= 1: # Restrict additions to 1 per item to increase variety
                     continue
 
                 cand_prot = float(candidate.get("protein") or 0)
@@ -441,6 +457,10 @@ class MealGeneratorService:
                 new_item = {
                     "mealName": name,
                     "quantity": 1.0,
+                    "base_calories": cand_cals,
+                    "base_protein": cand_prot,
+                    "base_carbs": float(candidate.get("carbs") or 0),
+                    "base_fat": float(candidate.get("fat") or 0),
                     "calories": cand_cals,
                     "protein": cand_prot,
                     "carbs": float(candidate.get("carbs") or 0),

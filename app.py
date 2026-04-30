@@ -137,7 +137,7 @@ try:
 except Exception as e:
     print(f"[Daily Rater] Warning: Could not load RandomForest model: {e}")
 
-print("CACHE LOADED: meals, knn, nlp")
+print("CACHE LOADED: meals, knn, nlp, models")
 
 # If this index is missing, /generate-meal-plan will return a 400 error
 # with a URL to auto-create the index. Create it in Firebase Console:
