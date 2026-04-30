@@ -735,41 +735,123 @@ class _DietTabState extends State<DietTab> {
            // AI Badge
            Container(
              margin: const EdgeInsets.only(bottom: 8),
-             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
              decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(4)),
              child: Text("⭐ NutriLens AI Recommendation", style: TextStyle(color: Colors.blue[800], fontSize: 10, fontWeight: FontWeight.bold)),
            ),
            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image placeholder
-                 Container(
-                   width: 50, height: 50,
-                   decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)),
-                   child: const Icon(Icons.restaurant_menu, color: MyApp.primaryColor),
-                 ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
+                  flex: 7,
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item['mealName'] ?? "Unknown",
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      Container(
+                        width: 50, height: 50,
+                        decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.restaurant_menu, color: MyApp.primaryColor),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${item['calories'] ?? 0} kcal • ${item['protein'] ?? 0}g P • ${item['fat'] ?? 0}g F • ${item['carbs'] ?? 0}g C",
-                        style: Theme.of(context).textTheme.bodySmall,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['mealName'] ?? "Unknown",
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "${item['calories'] ?? 0} kcal • ${item['protein'] ?? 0}g P • ${item['fat'] ?? 0}g F • ${item['carbs'] ?? 0}g C",
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            if (item['servingSize'] != null && item['servingSize'].toString().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2.0),
+                                child: Text(
+                                  "${item['servingSize']}${item['servingGrams'] != null ? ' • ${item['servingGrams']}g' : ''}",
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                      if (item['servingSize'] != null && item['servingSize'].toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2.0),
-                          child: Text(
-                            "${item['servingSize']}${item['servingGrams'] != null ? ' • ${item['servingGrams']}g' : ''}",
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (!isLogged)
+                        SizedBox(
+                          height: 28,
+                          child: ElevatedButton(
+                            onPressed: () => _logMeal(context, mealType, item),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: MyApp.primaryColor,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text("Log", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          ),
+                        )
+                      else
+                        Container(
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.green[100]!),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                iconSize: 16,
+                                onPressed: () {
+                                  if (loggedQty > 1) {
+                                    _updateLogQuantity(context, logId, loggedQty - 1);
+                                  } else if (logId != null) {
+                                    _deleteLog(context, logId);
+                                  }
+                                },
+                                icon: const Icon(Icons.remove, color: Colors.green),
+                              ),
+                              Text(
+                                "x$loggedQty",
+                                style: TextStyle(color: Colors.green[800], fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                iconSize: 16,
+                                onPressed: () => _updateLogQuantity(context, logId, loggedQty + 1),
+                                icon: const Icon(Icons.add, color: Colors.green),
+                              ),
+                            ],
                           ),
                         ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: 24,
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.sync, size: 14, color: Colors.blue),
+                          label: const Text("Swap", style: TextStyle(color: Colors.blue, fontSize: 11)),
+                          onPressed: () => _showReplaceDialog(context, item['mealName'], mealType),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -811,73 +893,7 @@ class _DietTabState extends State<DietTab> {
                   ),
                 ),
               );
-            }),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                 // Replace Button
-                 TextButton.icon(
-                   icon: const Icon(Icons.sync, size: 16, color: Colors.grey),
-                   label: const Text("Swap", style: TextStyle(color: Colors.grey)),
-                   onPressed: () => _showReplaceDialog(context, item['mealName'], mealType),
-                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                 ),
-                 const SizedBox(width: 8),
-                 if (!isLogged)
-                   SizedBox(
-                     height: 32,
-                     child: ElevatedButton(
-                       onPressed: () => _logMeal(context, mealType, item),
-                       style: ElevatedButton.styleFrom(
-                         backgroundColor: MyApp.primaryColor,
-                         foregroundColor: Colors.white,
-                         elevation: 2,
-                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                       ),
-                       child: const Text("Log", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                     ),
-                   )
-                 else ...[
-                   // Portion controls (increase/decrease)
-                   Container(
-                     height: 32,
-                     padding: const EdgeInsets.symmetric(horizontal: 6),
-                     decoration: BoxDecoration(
-                       color: Colors.green[50],
-                       borderRadius: BorderRadius.circular(20),
-                       border: Border.all(color: Colors.green[100]!),
-                     ),
-                     child: Row(
-                       mainAxisSize: MainAxisSize.min,
-                       children: [
-                         IconButton(
-                           visualDensity: VisualDensity.compact,
-                           padding: EdgeInsets.zero,
-                           iconSize: 18,
-                           onPressed: () {
-                            if (loggedQty > 1) {
-                              _updateLogQuantity(context, logId, loggedQty - 1);
-                             } else if (logId != null) {
-                               _deleteLog(context, logId);
-                             }
-                           },
-                           icon: const Icon(Icons.remove, color: Colors.green),
-                         ),
-                         Padding(
-                           padding: const EdgeInsets.symmetric(horizontal: 6),
-                           child: Text(
-                            "×$loggedQty",
-                             style: TextStyle(color: Colors.green[800], fontWeight: FontWeight.bold, fontSize: 12),
-                           ),
-                         ),
-                         IconButton(
-                           visualDensity: VisualDensity.compact,
-                           padding: EdgeInsets.zero,
-                           iconSize: 18,
-                          onPressed: () => _updateLogQuantity(context, logId, loggedQty + 1),
-                           icon: const Icon(Icons.add, color: Colors.green),
+            })    icon: const Icon(Icons.add, color: Colors.green),
                          ),
                        ],
                      ),
@@ -913,11 +929,11 @@ class _DietTabState extends State<DietTab> {
       "mealName": meal['mealName'],
       "mealType": mealType,
       "quantity": (meal['quantity'] ?? 1),
-      // Provide macros so local backend can log even if Firestore is rate-limited.
-      "calories": meal['calories'],
-      "protein": meal['protein'],
-      "carbs": meal['carbs'],
-      "fat": meal['fat'],
+      // Provide base (per-unit) macros to prevent double-scaling on backend
+      "calories": (meal['calories'] ?? 0) / (meal['quantity'] ?? 1),
+      "protein": (meal['protein'] ?? 0) / (meal['quantity'] ?? 1),
+      "carbs": (meal['carbs'] ?? 0) / (meal['quantity'] ?? 1),
+      "fat": (meal['fat'] ?? 0) / (meal['quantity'] ?? 1),
       "source": meal['source'] ?? "ai"
     };
 

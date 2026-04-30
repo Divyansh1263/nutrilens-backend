@@ -382,6 +382,7 @@ class MealGeneratorService:
         if plan["actual_protein"] < target_protein - 5:
             plan = self.apply_protein_swap(plan, meals_db, user, target_protein)
 
+        plan = self._recompute_totals(plan)
         return plan
 
     def final_protein_check(self, plan, meals_db, user, target_protein, user_target_calories):

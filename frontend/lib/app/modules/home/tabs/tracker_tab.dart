@@ -341,120 +341,127 @@ class _TrackerTabState extends State<TrackerTab> {
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Colors.grey[200]!),
               ),
-              child: ListTile(
-                leading: Icon(
-                  log.mealType == "Breakfast"
-                      ? Icons.breakfast_dining
-                      : log.mealType == "Lunch"
-                          ? Icons.lunch_dining
-                          : Icons.dinner_dining,
-                  color: Colors.green,
-                ),
-                title: Text(
-                  log.mealName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      "${log.mealType ?? 'Meal'} • ${log.calories.toInt()} kcal${quantity > 1 ? " • Logged x$quantity" : ""}",
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    if (log.servingSize != null && log.servingSize!.isNotEmpty)
-                      Text(
-                        "${log.servingSize}${log.servingGrams != null ? ' • ${log.servingGrams}g' : ''}",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.sync, color: Colors.blue),
-                      onPressed: () => _showSwapDialog(context, log),
-                      tooltip: "Swap Meal",
-                    ),
-                    Container(
-                      height: 32,
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.green[100]!),
-                      ),
+                    Expanded(
+                      flex: 7,
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            iconSize: 18,
-                            onPressed: log.logId == null
-                                ? null
-                                : () async {
-                                    final id = log.logId!;
-                                    if (_pendingUpdates.contains(id)) return; // debounce
-                                    setState(() => _pendingUpdates.add(id));
-                                    try {
-                                      final prov = Provider.of<DataProvider>(
-                                        context,
-                                        listen: false,
-                                      );
-                                      if (quantity > 1) {
-                                        await prov.updateLog(
-                                          id,
-                                          quantity - 1,
-                                          _selectedDateKey,
-                                        );
-                                      } else {
-                                        _deleteLog(context, id);
-                                      }
-                                    } finally {
-                                      if (mounted) setState(() => _pendingUpdates.remove(id));
-                                    }
-                                  },
-                            icon: const Icon(Icons.remove, color: Colors.green),
+                          Icon(
+                            log.mealType == "Breakfast"
+                                ? Icons.breakfast_dining
+                                : log.mealType == "Lunch"
+                                    ? Icons.lunch_dining
+                                    : Icons.dinner_dining,
+                            color: Colors.green,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Text(
-                              "x$quantity",
-                              style: TextStyle(
-                                color: Colors.green[800],
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  log.mealName,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "${log.mealType ?? 'Meal'} • ${log.calories.toInt()} kcal${quantity > 1 ? " • Logged x$quantity" : ""}",
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                if (log.servingSize != null && log.servingSize!.isNotEmpty)
+                                  Text(
+                                    "${log.servingSize}${log.servingGrams != null ? ' • ${log.servingGrams}g' : ''}",
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                              ],
                             ),
                           ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            iconSize: 18,
-                            onPressed: log.logId == null
-                                ? null
-                                : () async {
-                                    final id = log.logId!;
-                                    if (_pendingUpdates.contains(id)) return; // debounce
-                                    setState(() => _pendingUpdates.add(id));
-                                    try {
-                                      await Provider.of<DataProvider>(
-                                        context,
-                                        listen: false,
-                                      ).updateLog(
-                                        id,
-                                        quantity + 1,
-                                        _selectedDateKey,
-                                      );
-                                    } finally {
-                                      if (mounted) setState(() => _pendingUpdates.remove(id));
-                                    }
-                                  },
-                            icon: const Icon(Icons.add, color: Colors.green),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.green[100]!),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  iconSize: 16,
+                                  onPressed: log.logId == null
+                                      ? null
+                                      : () async {
+                                          final id = log.logId!;
+                                          if (_pendingUpdates.contains(id)) return;
+                                          setState(() => _pendingUpdates.add(id));
+                                          try {
+                                            final prov = Provider.of<DataProvider>(context, listen: false);
+                                            if (quantity > 1) {
+                                              await prov.updateLog(id, quantity - 1, _selectedDateKey);
+                                            } else {
+                                              _deleteLog(context, id);
+                                            }
+                                          } finally {
+                                            if (mounted) setState(() => _pendingUpdates.remove(id));
+                                          }
+                                        },
+                                  icon: const Icon(Icons.remove, color: Colors.green),
+                                ),
+                                Text(
+                                  "x$quantity",
+                                  style: TextStyle(color: Colors.green[800], fontWeight: FontWeight.bold, fontSize: 11),
+                                ),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  iconSize: 16,
+                                  onPressed: log.logId == null
+                                      ? null
+                                      : () async {
+                                          final id = log.logId!;
+                                          if (_pendingUpdates.contains(id)) return;
+                                          setState(() => _pendingUpdates.add(id));
+                                          try {
+                                            await Provider.of<DataProvider>(context, listen: false)
+                                                .updateLog(id, quantity + 1, _selectedDateKey);
+                                          } finally {
+                                            if (mounted) setState(() => _pendingUpdates.remove(id));
+                                          }
+                                        },
+                                  icon: const Icon(Icons.add, color: Colors.green),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          SizedBox(
+                            height: 24,
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              icon: const Icon(Icons.sync, color: Colors.blue, size: 14),
+                              label: const Text("Swap", style: TextStyle(color: Colors.blue, fontSize: 11)),
+                              onPressed: () => _showSwapDialog(context, log),
+                            ),
                           ),
                         ],
                       ),

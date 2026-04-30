@@ -58,10 +58,16 @@ class PlanSelector:
 
     def is_diet_safe(self, plan, is_vegan, is_veg):
         diet_type = plan.get("dietType", "").lower()
-        if is_vegan and diet_type != "vegan":
-            return False
-        if is_veg and diet_type == "non-veg":
-            return False
+        if not diet_type:
+            return False  # Missing or empty dietType is strictly unsafe
+            
+        if is_vegan:
+            return diet_type == "vegan"
+            
+        if is_veg:
+            return diet_type in ["vegan", "vegetarian"]
+            
+        # Non-vegetarian users can eat anything
         return True
 
     def select_plan(self, user):
@@ -134,8 +140,13 @@ class PlanSelector:
 
         # Absolute Emergency Fallback (Should never happen if DB is healthy)
         if not valid_plans:
-            print("[DEBUG] CRITICAL: No diet-safe plans found in entire DB. Using emergency plan.")
-            valid_plans = [all_plans[0]]
+            print("[DEBUG] CRITICAL: No diet-safe plans found in entire DB. System cannot proceed safely.")
+            # If no safe plans exist, filter all plans using diet safety (if ANY exist). 
+            # If absolutely 0 exist, we must still return None to avoid serving meat to vegans.
+            safe_only = [p for p in all_plans if self.is_diet_safe(p, is_vegan, is_veg)]
+            if not safe_only:
+                return None
+            valid_plans = [safe_only[0]]
 
         # Score Plans
         scored_plans = []

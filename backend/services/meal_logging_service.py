@@ -73,6 +73,7 @@ class MealLoggingService:
             "source":             source,
             "log_time":           firestore.SERVER_TIMESTAMP
         }
+        print("LOG MEAL:", log_data["mealName"], "qty:", log_data["quantity"], "final_cal:", log_data["calories"])
         
         # 3. TASK 4 — Duplicate log guard
         #    If same mealName already logged for this user+date, ADD qty to the
