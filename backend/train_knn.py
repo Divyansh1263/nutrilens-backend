@@ -17,7 +17,7 @@ db = firestore.client()
 # Fetch ALL meals from Firestore
 # ---------------------------------
 meals = []
-docs = db.collection("meals").stream()
+docs = db.collection("meals_v3").stream()
 
 for d in docs:
     meal = d.to_dict()

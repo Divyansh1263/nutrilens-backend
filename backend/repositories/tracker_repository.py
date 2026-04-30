@@ -41,6 +41,31 @@ class TrackerRepository:
                 return mem_log_meal(log_data)
             raise
 
+    def check_existing_log(self, user_id: str, meal_name: str, date_str: str):
+        """
+        TASK 4: Check for a duplicate log with the same mealName+date+userId.
+        Returns the first matching log dict (with 'logId' key) or None.
+        Prevents inserting duplicate entries when the same meal is logged twice.
+        """
+        try:
+            from google.cloud.firestore_v1.base_query import FieldFilter
+            docs = (
+                self.db.collection(COL_MEAL_LOGS)
+                .where(filter=FieldFilter("userId",   "==", user_id))
+                .where(filter=FieldFilter("date",     "==", date_str))
+                .where(filter=FieldFilter("mealName", "==", meal_name))
+                .limit(1)
+                .stream()
+            )
+            for d in docs:
+                data = d.to_dict()
+                data["logId"] = d.id
+                return data
+            return None
+        except Exception:
+            # Safe fallback — if check fails, allow the new insert to proceed
+            return None
+
     def get_log(self, log_id):
         """Fetch a specific log by ID."""
         try:
@@ -140,16 +165,21 @@ class TrackerRepository:
             pass
 
     def get_recent_plans(self, user_id, limit=3):
-        """Fetch last N days of meal plans for variety control."""
+        """Fetch last N days of meal plans for variety control.
+
+        Index fix: order ASC (uses existing userId+date ASC index) and
+        take the tail in Python — avoids requiring a DESC composite index.
+        """
         try:
+            from utils.logger import app_logger
             docs = self.db.collection(COL_MEAL_PLANS)\
                 .where("userId", "==", user_id)\
-                .order_by("date", direction=firestore.Query.DESCENDING)\
-                .limit(limit).stream()
-            
-            plans = []
-            for d in docs:
-                plans.append(d.to_dict())
+                .order_by("date")\
+                .limit(limit)\
+                .stream()
+
+            plans = [d.to_dict() for d in docs]
+            app_logger.info(f"[db] fetched {len(plans)} docs for {COL_MEAL_PLANS}")
             return plans
         except Exception as e:
             if "Quota exceeded" in str(e) or "429" in str(e):

@@ -23,7 +23,7 @@ for meal in meals:
         continue
 
     # 🔒 Duplicate check
-    existing = db.collection("meals") \
+    existing = db.collection("meals_v3") \
         .where("mealName", "==", meal_name) \
         .limit(1) \
         .stream()
@@ -33,7 +33,7 @@ for meal in meals:
         skipped += 1
         continue
 
-    db.collection("meals").add(meal)
+    db.collection("meals_v3").add(meal)
     print(f"✅ Uploaded: {meal_name}")
     uploaded += 1
 

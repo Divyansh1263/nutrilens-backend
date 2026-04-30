@@ -2,6 +2,7 @@
 # Stage 1: Text cleaning + spelling correction + alias normalization
 #
 # IMPROVEMENT (v2.1):
+# IMPROVEMENT (v2.4 TASK 3): Added curry-rice multi-word aliases
 #   Added food alias normalization — maps regional names to
 #   canonical English food words before entity extraction.
 #   Examples: dahi → curd, bhindi → okra, baingan → eggplant
@@ -13,12 +14,18 @@ from rapidfuzz import process, fuzz
 # Stopwords to remove (common non-food words)
 # -----------------------------------------------
 STOPWORDS = {
+    # English
     "i", "ate", "had", "have", "with", "some", "a", "an", "the",
     "for", "my", "of", "and", "in", "today", "yesterday", "morning",
     "afternoon", "evening", "night", "breakfast", "lunch", "dinner",
     "snack", "just", "also", "then", "after", "before", "about",
     "around", "like", "want", "log", "consumed", "eating", "meal",
     "food", "serving", "servings", "to", "was", "is", "it",
+    # Hinglish
+    "maine", "mene", "khaya", "kha", "li", "liya", "hai", "tha", "thi",
+    "hun", "aur", "wala", "wali", "kiya", "khate", "khayi", "raha",
+    "rahi", "aaj", "kal", "subah", "dopahar", "raat", "shaam",
+    "sirf", "bas", "bhi", "nahi", "nai", "thoda",
 }
 
 # -----------------------------------------------
@@ -27,44 +34,160 @@ STOPWORDS = {
 # that align with searchKeywords and mealName fields
 # -----------------------------------------------
 FOOD_ALIAS_MAP = {
-    # Hindi → Canonical
-    "dahi": "curd",
+    # ── Vegetables ──────────────────────────────────────────────────────────
+    "aloo": "potato",
+    "alu": "potato",
     "bhindi": "okra",
     "baingan": "eggplant",
-    "chole": "chickpeas",
-    "chhole": "chickpeas",
-    "chawal": "rice",
-    "anda": "egg",
-    "gosht": "mutton",
-    "murgh": "chicken",
-    "murg": "chicken",
-    "panir": "paneer",
-    "suji": "semolina",
-    "rava": "semolina",
-    "moong": "mung",
-    "urad": "black gram",
-    "sarson": "mustard",
+    "brinjal": "eggplant",
     "palak": "spinach",
     "gobi": "cauliflower",
-    "aata": "wheat",
-    "atta": "wheat",
-    "besan": "gram flour",
-    "ghee": "ghee",
-    "makhan": "butter",
+    "gobhi": "cauliflower",
+    "matar": "peas",
+    "shimla": "capsicum",
+    "shimlamirch": "capsicum",
+    "lauki": "bottle gourd",
+    "ghia": "bottle gourd",
+    "karela": "bitter gourd",
+    "kaddu": "pumpkin",
+    "tinda": "tinda",
+    "methi": "fenugreek",
+    "sarson": "mustard",
+    "tamatar": "tomato",
+    "pyaaz": "onion",
+    "peyaj": "onion",
+    "mirchi": "chili",
+    "hari mirchi": "green chili",
+    # ── Fruits ──────────────────────────────────────────────────────────────
+    "kela": "banana",
+    "aam": "mango",
+    "seb": "apple",
+    "angoor": "grapes",
+    "santra": "orange",
+    "nimbu": "lemon",
+    "amrud": "guava",
+    "papita": "papaya",
+    "nashpati": "pear",
+    "sitafal": "custard apple",
+    # ── Dairy / Fats ─────────────────────────────────────────────────────────
+    "dahi": "curd",
     "doodh": "milk",
     "dudh": "milk",
-    "nimbu": "lemon",
+    "makhan": "butter",
+    "malai": "cream",
+    "ghee": "ghee",
+    "panir": "paneer",
+    "chenna": "paneer",
+    # ── Protein ──────────────────────────────────────────────────────────────
+    "anda": "egg",
+    "anday": "egg",
+    "murgh": "chicken",
+    "murg": "chicken",
+    "gosht": "mutton",
+    "machli": "fish",
+    "machchi": "fish",
+    "jhinga": "prawn",
+    "makhana": "makhana",   # FIX: was "fox nut" — no Firestore meal named "fox nut"
+    # ── Grains / Staples ─────────────────────────────────────────────────────
+    "chawal": "rice",
+    "chaawal": "rice",
+    "chapati": "roti",
+    "chapatis": "roti",
+    "chapatti": "roti",
+    "aata": "wheat",
+    "atta": "wheat",
+    "suji": "semolina",
+    "rava": "semolina",
+    "maida": "refined flour",
+    "besan": "gram flour",
+    # TASK 2: Millet / grain variety aliases
+    # 'jawar' -> 'jowar': spelling correction only (not dish expansion).
+    # Multi-word forms ('jawar roti', 'jowar roti', etc.) are handled in
+    # MULTI_WORD_ALIAS_MAP (Pass 1) which runs before single-token aliases.
+    # Single bare tokens ('jowar', 'bajra') are resolved by phrase_detector
+    # which collapses them back into compound dish names using the meal list.
+    "jawar": "jowar",          # spelling alias: jawar -> jowar
+    # ── Legumes / Lentils ────────────────────────────────────────────────────
+    "chana": "chickpeas",
+    "chole": "chickpeas",
+    "chhole": "chickpeas",
+    "moong": "mung",
+    "urad": "black gram",
+    "masoor": "red lentil",
+    "toor": "pigeon pea",
+    "arhar": "pigeon pea",
+    "rajma": "kidney beans",
+    "lobia": "black eyed peas",
+    # ── Spices / Condiments ─────────────────────────────────────────────────
     "jeera": "cumin",
     "haldi": "turmeric",
     "adrak": "ginger",
     "lasun": "garlic",
     "lehsun": "garlic",
-    "tamatar": "tomato",
-    "pyaaz": "onion",
-    "peyaj": "onion",
-    "mirchi": "chili",
-    "chapati": "roti",
-    "chapatis": "roti",
+    "dhania": "coriander",
+    "saunf": "fennel",
+    "hing": "asafoetida",
+    "imli": "tamarind",
+    # ── Snacks / Dishes ──────────────────────────────────────────────────────
+    "momo":   "momos",
+    "samosa": "samosa",
+    "tikki":  "aloo tikki",
+    # TASK 1 (v2.5): sabzi → more specific canonical name matching Firestore mealNames
+    "sabzi":  "mixed vegetable sabzi",
+    "subzi":  "mixed vegetable sabzi",   # common alternate spelling
+}
+
+# ── Multi-word alias map (phrase-level replacement) ───────────────────────────
+# Maps phrases of 2+ words → canonical name used in mealName / searchKeywords
+MULTI_WORD_ALIAS_MAP = {
+    "aloo sabzi": "aloo curry",
+    "gajar sabzi": "carrot curry",
+    "bhindi sabzi": "okra curry",
+    "mixed sabzi": "mixed vegetable curry",
+    "dahi chawal": "curd rice",
+    "aloo gobhi": "aloo gobi",
+    "aloo gobi": "aloo gobi",
+    "aloo matar": "aloo matar",
+    "dal chawal": "dal chawal",
+    "dal rice": "dal chawal",
+    "rajma chawal": "rajma chawal",
+    "rajma rice": "rajma chawal",
+    "kadhi chawal": "kadhi chawal",
+    "kadhi rice": "kadhi chawal",
+    "moong dal": "moong dal",
+    "masoor dal": "masoor dal",
+    "toor dal": "toor dal",
+    "arhar dal": "toor dal",
+    "urad dal": "urad dal",
+    "kali dal": "dal makhani",
+    "paneer butter masla": "paneer butter masala",
+    "paner tikka": "paneer tikka",
+    "chicken tikka masla": "chicken tikka masala",
+    "chole bhature": "chole bhature",
+    "idli sambar": "idli sambar",
+    "poha jalebi": "poha jalebi",
+    "bread butter": "bread butter",
+    # TASK 3 (prev): Curry-rice generic aliases → canonical dal chawal
+    "curry rice":     "dal chawal",
+    "rice curry":     "dal chawal",
+    "curry and rice": "dal chawal",
+    # TASK 3: Rice variant normalisation → plain rice
+    "plain rice":     "rice",
+    "boiled rice":    "rice",
+    "white rice":     "rice",
+    # TASK 4: Expand curry-rice variants → dal chawal
+    "gravy rice":     "dal chawal",
+    "sabzi rice":     "dal chawal",
+    "dal rice":       "dal chawal",
+    # TASK 2 + TASK 5: Multi-word millet-roti phrases treated as single entities.
+    # These MUST be matched in Pass 1 (multi-word) BEFORE Pass 2 (single-token)
+    # so "jowar" is NOT expanded to "jowar roti" a second time.
+    "jawar roti":  "jowar roti",   # misspelling → canonical
+    "jowar roti":  "jowar roti",   # canonical already; keeps it intact
+    "bajra roti":  "bajra roti",   # canonical
+    "ragi roti":   "ragi roti",    # canonical
+    "makki roti":  "makki roti",   # canonical (maize flatbread)
+    "makai roti":  "makki roti",   # alternate spelling
 }
 
 # Module-level cache (populated by init)
@@ -126,10 +249,11 @@ def clean_text(text):
 
 def normalize_aliases(tokens):
     """
-    IMPROVEMENT: Replace regional food aliases with canonical names.
+    Replace regional food aliases with canonical names.
+    Handles both single-token aliases (FOOD_ALIAS_MAP) and
+    multi-token phrases (MULTI_WORD_ALIAS_MAP) via bigram/trigram scan.
 
-    This runs BEFORE spelling correction so that aliases are normalized
-    first, and any remaining misspellings are caught by correct_spelling().
+    Runs BEFORE spelling correction so aliases are normalized first.
 
     Args:
         tokens: list of cleaned tokens
@@ -137,16 +261,44 @@ def normalize_aliases(tokens):
     Returns:
         list of tokens with aliases replaced
     """
-    normalized = []
-    for token in tokens:
+    # ── Pass 1: multi-word phrase replacement (bigram → trigram scan) ────────
+    result_pass1 = []
+    i = 0
+    n = len(tokens)
+    while i < n:
+        matched = False
+        # Try 3-token phrase first, then 2-token
+        for window in (3, 2):
+            if i + window > n:
+                continue
+            phrase = " ".join(tokens[i:i + window])
+            if phrase in MULTI_WORD_ALIAS_MAP:
+                canonical = MULTI_WORD_ALIAS_MAP[phrase]
+                print(f"[multi-alias] '{phrase}' → '{canonical}'")
+                result_pass1.extend(canonical.split())
+                i += window
+                matched = True
+                break
+        if not matched:
+            result_pass1.append(tokens[i])
+            i += 1
+
+    # ── Pass 2: single-token alias replacement ───────────────────────────────
+    result_pass2 = []
+    for token in result_pass1:
         if token in FOOD_ALIAS_MAP:
             canonical = FOOD_ALIAS_MAP[token]
-            print(f"[alias] '{token}' → '{canonical}'")
+            # TASK 6: Specific log tag for jawar/jowar alias resolution
+            if token in ("jawar", "jowar"):
+                print(f"[alias-jowar] Resolved millet alias '{token}' → '{canonical}'")
+            else:
+                print(f"[alias] '{token}' → '{canonical}'")
             # Canonical may be multi-word (e.g., "gram flour")
-            normalized.extend(canonical.split())
+            result_pass2.extend(canonical.split())
         else:
-            normalized.append(token)
-    return normalized
+            result_pass2.append(token)
+
+    return result_pass2
 
 
 def correct_spelling(tokens, threshold=85):

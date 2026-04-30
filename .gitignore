@@ -2,10 +2,13 @@
 .env
 .env.local
 .env.production
+*.env
 
-# Firebase credentials
+# Firebase credentials — NEVER commit these
 *-firebase-adminsdk-*.json
 serviceAccountKey.json
+google-services.json
+GoogleService-Info.plist
 
 # Python
 __pycache__/
@@ -60,7 +63,24 @@ npm-debug.log*
 # Flutter/Dart
 .dart_tool/
 .packages
+.flutter-plugins
+.flutter-plugins-dependencies
 pubspec.lock
+/frontend/build/
+/build/
+
+# Android release artifacts
+*.keystore
+*.jks
+android/app/release/
+android/app/debug/
+
+# Large backend data/model files (regenerate locally)
+backend/meal_dataset.json
+backend/meal_dataset2.json
+backend/merged_meals.json
+backend/meal_names.txt
+backend/.cache/
 
 # Temporary files
 *.tmp

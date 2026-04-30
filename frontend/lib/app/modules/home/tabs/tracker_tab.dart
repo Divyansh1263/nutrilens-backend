@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
-import 'package:college_project/app/modules/logging/log_food_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
+import '../../../data/models/models.dart';
 import '../../../data/providers/data_provider.dart';
-import '../../../data/services/api_service.dart';
+import '../../logging/log_food_screen.dart';
 
 class TrackerTab extends StatefulWidget {
   const TrackerTab({super.key});
@@ -16,6 +15,10 @@ class TrackerTab extends StatefulWidget {
 
 class _TrackerTabState extends State<TrackerTab> {
   DateTime _selectedDate = DateTime.now();
+
+  // Debounce guard: logIds currently awaiting an updateLog response.
+  // If a user taps +/- while a request is in-flight for that entry, ignore it.
+  final Set<String> _pendingUpdates = {};
 
   String get _selectedDateKey =>
       DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -89,31 +92,31 @@ class _TrackerTabState extends State<TrackerTab> {
       ),
       body: Selector<DataProvider, _TrackerTabViewData>(
         selector: (_, provider) => _TrackerTabViewData(
-          summary: provider.getTrackerSummaryForDate(_selectedDateKey),
-          rating: provider.getDailyRatingForDate(_selectedDateKey),
           isTrackerLoading: provider.isTrackerLoading,
           isDailyRatingLoading: provider.isDailyRatingLoading,
+          summaryModel: provider.getTrackerModelForDate(_selectedDateKey),
+          ratingModel: provider.getDailyRatingModelForDate(_selectedDateKey),
         ),
         builder: (context, view, child) {
-          if (view.isTrackerLoading && view.summary == null) {
+          if (view.isTrackerLoading && view.summaryModel == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final targets = view.summary?['targets'] ??
-              {
-                "calories": 2000,
-                "protein": 100,
-                "fat": 70,
-                "carbs": 250,
-              };
-          final consumed = view.summary?['consumed'] ??
-              {
-                "calories": 0,
-                "protein": 0,
-                "fat": 0,
-                "carbs": 0,
-              };
-          final logs = view.summary?['logs'] ?? [];
+          final summaryModel = view.summaryModel;
+
+          final tCal = summaryModel?.targets.calories ?? 2000;
+          final cCal = summaryModel?.consumed.calories ?? 0;
+          final tProt = summaryModel?.targets.protein ?? 100;
+          final cProt = summaryModel?.consumed.protein ?? 0;
+          final tFat = summaryModel?.targets.fat ?? 70;
+          final cFat = summaryModel?.consumed.fat ?? 0;
+          final tCarbs = summaryModel?.targets.carbs ?? 250;
+          final cCarbs = summaryModel?.consumed.carbs ?? 0;
+
+          final resolvedTargets = {'calories': tCal, 'protein': tProt, 'fat': tFat, 'carbs': tCarbs};
+          final resolvedConsumed = {'calories': cCal, 'protein': cProt, 'fat': cFat, 'carbs': cCarbs};
+
+          final logs = summaryModel?.logs ?? [];
 
           return RefreshIndicator(
             onRefresh: () => provider.refreshTrackerDataForDate(_selectedDateKey),
@@ -123,11 +126,11 @@ class _TrackerTabState extends State<TrackerTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildNutrientOverview(context, targets, consumed),
-                  if ((consumed['calories'] ?? 0).toDouble() > 0) ...[
+                  _buildNutrientOverview(context, resolvedTargets, resolvedConsumed),
+                  if (cCal > 0) ...[
                     _buildDailyRatingCard(
                       context,
-                      view.rating,
+                      view.ratingModel,
                       view.isDailyRatingLoading,
                     ),
                     const SizedBox(height: 24),
@@ -174,18 +177,8 @@ class _TrackerTabState extends State<TrackerTab> {
       return "Today";
     }
     final months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
     return "${date.day} ${months[date.month - 1]} ${date.year}";
   }
@@ -238,40 +231,16 @@ class _TrackerTabState extends State<TrackerTab> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildMacroIndicator(
-              "Protein",
-              consumed['protein']?.toDouble() ?? 0,
-              targets['protein']?.toDouble() ?? 100,
-              "g",
-              Colors.blue,
-            ),
-            _buildMacroIndicator(
-              "Fat",
-              consumed['fat']?.toDouble() ?? 0,
-              targets['fat']?.toDouble() ?? 70,
-              "g",
-              Colors.orange,
-            ),
-            _buildMacroIndicator(
-              "Carbs",
-              consumed['carbs']?.toDouble() ?? 0,
-              targets['carbs']?.toDouble() ?? 250,
-              "g",
-              Colors.purple,
-            ),
+            _buildMacroIndicator("Protein", consumed['protein']?.toDouble() ?? 0, targets['protein']?.toDouble() ?? 100, "g", Colors.blue),
+            _buildMacroIndicator("Fat", consumed['fat']?.toDouble() ?? 0, targets['fat']?.toDouble() ?? 70, "g", Colors.orange),
+            _buildMacroIndicator("Carbs", consumed['carbs']?.toDouble() ?? 0, targets['carbs']?.toDouble() ?? 250, "g", Colors.purple),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildMacroIndicator(
-    String title,
-    double value,
-    double total,
-    String unit,
-    Color color,
-  ) {
+  Widget _buildMacroIndicator(String title, double value, double total, String unit, Color color) {
     if (total == 0) total = 1;
     double percent = (value / total).clamp(0.0, 1.0);
     return CircularPercentIndicator(
@@ -301,7 +270,7 @@ class _TrackerTabState extends State<TrackerTab> {
     );
   }
 
-  Widget _buildLoggedFoods(BuildContext context, List logs) {
+  Widget _buildLoggedFoods(BuildContext context, List<MealLog> logs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,12 +311,10 @@ class _TrackerTabState extends State<TrackerTab> {
             ),
           ),
         ...logs.map((log) {
-          final logId = (log['logId'] ?? log['id'] ?? log['_id'])?.toString();
-          final qRaw = log['quantity'] ?? 1;
-          final quantity =
-              (qRaw is num) ? qRaw.toInt() : int.tryParse(qRaw.toString()) ?? 1;
+          final logId = log.logId ?? log.hashCode.toString();
+          final quantity = log.quantity;
           return Dismissible(
-            key: Key(logId ?? log.hashCode.toString()),
+            key: Key(logId),
             background: Container(
               color: Colors.red,
               alignment: Alignment.centerLeft,
@@ -361,9 +328,8 @@ class _TrackerTabState extends State<TrackerTab> {
               child: const Icon(Icons.edit, color: Colors.white),
             ),
             confirmDismiss: (direction) async {
-              if (logId == null) return false;
               if (direction == DismissDirection.startToEnd) {
-                _deleteLog(context, logId);
+                if (log.logId != null) _deleteLog(context, log.logId!);
               } else if (direction == DismissDirection.endToStart) {
                 _showEditQuantityDialog(context, log);
               }
@@ -377,19 +343,33 @@ class _TrackerTabState extends State<TrackerTab> {
               ),
               child: ListTile(
                 leading: Icon(
-                  log['mealType'] == "Breakfast"
+                  log.mealType == "Breakfast"
                       ? Icons.breakfast_dining
-                      : log['mealType'] == "Lunch"
+                      : log.mealType == "Lunch"
                           ? Icons.lunch_dining
                           : Icons.dinner_dining,
                   color: Colors.green,
                 ),
                 title: Text(
-                  log['mealName'] ?? "Food",
+                  log.mealName,
                   style: const TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                subtitle: Text(
-                  "${log['mealType']} • ${log['calories']} kcal${quantity > 1 ? " • Logged x$quantity" : ""}",
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "${log.mealType ?? 'Meal'} • ${log.calories.toInt()} kcal${quantity > 1 ? " • Logged x$quantity" : ""}",
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    if (log.servingSize != null && log.servingSize!.isNotEmpty)
+                      Text(
+                        "${log.servingSize}${log.servingGrams != null ? ' • ${log.servingGrams}g' : ''}",
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                  ],
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -414,22 +394,28 @@ class _TrackerTabState extends State<TrackerTab> {
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
                             iconSize: 18,
-                            onPressed: logId == null
+                            onPressed: log.logId == null
                                 ? null
                                 : () async {
-                                    if (quantity > 1) {
-                                      final ok = await ApiService.updateLog(
-                                        logId,
-                                        quantity - 1,
+                                    final id = log.logId!;
+                                    if (_pendingUpdates.contains(id)) return; // debounce
+                                    setState(() => _pendingUpdates.add(id));
+                                    try {
+                                      final prov = Provider.of<DataProvider>(
+                                        context,
+                                        listen: false,
                                       );
-                                      if (ok && context.mounted) {
-                                        Provider.of<DataProvider>(
-                                          context,
-                                          listen: false,
-                                        ).refreshTrackerDataForDate(_selectedDateKey);
+                                      if (quantity > 1) {
+                                        await prov.updateLog(
+                                          id,
+                                          quantity - 1,
+                                          _selectedDateKey,
+                                        );
+                                      } else {
+                                        _deleteLog(context, id);
                                       }
-                                    } else {
-                                      _deleteLog(context, logId);
+                                    } finally {
+                                      if (mounted) setState(() => _pendingUpdates.remove(id));
                                     }
                                   },
                             icon: const Icon(Icons.remove, color: Colors.green),
@@ -449,16 +435,23 @@ class _TrackerTabState extends State<TrackerTab> {
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
                             iconSize: 18,
-                            onPressed: logId == null
+                            onPressed: log.logId == null
                                 ? null
                                 : () async {
-                                    final ok =
-                                        await ApiService.updateLog(logId, quantity + 1);
-                                    if (ok && context.mounted) {
-                                      Provider.of<DataProvider>(
+                                    final id = log.logId!;
+                                    if (_pendingUpdates.contains(id)) return; // debounce
+                                    setState(() => _pendingUpdates.add(id));
+                                    try {
+                                      await Provider.of<DataProvider>(
                                         context,
                                         listen: false,
-                                      ).refreshTrackerDataForDate(_selectedDateKey);
+                                      ).updateLog(
+                                        id,
+                                        quantity + 1,
+                                        _selectedDateKey,
+                                      );
+                                    } finally {
+                                      if (mounted) setState(() => _pendingUpdates.remove(id));
                                     }
                                   },
                             icon: const Icon(Icons.add, color: Colors.green),
@@ -510,7 +503,7 @@ class _TrackerTabState extends State<TrackerTab> {
 
   Widget _buildDailyRatingCard(
     BuildContext context,
-    Map<String, dynamic>? dailyRating,
+    DailyRating? dailyRating,
     bool isLoading,
   ) {
     if (isLoading && dailyRating == null) {
@@ -522,15 +515,9 @@ class _TrackerTabState extends State<TrackerTab> {
       );
     }
 
-    final data = dailyRating ??
-        {
-          "rating": 4,
-          "feedback": "Great job! Your protein intake stayed close to target.",
-        };
-
-    final rating = data['rating'] as int? ?? 4;
-    final feedback =
-        data['message'] ?? data['feedback'] ?? "Keep tracking to see your performance!";
+    // Step 5 — model fields only; fallback defaults when model absent
+    final rating = dailyRating?.stars ?? 4;
+    final feedback = dailyRating?.feedback ?? "Keep tracking to see your performance!";
 
     return Card(
       elevation: 2,
@@ -582,10 +569,10 @@ class _TrackerTabState extends State<TrackerTab> {
     );
   }
 
-  void _showSwapDialog(BuildContext context, Map<String, dynamic> log) async {
+  // Fix B (audit): accepts MealLog directly — no Map serialisation round-trip.
+  void _showSwapDialog(BuildContext context, MealLog log) async {
     final provider = Provider.of<DataProvider>(context, listen: false);
-    final mealName = log['mealName'];
-    if (mealName == null) return;
+    final mealName = log.mealName;
 
     showDialog(
       context: context,
@@ -627,9 +614,8 @@ class _TrackerTabState extends State<TrackerTab> {
                       ),
                       onTap: () {
                         Navigator.pop(ctx);
-                        final id =
-                            (log['logId'] ?? log['id'] ?? log['_id'])?.toString();
-                        _performSwap(context, id, item['mealName']);
+                        // Use .logId directly — no Map key lookup.
+                        _performSwap(context, log.logId, item['mealName']);
                       },
                     );
                   },
@@ -663,7 +649,7 @@ class _TrackerTabState extends State<TrackerTab> {
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-    final result = await provider.swapMeal(logId, newMeal);
+    final result = await provider.swapMeal(logId, newMeal, _selectedDateKey);
     if (!context.mounted) return;
     Navigator.pop(context);
 
@@ -684,26 +670,21 @@ class _TrackerTabState extends State<TrackerTab> {
 
   void _deleteLog(BuildContext context, String logId) async {
     final provider = Provider.of<DataProvider>(context, listen: false);
-    try {
-      final response = await ApiService.deleteLog(logId);
-      if (response && context.mounted) {
-        provider.refreshTrackerDataForDate(_selectedDateKey);
-      }
-    } catch (e) {
-      // Ignored error
-    }
+    // Route through DataProvider — no direct ApiService calls from UI.
+    await provider.deleteLog(logId, _selectedDateKey);
   }
 
-  void _showEditQuantityDialog(BuildContext context, Map<String, dynamic> log) {
-    int currentQty = log['quantity'] ?? 1;
-    final logId = log['logId'] ?? log['id'];
+  void _showEditQuantityDialog(BuildContext context, MealLog log) {
+    // Step 5 — read from typed model fields
+    double currentQty = log.quantity;
+    final logId = log.logId;
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text("Edit Quantity: ${log['mealName']}"),
+              title: Text("Edit Quantity: ${log.mealName}"),
               content: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -733,10 +714,9 @@ class _TrackerTabState extends State<TrackerTab> {
                 ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(ctx);
-                    final response = await ApiService.updateLog(logId, currentQty);
-                    if (response && context.mounted) {
-                      Provider.of<DataProvider>(context, listen: false)
-                          .refreshTrackerDataForDate(_selectedDateKey);
+                    if (logId != null && context.mounted) {
+                      await Provider.of<DataProvider>(context, listen: false)
+                          .updateLog(logId, currentQty, _selectedDateKey);
                     }
                   },
                   child: const Text("Save"),
@@ -752,31 +732,43 @@ class _TrackerTabState extends State<TrackerTab> {
 
 class _TrackerTabViewData {
   const _TrackerTabViewData({
-    required this.summary,
-    required this.rating,
     required this.isTrackerLoading,
     required this.isDailyRatingLoading,
+    // ── Step 5: Model-only fields ──
+    this.summaryModel,
+    this.ratingModel,
   });
 
-  final Map<String, dynamic>? summary;
-  final Map<String, dynamic>? rating;
   final bool isTrackerLoading;
   final bool isDailyRatingLoading;
+  final TrackerSummary? summaryModel;
+  final DailyRating? ratingModel;
 
   @override
   bool operator ==(Object other) {
-    return other is _TrackerTabViewData &&
-        mapEquals(other.summary, summary) &&
-        mapEquals(other.rating, rating) &&
-        other.isTrackerLoading == isTrackerLoading &&
-        other.isDailyRatingLoading == isDailyRatingLoading;
+    if (other is! _TrackerTabViewData) return false;
+    if (other.isTrackerLoading != isTrackerLoading) return false;
+    if (other.isDailyRatingLoading != isDailyRatingLoading) return false;
+    if (other.ratingModel != ratingModel) return false;
+    if (other.summaryModel?.consumed.calories != summaryModel?.consumed.calories) return false;
+    // Critical fix: compare per-log quantities so +/- triggers a rebuild
+    final thisLogs  = summaryModel?.logs ?? [];
+    final otherLogs = other.summaryModel?.logs ?? [];
+    if (thisLogs.length != otherLogs.length) return false;
+    for (int i = 0; i < thisLogs.length; i++) {
+      if (thisLogs[i].quantity != otherLogs[i].quantity) return false;
+      if (thisLogs[i].calories != otherLogs[i].calories) return false;
+    }
+    return true;
   }
 
   @override
   int get hashCode => Object.hash(
-        summary,
-        rating,
         isTrackerLoading,
         isDailyRatingLoading,
+        summaryModel?.consumed.calories,
+        // Include quantity sum so hashCode changes when quantities change
+        summaryModel?.logs.fold<double>(0, (s, l) => s + l.quantity),
+        ratingModel,
       );
 }

@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../../main.dart';
+import '../../../data/models/models.dart';
 import '../../../data/providers/data_provider.dart';
 import '../../../data/services/api_service.dart';
 
@@ -54,14 +54,22 @@ class _DietTabState extends State<DietTab> {
         onRefresh: _refreshData,
         child: Selector<DataProvider, _DietTabViewData>(
           selector: (_, provider) => _DietTabViewData(
-            userProfile: provider.userProfile,
-            dailyTarget: provider.dailyTarget,
-            streakData: provider.streakData,
-            trackerSummary: provider.getTrackerSummaryForDate(todayKey),
-            mealPlan: provider.mealPlan,
             isMealPlanLoading: provider.isMealPlanLoading,
+            // ── Step 5: Model-only fields ──────────────────────────────────
+            userProfileModel: provider.userProfileModel,
+            dailyTargetModel: provider.dailyTargetModel,
+            streakDataModel: provider.streakDataModel,
+            trackerSummaryModel: provider.getTrackerModelForDate(todayKey),
+            mealPlanModel: provider.mealPlanModel,
           ),
           builder: (context, view, child) {
+            // Step 4.4 — log model status once per rebuild (debug only)
+            assert(() {
+              if (view.mealPlanModel != null) {
+                debugPrint('[ui] DietTab using MealPlanModel successfully');
+              }
+              return true;
+            }());
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
@@ -79,8 +87,9 @@ class _DietTabState extends State<DietTab> {
                             ),
                       ),
                     ),
-                    _buildWelcomeMessage(view.userProfile, view.dailyTarget),
-                    _buildStreakCard(view.streakData),
+                    // Step 5 — use computed getters from ViewData
+                    _buildWelcomeMessage(view.displayName, view.targetCalories),
+                    _buildStreakCard(view.currentStreak),
                     AnimatedOpacity(
                       opacity: _showGreeting ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 500),
@@ -108,58 +117,65 @@ class _DietTabState extends State<DietTab> {
                           : const SizedBox.shrink(),
                     ),
                     if (view.isMealPlanLoading &&
-                        view.mealPlan == null &&
+                        view.mealPlanModel == null &&
                         !_showGreeting)
                       _buildMealPlanSkeleton(),
-                    if (view.dailyTarget != null)
-                      _buildProgressCard(view.dailyTarget!, view.trackerSummary),
+                    if (view.dailyTargetModel != null)
+                      _buildProgressCard(view.dailyTargetModel, view.trackerSummaryModel),
                     const SizedBox(height: 24),
-                    if (view.mealPlan != null) ...[
-                      // TASK 6: debug print slot sizes before rendering
+                    if (view.mealPlanModel != null) ...[
+                      // Step 5 — use typed model slots
                       () {
-                        final mp = view.mealPlan!;
-                        debugPrint('[diet-tab] breakfast: ${(mp["breakfast"] as List?)?.length ?? 0} items');
-                        debugPrint('[diet-tab] lunch:     ${(mp["lunch"]     as List?)?.length ?? 0} items');
-                        debugPrint('[diet-tab] snack:     ${(mp["snack"]     as List?)?.length ?? 0} items');
-                        debugPrint('[diet-tab] dinner:    ${(mp["dinner"]    as List?)?.length ?? 0} items');
+                        final mp = view.mealPlanModel!;
+                        debugPrint('[diet-tab] breakfast: ${mp.breakfast.length} items');
+                        debugPrint('[diet-tab] lunch:     ${mp.lunch.length} items');
+                        debugPrint('[diet-tab] snack:     ${mp.snack.length} items');
+                        debugPrint('[diet-tab] dinner:    ${mp.dinner.length} items');
                         return const SizedBox.shrink();
                       }(),
-                      // TASK 5: guard null AND empty list before rendering
-                      if (view.mealPlan!['breakfast'] != null &&
-                          !((view.mealPlan!['breakfast'] is List) &&
-                            (view.mealPlan!['breakfast'] as List).isEmpty))
+                      if (view.mealPlanModel!.breakfast.isNotEmpty)
                         _buildMealSection(
                           context,
                           "Breakfast",
-                          view.mealPlan!['breakfast'],
-                          view.trackerSummary,
+                          view.mealPlanModel!.breakfast
+                              .map((m) => m.toJson()).toList(),
+                          view.trackerSummaryModel,
                         ),
-                      if (view.mealPlan!['lunch'] != null &&
-                          !((view.mealPlan!['lunch'] is List) &&
-                            (view.mealPlan!['lunch'] as List).isEmpty))
+                      if (view.mealPlanModel!.lunch.isNotEmpty)
                         _buildMealSection(
                           context,
                           "Lunch",
-                          view.mealPlan!['lunch'],
-                          view.trackerSummary,
+                          view.mealPlanModel!.lunch
+                              .map((m) => m.toJson()).toList(),
+                          view.trackerSummaryModel,
                         ),
-                      if (view.mealPlan!['snack'] != null &&
-                          !((view.mealPlan!['snack'] is List) &&
-                            (view.mealPlan!['snack'] as List).isEmpty))
+                      if (view.mealPlanModel!.snack.isNotEmpty)
                         _buildMealSection(
                           context,
                           "Snack",
-                          view.mealPlan!['snack'],
-                          view.trackerSummary,
+                          view.mealPlanModel!.snack
+                              .map((m) => m.toJson()).toList(),
+                          view.trackerSummaryModel,
                         ),
-                      if (view.mealPlan!['dinner'] != null &&
-                          !((view.mealPlan!['dinner'] is List) &&
-                            (view.mealPlan!['dinner'] as List).isEmpty))
+                      if (view.mealPlanModel!.dinner.isNotEmpty)
                         _buildMealSection(
                           context,
                           "Dinner",
-                          view.mealPlan!['dinner'],
-                          view.trackerSummary,
+                          view.mealPlanModel!.dinner
+                              .map((m) => m.toJson()).toList(),
+                          view.trackerSummaryModel,
+                        ),
+                      // ── TASK 4: Plan Quality Score badge ──────────────────
+                      if (view.mealPlanModel!.optimizationScore != null)
+                        _buildPlanQualityBadge(
+                          view.mealPlanModel!.optimizationScore!,
+                          view.mealPlanModel!.scoreLabel,
+                        ),
+                      // ── Phase 7: AI Daily Rater badge ───────────────────
+                      if (view.mealPlanModel!.mlScore != null)
+                        _buildAiRatingBadge(
+                          view.mealPlanModel!.mlScore!,
+                          view.mealPlanModel!.mlScoreLabel,
                         ),
                     ] else if (!view.isMealPlanLoading)
                       _buildFallbackMealPlan(context),
@@ -180,30 +196,21 @@ class _DietTabState extends State<DietTab> {
     return "${weekDays[now.weekday - 1]}, ${now.day} ${months[now.month - 1]}";
   }
 
-  Widget _buildWelcomeMessage(Map<String, dynamic>? userProfile, Map<String, dynamic>? dailyTarget) {
-    // Determine name, handle missing API gracefully
-    final name = (userProfile != null && userProfile['name'] != null) ? userProfile['name'] : "User";
-    final targetCal = dailyTarget?['calories'] ?? 2000;
-    
+  Widget _buildWelcomeMessage(String displayName, double targetCalories) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Text("Good Morning $name 👋", style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+           Text("Good Morning $displayName 👋", style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
            const SizedBox(height: 4),
-           Text("Your calorie target today is $targetCal kcal.", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+           Text("Your calorie target today is ${targetCalories.toInt()} kcal.", style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
         ]
       )
     );
   }
 
-  Widget _buildStreakCard(Map<String, dynamic>? streakData) {
-    if (streakData == null) {
-      // Missing API placeholder
-      return _buildMotivationCard(1); 
-    }
-    final streak = streakData['streak'] ?? 0;
+  Widget _buildStreakCard(int streak) {
     if (streak == 0) return const SizedBox.shrink();
     return _buildMotivationCard(streak);
   }
@@ -235,18 +242,217 @@ class _DietTabState extends State<DietTab> {
     );
   }
 
-  Widget _buildProgressCard(Map<String, dynamic> target, Map<String, dynamic>? tracker) {
-    double targetCal = (target['calories'] ?? 1).toDouble();
-    double currentCal = tracker != null ? ((tracker['consumed']?['calories']) ?? 0).toDouble() : 0.0;
-    
-    double targetProt = (target['protein'] ?? 1).toDouble();
-    double currentProt = tracker != null ? ((tracker['consumed']?['protein']) ?? 0).toDouble() : 0.0;
-    
-    double targetFat = (target['fat'] ?? 1).toDouble();
-    double currentFat = tracker != null ? ((tracker['consumed']?['fat']) ?? 0).toDouble() : 0.0;
-    
-    double targetCarb = (target['carbs'] ?? 1).toDouble();
-    double currentCarb = tracker != null ? ((tracker['consumed']?['carbs']) ?? 0).toDouble() : 0.0;
+  /// TASK 4 — Plan Quality Score badge.
+  /// Shown below all meal sections when [optimizationScore] is available.
+  Widget _buildPlanQualityBadge(double score, String? label) {
+    final pct = (score * 100).round();
+    final displayLabel = label ?? _scoreLabel(score);
+
+    // Color shifts based on score tier
+    final Color badgeColor;
+    final Color textColor;
+    final String emoji;
+    if (score >= 0.85) {
+      badgeColor = const Color(0xFFE0F7F4); // teal-50
+      textColor  = const Color(0xFF00796B); // teal-700
+      emoji = '🌟';
+    } else if (score >= 0.70) {
+      badgeColor = const Color(0xFFE8F5E9); // green-50
+      textColor  = const Color(0xFF388E3C); // green-700
+      emoji = '✅';
+    } else if (score >= 0.50) {
+      badgeColor = const Color(0xFFFFF8E1); // amber-50
+      textColor  = const Color(0xFFF57F17); // amber-900
+      emoji = '⚡';
+    } else {
+      badgeColor = const Color(0xFFFFEBEE); // red-50
+      textColor  = const Color(0xFFC62828); // red-800
+      emoji = '⚠️';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: badgeColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: textColor.withOpacity(0.3)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Plan Quality',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: textColor.withOpacity(0.7),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        displayLabel,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '($pct%)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textColor.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Fallback label if backend didn't send score_label.
+  String _scoreLabel(double score) {
+    if (score >= 0.85) return 'Excellent plan';
+    if (score >= 0.70) return 'Good plan';
+    if (score >= 0.50) return 'Average plan';
+    return 'Needs improvement';
+  }
+
+  /// Phase 7 — AI Daily Rater badge (RandomForest ML score).
+  Widget _buildAiRatingBadge(double score, String? label) {
+    final pct          = (score * 100).round();
+    final displayLabel = label ?? _mlScoreLabel(score);
+
+    // Colour scheme: green → yellow → red
+    final Color bgColor;
+    final Color textColor;
+    final Color borderColor;
+    final IconData icon;
+
+    if (score >= 0.85) {
+      bgColor     = const Color(0xFFE8F5E9); // green-50
+      textColor   = const Color(0xFF2E7D32); // green-800
+      borderColor = const Color(0xFFA5D6A7); // green-200
+      icon        = Icons.auto_awesome;
+    } else if (score >= 0.70) {
+      bgColor     = const Color(0xFFE3F2FD); // blue-50
+      textColor   = const Color(0xFF1565C0); // blue-800
+      borderColor = const Color(0xFF90CAF9); // blue-200
+      icon        = Icons.thumb_up_alt_outlined;
+    } else if (score >= 0.50) {
+      bgColor     = const Color(0xFFFFFDE7); // yellow-50
+      textColor   = const Color(0xFFF57F17); // amber-900
+      borderColor = const Color(0xFFFFE082); // amber-200
+      icon        = Icons.warning_amber_outlined;
+    } else {
+      bgColor     = const Color(0xFFFFEBEE); // red-50
+      textColor   = const Color(0xFFB71C1C); // red-900
+      borderColor = const Color(0xFFEF9A9A); // red-200
+      icon        = Icons.trending_down;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: textColor, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Rating',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: textColor.withOpacity(0.7),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        displayLabel,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '($pct%)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textColor.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Powered by NutriLens RandomForest model',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: textColor.withOpacity(0.55),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _mlScoreLabel(double score) {
+    if (score >= 0.85) return 'Excellent';
+    if (score >= 0.70) return 'Good';
+    if (score >= 0.50) return 'Average';
+    return 'Needs Improvement';
+  }
+
+  // Step 5 — typed model parameters
+  Widget _buildProgressCard(DailyTarget? target, TrackerSummary? tracker) {
+    final tCal  = target?.calories ?? 2000;
+    final cCal  = tracker?.consumed.calories ?? 0;
+    final tProt = target?.protein  ?? 100;
+    final cProt = tracker?.consumed.protein  ?? 0;
+    final tFat  = target?.fat      ?? 70;
+    final cFat  = tracker?.consumed.fat      ?? 0;
+    final tCarb = target?.carbs    ?? 250;
+    final cCarb = tracker?.consumed.carbs    ?? 0;
 
     return Card(
       elevation: 2,
@@ -258,13 +464,13 @@ class _DietTabState extends State<DietTab> {
           children: [
             Text("Today's Progress", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildProgressBar(context, "Calories", currentCal, targetCal, "kcal", Colors.orange),
+            _buildProgressBar(context, "Calories", cCal,  tCal,  "kcal", Colors.orange),
             const SizedBox(height: 12),
-            _buildProgressBar(context, "Protein", currentProt, targetProt, "g", Colors.red),
+            _buildProgressBar(context, "Protein",  cProt, tProt, "g",    Colors.red),
             const SizedBox(height: 12),
-            _buildProgressBar(context, "Fat", currentFat, targetFat, "g", Colors.yellow[700]!),
+            _buildProgressBar(context, "Fat",      cFat,  tFat,  "g",    Colors.yellow[700]!),
             const SizedBox(height: 12),
-            _buildProgressBar(context, "Carbs", currentCarb, targetCarb, "g", Colors.blue),
+            _buildProgressBar(context, "Carbs",    cCarb, tCarb, "g",    Colors.blue),
           ],
         ),
       ),
@@ -430,7 +636,7 @@ class _DietTabState extends State<DietTab> {
     BuildContext context,
     String mealType,
     dynamic mealData,
-    Map<String, dynamic>? trackerSummary,
+    TrackerSummary? trackerSummary,
   ) {
     // Backend v2 returns an array directly for each meal:
     //   "breakfast": [{mealName, quantity, calories, ...}, ...]
@@ -502,21 +708,19 @@ class _DietTabState extends State<DietTab> {
     BuildContext context,
     String mealType,
     Map<String, dynamic> item,
-    Map<String, dynamic>? trackerSummary,
+    TrackerSummary? trackerSummary,
   ) {
-    final logs = trackerSummary != null ? (trackerSummary['logs'] as List?) : [];
+    // Step 5 — read logs from model directly
+    final logs = trackerSummary?.logs;
     
-    // Check if this meal name exists in logs
-    int loggedQty = 0;
+    double loggedQty = 0.0;
     String? logId;
     if (logs != null) {
-      for (var log in logs) {
-        if (log['mealName'] == item['mealName'] && log['mealType'] == mealType) {
-           final qRaw = log['quantity'] ?? 1;
-           final q = (qRaw is num) ? qRaw.toInt() : int.tryParse(qRaw.toString()) ?? 1;
-           loggedQty = q;
-           logId = (log['logId'] ?? log['id'] ?? log['_id'])?.toString();
-           break; // treat the log entry as the source of truth for qty controls
+      for (final log in logs) {
+        if (log.mealName == item['mealName'] && log.mealType == mealType) {
+           loggedQty = log.quantity;
+           logId = log.logId;
+           break;
         }
       }
     }
@@ -555,20 +759,59 @@ class _DietTabState extends State<DietTab> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        // TASK 3: null-safe macro display
                         "${item['calories'] ?? 0} kcal • ${item['protein'] ?? 0}g P • ${item['fat'] ?? 0}g F • ${item['carbs'] ?? 0}g C",
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      if (item['servingSize'] != null && item['servingSize'].toString().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Text(
+                            "${item['servingSize']}${item['servingGrams'] != null ? ' • ${item['servingGrams']}g' : ''}",
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ],
             ),
-            if (item['smart_explanation'] != null)
-              Padding(
+            // TASK 2.4 — Explanation System: prefer 'explanation', fallback to 'smart_explanation'
+            Builder(builder: (context) {
+              final explanationText = (item['explanation']?.toString().isNotEmpty == true
+                  ? item['explanation']
+                  : item['smart_explanation'])?.toString();
+              if (explanationText == null || explanationText.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
                 padding: const EdgeInsets.only(top: 8.0, left: 62),
-                child: Text("💡 ${item['smart_explanation']}", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[700], fontSize: 12)),
-              ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.teal.shade100),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 13, color: Colors.teal.shade600),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          explanationText,
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.teal.shade800,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -647,32 +890,19 @@ class _DietTabState extends State<DietTab> {
     );
   }
 
-  void _updateLogQuantity(BuildContext context, String? logId, int newQuantity) async {
+  void _updateLogQuantity(BuildContext context, String? logId, double newQuantity) async {
     if (logId == null) return;
     final provider = Provider.of<DataProvider>(context, listen: false);
-    // Assuming DataProvider has updateLog method or we do it via raw API.
-    // I will add API call for updateLog inside api_service if missing or in provider.
-    // The prompt says PUT /update-log. Let's call it via api_service.
-    try {
-      final response = await ApiService.updateLog(logId, newQuantity);
-      if (response && context.mounted) {
-        provider.refreshTrackerDataForDate(DateTime.now().toIso8601String().split('T')[0]); // refresh UI
-      }
-    } catch (e) {
-      // Ignored error
-    }
+    debugPrint('[diet-tab] updateLogQuantity: logId=$logId newQty=$newQuantity');
+    // Route through DataProvider — never call ApiService directly from UI.
+    await provider.updateLog(logId, newQuantity);
   }
 
   void _deleteLog(BuildContext context, String logId) async {
     final provider = Provider.of<DataProvider>(context, listen: false);
-    try {
-      final response = await ApiService.deleteLog(logId);
-      if (response && context.mounted) {
-        provider.refreshTrackerDataForDate(DateTime.now().toIso8601String().split('T')[0]);
-      }
-    } catch (e) {
-      // Ignored error
-    }
+    // Fix M (audit): pass dateKey so the dated tracker cache is invalidated.
+    final dateKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await provider.deleteLog(logId, dateKey);
   }
 
   void _logMeal(BuildContext context, String mealType, Map<String, dynamic> meal) async {
@@ -728,13 +958,12 @@ class _DietTabState extends State<DietTab> {
                   final newMeal = Map<String, dynamic>.from(item);
                   newMeal['source'] = "knn_swap";
 
-                  // Immutable update - Selector detects new map reference.
-                  if (provider.mealPlan != null) {
+                  // Step 5 — swap via model.toJson() since mealPlan Map is removed
+                  if (provider.mealPlanModel != null) {
                     final key = mealType.toLowerCase();
-                    final oldPlan = provider.mealPlan!;
+                    final oldPlan = provider.mealPlanModel!.toJson();
                     final newPlan = Map<String, dynamic>.from(oldPlan);
 
-                    // New shape: section is a List
                     if (oldPlan[key] is List) {
                       final list = List<dynamic>.from(oldPlan[key] as List);
                       final idx = list.indexWhere((e) => e is Map && e['mealName'] == currentMeal);
@@ -768,40 +997,69 @@ class _DietTabState extends State<DietTab> {
 
 class _DietTabViewData {
   const _DietTabViewData({
-    required this.userProfile,
-    required this.dailyTarget,
-    required this.streakData,
-    required this.trackerSummary,
-    required this.mealPlan,
     required this.isMealPlanLoading,
+    // ── Step 5: Model-only fields ──
+    this.userProfileModel,
+    this.dailyTargetModel,
+    this.streakDataModel,
+    this.trackerSummaryModel,
+    this.mealPlanModel,
   });
 
-  final Map<String, dynamic>? userProfile;
-  final Map<String, dynamic>? dailyTarget;
-  final Map<String, dynamic>? streakData;
-  final Map<String, dynamic>? trackerSummary;
-  final Map<String, dynamic>? mealPlan;
   final bool isMealPlanLoading;
+  final UserProfile? userProfileModel;
+  final DailyTarget? dailyTargetModel;
+  final StreakData? streakDataModel;
+  final TrackerSummary? trackerSummaryModel;
+  final MealPlan? mealPlanModel;
+
+  // ── Computed getters ────────────────────────────────────────────────
+
+  double get targetCalories => dailyTargetModel?.calories ?? 2000;
+
+  double get consumedCalories => trackerSummaryModel?.consumed.calories ?? 0;
+
+  int get currentStreak => streakDataModel?.streak ?? 0;
+
+  String get displayName =>
+      userProfileModel?.displayName ??
+      ApiService.userId?.split('@').first ??
+      'User';
 
   @override
   bool operator ==(Object other) {
-    return other is _DietTabViewData &&
-        mapEquals(other.userProfile, userProfile) &&
-        mapEquals(other.dailyTarget, dailyTarget) &&
-        mapEquals(other.streakData, streakData) &&
-        mapEquals(other.trackerSummary, trackerSummary) &&
-        mapEquals(other.mealPlan, mealPlan) &&
-        other.isMealPlanLoading == isMealPlanLoading;
+    if (other is! _DietTabViewData) return false;
+    if (other.isMealPlanLoading != isMealPlanLoading) return false;
+    if (other.mealPlanModel != mealPlanModel) return false;
+    if (other.dailyTargetModel != dailyTargetModel) return false;
+    if (other.streakDataModel != streakDataModel) return false;
+    if (other.userProfileModel != userProfileModel) return false;
+    // Compare tracker date + consumed totals
+    if (other.trackerSummaryModel?.date != trackerSummaryModel?.date) return false;
+    if (other.trackerSummaryModel?.consumed.calories !=
+        trackerSummaryModel?.consumed.calories) return false;
+    // Critical fix: also compare log quantities AND mealType so +/- triggers
+    // a rebuild and cross-slot matches don't cause stale display.
+    final thisLogs  = trackerSummaryModel?.logs ?? [];
+    final otherLogs = other.trackerSummaryModel?.logs ?? [];
+    if (thisLogs.length != otherLogs.length) return false;
+    for (int i = 0; i < thisLogs.length; i++) {
+      if (thisLogs[i].quantity  != otherLogs[i].quantity)  return false;
+      if (thisLogs[i].calories  != otherLogs[i].calories)  return false;
+      if (thisLogs[i].mealName  != otherLogs[i].mealName)  return false;
+    }
+    return true;
   }
 
   @override
   int get hashCode => Object.hash(
-        userProfile,
-        dailyTarget,
-        streakData,
-        trackerSummary,
-        mealPlan,
         isMealPlanLoading,
+        mealPlanModel,
+        dailyTargetModel,
+        trackerSummaryModel?.logs.fold<double>(0, (s, l) => s + l.quantity),
+        trackerSummaryModel?.consumed.calories,
+        streakDataModel,
+        userProfileModel,
       );
 }
 

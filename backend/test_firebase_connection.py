@@ -9,7 +9,7 @@ db = firestore.client()
 print("  ✅ Firebase connected!")
 
 print("[2/4] Testing Firestore read (3 meals)...")
-docs = list(db.collection("meals").limit(3).stream())
+docs = list(db.collection("meals_v3").limit(3).stream())
 print(f"  ✅ Found {len(docs)} meals")
 for d in docs:
     m = d.to_dict()

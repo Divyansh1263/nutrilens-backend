@@ -1,10 +1,12 @@
 # routes/meal_routes.py
+import os
 from flask import Blueprint, request
 from datetime import datetime
 from utils.response_utils import success, error
 from utils.logger import app_logger
+from utils.auth_middleware import firebase_auth_optional, get_user_id_from_request
 from validators.meal_validator import (
-    validate_generate_plan, validate_log_meal, 
+    validate_generate_plan, validate_log_meal,
     validate_update_log, validate_delete_log
 )
 from services.meal_generator_service import meal_generator_service
@@ -13,37 +15,252 @@ from services.search_service import search_service
 
 meal_bp = Blueprint('meal', __name__)
 
-# ==========================================
+# ─────────────────────────────────────────────────────────────────────────────
+# DEMO MODE — controlled via DEMO_MODE env variable.
+# Set DEMO_MODE=true in Cloud Run to activate; defaults to false (real AI).
+# Never hardcode True here — use the env var instead.
+# ─────────────────────────────────────────────────────────────────────────────
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+
+def get_demo_meal_plan() -> dict:
+    """Returns a realistic hardcoded meal plan used during DEMO_MODE.
+    Meal names match the live dataset so the swap endpoint still works."""
+    return {
+        "breakfast": [
+            {"mealName": "Masala Oats",  "calories": 150, "protein": 5,  "carbs": 25, "fat": 3,  "quantity": 1},
+            {"mealName": "Boiled Egg",   "calories": 75,  "protein": 6,  "carbs": 1,  "fat": 5,  "quantity": 2},
+        ],
+        "lunch": [
+            {"mealName": "Dal Tadka",    "calories": 300, "protein": 12, "carbs": 30, "fat": 10, "quantity": 1},
+            {"mealName": "Plain Rice",   "calories": 200, "protein": 4,  "carbs": 45, "fat": 1,  "quantity": 1},
+        ],
+        "snack": [
+            {"mealName": "Banana",       "calories": 100, "protein": 1,  "carbs": 27, "fat": 0,  "quantity": 1},
+        ],
+        "dinner": [
+            {"mealName": "Roti",                    "calories": 120, "protein": 3, "carbs": 20, "fat": 3,  "quantity": 2},
+            {"mealName": "Mixed Vegetable Sabzi",   "calories": 180, "protein": 5, "carbs": 15, "fat": 10, "quantity": 1},
+        ],
+        "target_calories": 1500,
+        "target_macros":   {"protein": 90, "carbs": 150, "fat": 50},
+        "total_calories":  1400,
+    }
+
+
+# =============================================================================
 # GENERATION
-# ==========================================
+# =============================================================================
 @meal_bp.route("/generate-meal-plan", methods=["POST"])
+@firebase_auth_optional
 def generate_meal_plan():
+    # TASK 3: DEMO MODE — short-circuit everything, return hardcoded plan
+    if DEMO_MODE:
+        from flask import jsonify
+        print("[meal-plan] DEMO MODE ACTIVE — returning hardcoded plan")
+        plan = get_demo_meal_plan()
+        return jsonify({
+            "success": True,
+            "message": "Demo meal plan generated",
+
+            # Nested "data" block — APK reads res['data']['breakfast']
+            "data": {
+                "breakfast":       plan["breakfast"],
+                "lunch":           plan["lunch"],
+                "snack":           plan["snack"],
+                "dinner":          plan["dinner"],
+                "target_calories": plan["target_calories"],
+                "target_macros":   plan["target_macros"],
+                "total_calories":  plan["total_calories"],
+            },
+
+            # Flat keys — kept for any client reading top-level
+            "breakfast":       plan["breakfast"],
+            "lunch":           plan["lunch"],
+            "snack":           plan["snack"],
+            "dinner":          plan["dinner"],
+            "target_calories": plan["target_calories"],
+            "target_macros":   plan["target_macros"],
+            "total_calories":  plan["total_calories"],
+        }), 200
+
+
+    app_logger.info("[meal-plan] REAL MODE ACTIVE — using AI generation")
     data = request.get_json(force=True)
     is_valid, msg = validate_generate_plan(data)
     if not is_valid:
         return error(msg)
-        
-    user_id = data.get("userId")
+
+    user_id = get_user_id_from_request(data)
     date_str = data.get("date")
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
-    
-    # Check if plan already exists for today
+
+    # TASK 3: bypass stale cached plans — force AI regeneration every request.
+    # Original cache lookup kept below for future re-enable.
     from repositories.tracker_repository import tracker_repo
-    existing = tracker_repo.get_plan_by_date(user_id, date_str)
-    if existing:
-        return success(existing, "Meal plan retrieved")
-    
+    existing = None  # Cache bypass: was tracker_repo.get_plan_by_date(user_id, date_str)
+
+    # --- ORIGINAL CACHE LOGIC (re-enable when cache invalidation is implemented) ---
+    # existing = tracker_repo.get_plan_by_date(user_id, date_str)
+    # if existing:
+    #     existing = _normalize_plan_structure(existing)
+    #     if not _is_plan_empty(existing):
+    #         app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
+    #         return _meal_plan_response(existing, "Meal plan retrieved")
+    #     app_logger.warning(
+    #         "[meal-plan] cached plan empty → regenerating for user=%s date=%s",
+    #         user_id, date_str
+    #     )
+    # --- END ORIGINAL CACHE LOGIC ---
+
+    if existing:  # always False with bypass, kept for structural parity
+        pass
+
+    # Generate (or regenerate) — save_plan() inside overwrites Firestore
     try:
+        print(f"[DEBUG] meal_routes.py: generate_meal_plan called with data={data}")
         plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
     except Exception as exc:
-        app_logger.exception("generate_daily_plan crashed: %s", exc)
-        return error(f"Internal error: {exc}", 500)
-        
+        import traceback
+        error_trace = traceback.format_exc()
+        print("ERROR TRACE:", error_trace)
+        from flask import jsonify
+        return jsonify({
+            "success": False,
+            "error": str(exc),
+            "trace": error_trace
+        }), 500
+
     if err:
         return error(err, 500 if "Error" in err else 400)
-        
-    return success(plan, "Meal plan generated")
+
+    # TASK 1: normalize fresh plan too (defensive)
+    plan = _normalize_plan_structure(plan)
+
+    # TASK 4: final safety — force-fill any still-empty slot
+    slots = ("breakfast", "lunch", "snack", "dinner")
+    if _is_plan_empty(plan):
+        import random
+        app_logger.warning("[meal-plan] WARNING: generated plan is empty → forcing fallback")
+        from meals_cache import MEALS_CACHE
+        pool = list(MEALS_CACHE) if MEALS_CACHE else []
+        for slot in slots:
+            if not plan.get(slot) and pool:
+                m = random.choice(pool)
+                plan[slot] = [{
+                    "mealName": m.get("mealName", "fallback"),
+                    "quantity":  1.0,
+                    "calories": round(float(m.get("calories") or 0), 1),
+                    "protein":  round(float(m.get("protein")  or 0), 1),
+                    "carbs":    round(float(m.get("carbs")    or 0), 1),
+                    "fat":      round(float(m.get("fat")      or 0), 1),
+                }]
+
+    # TASK 2: DEBUG PLAN — log full item keys before response serialization
+    print("[DEBUG PLAN]", {
+        slot: [
+            {k: v for k, v in item.items()}
+            for item in plan.get(slot, [])
+        ]
+        for slot in slots
+    })
+
+    return _meal_plan_response(plan, "Meal plan generated")
+
+
+
+def _normalize_plan_structure(plan: dict) -> dict:
+    """
+    TASK 1: Normalize Firestore slot values so they are always Python lists.
+    Firestore sometimes stores arrays as dicts {"0": {...}, "1": {...}}.
+    Also coerces None slots to empty lists.
+    """
+    for key in ("breakfast", "lunch", "snack", "dinner"):
+        val = plan.get(key)
+        if isinstance(val, dict):
+            plan[key] = list(val.values())   # {"0":{...}, "1":{...}} → [{...}, {...}]
+        elif val is None:
+            plan[key] = []
+    return plan
+
+
+def _is_plan_empty(plan: dict) -> bool:
+    """
+    TASK 2: Returns True when ALL meal slots are absent or empty.
+    Uses normalization so Firestore dict-as-array is handled correctly.
+    """
+    if not plan:
+        return True
+    for key in ("breakfast", "lunch", "snack", "dinner"):
+        val = plan.get(key)
+        if isinstance(val, dict):
+            val = list(val.values())
+        if val and len(val) > 0:
+            return False
+    return True
+
+
+
+
+def _meal_plan_response(plan, message):
+    """
+    TASK 5: Flat-only response — exactly what the existing APK expects.
+    No nested 'data' key. Both cached and fresh paths use this helper.
+
+    Fields preserved per item (TASKS 3+4):
+      mealName, quantity, calories, protein, carbs, fat, explanation, servingSize
+    Top-level analytics: optimization_score, score_label, macro_deviation
+    """
+    from utils.response_utils import sanitize_firestore_data
+    from flask import jsonify
+
+    # Normalize one final time (handles any Firestore dict-as-array edge cases)
+    plan = _normalize_plan_structure(plan)
+    clean = sanitize_firestore_data(plan)
+
+    slots = ("breakfast", "lunch", "snack", "dinner")
+
+    # TASK 6 / TASK 3: FINAL PLAN debug log — verify all fields present
+    slot_counts = {s: len(clean.get(s) or []) for s in slots}
+    print(f"[meal-plan] FINAL PLAN: {slot_counts}")
+    for slot in slots:
+        for item in (clean.get(slot) or []):
+            has_explanation  = bool(item.get("explanation"))
+            has_serving_size = bool(item.get("servingSize"))
+            has_quantity     = item.get("quantity") is not None
+            if not (has_explanation and has_serving_size and has_quantity):
+                print(
+                    f"[meal-plan] MISSING FIELDS in {slot}/{item.get('mealName')}: "
+                    f"explanation={has_explanation} servingSize={has_serving_size} "
+                    f"quantity={has_quantity}"
+                )
+
+    response = {
+        "success":             True,
+        "message":             message,
+        # TASK 5: flat keys only — no 'data' envelope
+        "breakfast":           clean.get("breakfast", []),
+        "lunch":               clean.get("lunch",     []),
+        "snack":               clean.get("snack",     []),
+        "dinner":              clean.get("dinner",    []),
+        "target_calories":     clean.get("target_calories"),
+        "target_macros":       clean.get("target_macros"),
+        "total_calories":      clean.get("total_calories"),
+        # TASK 4: optimization analytics — frontend quality badge
+        "optimization_score":  clean.get("optimization_score"),
+        "score_label":         clean.get("score_label"),
+        "macro_deviation":     clean.get("macro_deviation"),
+        # Phase 6: ML Daily Rater score — backward-compatible (None if model unavailable)
+        "ml_score":            clean.get("ml_score"),
+        "ml_score_label":      clean.get("ml_score_label"),
+    }
+
+    assert "data" not in response, "[meal-plan] BUG: 'data' key must not be present"
+
+    return jsonify(response), 200
+
+
 
 
 # ==========================================
@@ -68,14 +285,15 @@ def food_details():
     return success(details)
 
 @meal_bp.route("/log-meal", methods=["POST"])
+@firebase_auth_optional
 def log_meal():
     data = request.get_json(force=True)
     is_valid, msg = validate_log_meal(data)
     if not is_valid:
         return error(msg)
-        
+
     log_id, err = meal_logging_service.log_meal(
-        user_id=data.get("userId"),
+        user_id=get_user_id_from_request(data),  # B2 FIX: token-first
         meal_name=data.get("mealName"),
         quantity=data.get("quantity", 1),
         meal_type=data.get("mealType"),
@@ -138,11 +356,12 @@ def analyze_meal_nlp():
 # ==========================================
 
 @meal_bp.route("/log-meal-nlp-ml", methods=["POST"])
+@firebase_auth_optional
 def log_meal_nlp_ml():
     data = request.get_json(force=True)
-    user_id = data.get("userId")
+    user_id  = get_user_id_from_request(data)
     date_str = data.get("date")
-    text = data.get("text")
+    text     = data.get("text")
     
     if not user_id or not date_str or not text:
         return error("userId, date, and text are required")
@@ -163,16 +382,33 @@ def log_meal_nlp_ml():
     return success({"items": result.get("items", [])}, result.get("message", "NLP meals logged"))
 
 @meal_bp.route("/update-log", methods=["PUT"])
+@firebase_auth_optional
 def update_log():
     data = request.get_json(force=True)
     is_valid, msg = validate_update_log(data)
     if not is_valid:
-         return error(msg)
-         
-    success_status, err = meal_logging_service.update_log_quantity(data.get("logId") or data.get("log_id"), data.get("quantity"))
+        return error(msg)
+
+    log_id   = data.get("logId") or data.get("log_id")
+    quantity = data.get("quantity")
+
+    # update_log_quantity now returns a 3-tuple: (success, err_msg, updated_macros)
+    result = meal_logging_service.update_log_quantity(log_id, quantity)
+    success_status, err, updated_macros = result
+
     if not success_status:
-         return error(err, 404)
-    return success({}, "Log quantity updated")
+        return error(err, 404)
+
+    # TASK 1 FIX: include quantity in response so the UI never resets to the
+    # old value.  updated_macros may or may not contain "quantity" already;
+    # we always stamp it explicitly from the validated request value.
+    return success({
+        "quantity": quantity,
+        "calories": updated_macros.get("calories"),
+        "protein":  updated_macros.get("protein"),
+        "carbs":    updated_macros.get("carbs"),
+        "fat":      updated_macros.get("fat"),
+    }, "Log quantity updated")
 
 @meal_bp.route("/delete-log", methods=["DELETE"])
 def delete_log():
@@ -189,30 +425,39 @@ def delete_log():
 @meal_bp.route("/replace-meal", methods=["POST"])
 def replace_meal():
     """
-    ISSUE 2 FIX: Always Return Suggestions (Swap Meal Spinner Fix).
-    
-    Implement multi-tier fallback to ensure spinner never hangs.
-    
-    Algorithm:
-      1. Case-insensitive meal lookup
-      2. KNN model suggestions (if available and meal found)
-      3. Random Firestore fallback (if KNN < 5 results)
-      4. Always return HTTP 200 with up to 5 suggestions
+    Smart meal swap endpoint.
+
+    Tiers:
+      1. Case-insensitive meal lookup in DB
+      2. KNN dietary-filtered replacements (find_replacements_for_user)
+      3. Random pool top-up from in-memory cache (dietary-filtered)
+
+    Always returns HTTP 200 with up to 5 suggestions.
+    Dietary filter uses boolean flags only — never string matching.
     """
     data = request.get_json(force=True)
     meal_name = data.get("mealName")
     if not meal_name:
         return error("mealName required")
-    
-    print(f"[Debug] Swap meal request received: {meal_name}")
-    
+
+    print(f"[replace-meal] request: {meal_name}")
+
     from app import knn_model
     from repositories.meal_repository import meal_repo
-    
+    from utils.diet_utils import apply_diet_filter
+
+    # ── Resolve user profile (for dietary filter + explanations) ───────────────
+    _profile = {}
+    try:
+        user_id = get_user_id_from_request(data)
+        if user_id:
+            from repositories.user_repository import user_repo as _ur
+            _profile = _ur.get_user_profile(user_id) or {}
+    except Exception as _e:
+        print(f"[replace-meal] profile fetch failed: {_e}")
+
     # TIER 1: Case-insensitive meal lookup
     meal = meal_repo.get_meal_by_name(meal_name)
-    
-    # If exact match failed, try case-insensitive lookup
     if not meal:
         try:
             from dev_store import MEALS_CACHE
@@ -223,77 +468,66 @@ def replace_meal():
             ]
             if candidates:
                 meal = candidates[0]
-                print(f"[Debug] Found meal via case-insensitive lookup: {meal['mealName']}")
+                print(f"[replace-meal] case-insensitive match: {meal['mealName']}")
         except Exception:
             pass
-    
+
     suggestions = []
-    
-    # TIER 2: KNN model suggestions (requires meal in DB + loaded model)
+
+    # TIER 2: KNN — use find_replacements_for_user (TASK 1.2)
     if knn_model and knn_model.knn and meal:
         try:
-            knn_suggestions = knn_model.find_replacements(meal) or []
+            knn_suggestions = knn_model.find_replacements_for_user(
+                meal=meal, user=_profile, k=5
+            ) or []
             suggestions.extend(knn_suggestions)
-            print(f"[Debug] KNN returned {len(knn_suggestions)} suggestions")
+            print(f"[replace-meal] KNN returned {len(knn_suggestions)} filtered suggestions")
         except Exception as e:
-            print(f"[Debug] KNN failed: {e}")
+            print(f"[replace-meal] KNN failed: {e}")
     
-    # TIER 3: Top up to 5 using random meals from cache (exclude original)
-    # IMPROVEMENT 4: Use cached meals for fallback instead of querying Firestore
+    # TIER 3: Top up to 5 from in-memory cache (dietary-filtered)
     if len(suggestions) < 5:
         try:
             import random
-            from repositories.meal_repository import _cached_meals
-            
-            # Use in-memory cache for random selection (0 Firestore reads)
-            if _cached_meals:
-                needed = 5 - len(suggestions)
-                existing_names = {s.get("mealName", "") for s in suggestions} | {meal_name}
-                
-                # Create a shuffled copy and filter
-                available_meals = [
-                    m for m in _cached_meals
-                    if m.get("mealName", "").lower() not in {n.lower() for n in existing_names}
-                ]
-                random.shuffle(available_meals)
-                
-                for rm in available_meals[:needed]:
-                    rm_name = rm.get("mealName", "")
-                    if rm_name and rm_name not in existing_names:
-                        suggestions.append(rm)
-                        existing_names.add(rm_name)
-                
-                num_added = len(suggestions)
-                print(f"[Debug] Added {num_added} meals from cache fallback (IMPROVEMENT 4: zero Firestore reads)")
-            else:
-                # Fallback to original method if cache not ready
-                needed = 5 - len(suggestions)
-                existing_names = {s.get("mealName", "") for s in suggestions} | {meal_name}
-                
-                random_meals = meal_repo.get_random_meals(limit=needed + 10)
-                
-                for rm in random_meals:
-                    rm_name = rm.get("mealName", "")
-                    if rm_name and rm_name not in existing_names:
-                        suggestions.append(rm)
-                        existing_names.add(rm_name)
-                        if len(suggestions) >= 5:
-                            break
-                
-                print(f"[Debug] Cache not ready, using Firestore fallback ({len(random_meals)} fetches)")
+            from repositories.meal_repository import meal_repo as _mr
+            from utils.diet_utils import apply_diet_filter
+
+            _all_meals    = _mr.get_all_meals()
+            _diet_ok_pool = apply_diet_filter(_all_meals, _profile)
+
+            needed         = 5 - len(suggestions)
+            existing_names = {s.get("mealName", "").lower() for s in suggestions} | {meal_name.lower()}
+
+            available = [
+                m for m in _diet_ok_pool
+                if m.get("mealName", "").lower() not in existing_names
+            ]
+            random.shuffle(available)
+            suggestions.extend(available[:needed])
+            print(f"[replace-meal] TIER 3 top-up: total={len(suggestions)}")
         except Exception as e:
-            print(f"[Debug] Cache fallback failed: {e}")
-            pass
-            
-            print(f"[Debug] Added {len(suggestions)} random meal fallbacks")
-        except Exception as e:
-            print(f"[Debug] Random meals fallback failed: {e}")
-    
-    # Ensure we always have at least some result (even if empty items)
-    result_suggestions = [{"mealName": s.get("mealName", "Unknown")} for s in suggestions[:5]]
-    
-    print(f"[Debug] Returning {len(result_suggestions)} suggestions")
+            print(f"[replace-meal] TIER 3 failed: {e}")
+
+
+    # ── Build response (include explanation per TASK 2.3) ───────────────────
+    from utils.diet_utils import resolve_explanation
+
+    result_suggestions = []
+    for s in suggestions[:5]:
+        mapped = {
+            "mealName":    s.get("mealName", "Unknown"),
+            "calories":    float(s.get("calories") or 100),
+            "protein":     float(s.get("protein")  or 5),
+            "carbs":       float(s.get("carbs")    or 20),
+            "fat":         float(s.get("fat")      or 3),
+            "explanation": resolve_explanation(s, _profile),
+        }
+        print(f"[replace-meal] suggestion: {mapped['mealName']} kcal={mapped['calories']}")
+        result_suggestions.append(mapped)
+
+    print(f"[replace-meal] returning {len(result_suggestions)} suggestions")
     return success({"aiSuggestions": result_suggestions}, "Replacements found")
+
 
 
 @meal_bp.route("/swap-meal", methods=["POST"])

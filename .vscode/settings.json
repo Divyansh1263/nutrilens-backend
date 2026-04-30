@@ -8,5 +8,8 @@
             "approve": true,
             "matchCommandLine": true
         }
-    }
+    },
+    "python.languageServer": "Pylance",
+    "pyrefly.enabled": false,
+    "python.defaultInterpreterPath": "C:\\Users\\Divyansh Tyagi\\ai-env\\Scripts\\python.exe"
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'app/data/providers/data_provider.dart';
 
@@ -13,6 +14,10 @@ import 'app/modules/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase (required for firebase_auth + google_sign_in)
+  await Firebase.initializeApp();
+
   await ApiService.init();
 
   runApp(

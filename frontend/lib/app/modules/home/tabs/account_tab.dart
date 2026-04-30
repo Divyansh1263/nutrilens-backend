@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../main.dart';
 
 import 'package:provider/provider.dart';
+import '../../../data/models/models.dart';
 import '../../../data/providers/data_provider.dart';
 import '../../../data/services/api_service.dart';
 
@@ -21,7 +21,7 @@ class _AccountTabState extends State<AccountTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<DataProvider>();
       provider.fetchUserProfile();
-      if (provider.dailyTarget == null) {
+      if (provider.dailyTargetModel == null) {
         provider.fetchDailyTarget();
       }
     });
@@ -29,8 +29,10 @@ class _AccountTabState extends State<AccountTab> {
   
   Future<void> _refreshData() async {
     final provider = context.read<DataProvider>();
-    provider.dailyTarget = null;
-    await provider.fetchDailyTarget();
+    // Use the provider's own method — never mutate provider fields directly
+    // from the UI layer. refreshDietData() resets + refetches dailyTarget,
+    // mealPlan, and tracker via DataProvider's controlled state machine.
+    await provider.refreshDietData();
     await provider.fetchUserProfile(forceRefresh: true);
   }
 
@@ -42,23 +44,32 @@ class _AccountTabState extends State<AccountTab> {
       ),
       body: Selector<DataProvider, _AccountTabViewData>(
         selector: (_, provider) => _AccountTabViewData(
-          userProfile: provider.userProfile,
-          dailyTarget: provider.dailyTarget,
           isProfileLoading: provider.isProfileLoading,
+          // ── Step 5: Model-only fields ──
+          userProfileModel: provider.userProfileModel,
+          dailyTargetModel: provider.dailyTargetModel,
         ),
         builder: (context, view, child) {
-          if (view.isProfileLoading && view.userProfile == null) {
+          if (view.isProfileLoading && view.userProfileModel == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final profile = view.userProfile ?? {};
-          final email = profile['email'] ?? ApiService.userId ?? "Guest";
-          final displayName =
-              profile['name'] ?? (email.contains('@') ? email.split('@').first : email);
-          final height = profile['height'] ?? '--';
-          final weight = profile['weight'] ?? '--';
-          final goal = profile['goal'] ?? 'Maintain Weight';
-          final activity = profile['activity_level'] ?? 'Moderate';
+          // Step 5 — model-only reads with safe fallbacks
+          final email = view.userProfileModel?.email ??
+              ApiService.userId ?? "Guest";
+          final displayName = view.userProfileModel?.displayName ??
+              (email.contains('@') ? email.split('@').first : email);
+          final height = view.userProfileModel?.height?.toString() ?? '--';
+          final weight = view.userProfileModel?.weight?.toString() ?? '--';
+          final goal = view.userProfileModel?.goal ?? 'Maintain Weight';
+          final activity = view.userProfileModel?.activityLevel ?? 'Moderate';
+
+          assert(() {
+            if (view.userProfileModel != null) {
+              debugPrint('[ui] AccountTab using UserProfileModel — name=$displayName');
+            }
+            return true;
+          }());
 
           return RefreshIndicator(
             onRefresh: _refreshData,
@@ -70,17 +81,19 @@ class _AccountTabState extends State<AccountTab> {
                 children: [
                   _buildUserInfoCard(displayName, email),
                   const SizedBox(height: 24),
-                  _buildTargetOverview(context, view.dailyTarget),
+                  _buildTargetOverview(context, view.dailyTargetModel),
                   const SizedBox(height: 24),
                   _buildSettingsSection(context, "Body Metrics & Goal", [
                     _buildSettingsTile("Height", "$height cm"),
                     _buildSettingsTile("Weight", "$weight kg"),
-                    _buildSettingsTile("Activity Level", "$activity"),
-                    _buildSettingsTile("Goal", "$goal"),
+                    _buildSettingsTile("Activity Level", activity),
+                    _buildSettingsTile("Goal", goal),
                   ]),
                   const SizedBox(height: 24),
                   _buildSettingsSection(context, "Preferences", [
-                    _buildSettingsTile("Edit Profile", ">", icon: Icons.person_outline),
+                    _buildSettingsTile("Edit Profile", ">", icon: Icons.person_outline, onTap: () {
+                      _showEditProfileDialog(context, view.userProfileModel);
+                    }),
                     _buildSettingsTile("Reminders", ">", icon: Icons.notifications_none),
                     _buildSettingsTile("Support / About Us", ">", icon: Icons.info_outline),
                     _buildSettingsTile("Logout", ">", color: Colors.red, icon: Icons.logout, onTap: () async {
@@ -148,9 +161,24 @@ class _AccountTabState extends State<AccountTab> {
     );
   }
 
-  Widget _buildTargetOverview(BuildContext context, Map<String, dynamic>? target) {
-    final calories = target?['calories'] ?? "2000";
-    final protein = target?['protein']?.toStringAsFixed(0) ?? "100";
+  void _showEditProfileDialog(BuildContext context, UserProfile? profile) {
+    if (profile == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return _EditProfileSheet(profile: profile);
+      },
+    );
+  }
+
+  Widget _buildTargetOverview(BuildContext context, DailyTarget? targetModel) {
+    // Step 5 — model fields only
+    final calories = targetModel?.calories.toStringAsFixed(0) ?? "2000";
+    final protein = targetModel?.protein.toStringAsFixed(0) ?? "100";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +211,7 @@ class _AccountTabState extends State<AccountTab> {
            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                  _buildStat("Target Cals", "$calories"),
+                  _buildStat("Target Cals", calories),
                   const VerticalDivider(),
                   _buildStat("Target Protein", "${protein}g"),
               ]
@@ -256,27 +284,168 @@ class _AccountTabState extends State<AccountTab> {
 
 class _AccountTabViewData {
   const _AccountTabViewData({
-    required this.userProfile,
-    required this.dailyTarget,
     required this.isProfileLoading,
+    // ── Step 5: Model-only fields ──
+    this.userProfileModel,
+    this.dailyTargetModel,
   });
 
-  final Map<String, dynamic>? userProfile;
-  final Map<String, dynamic>? dailyTarget;
   final bool isProfileLoading;
+  final UserProfile? userProfileModel;
+  final DailyTarget? dailyTargetModel;
 
   @override
   bool operator ==(Object other) {
-    return other is _AccountTabViewData &&
-        mapEquals(other.userProfile, userProfile) &&
-        mapEquals(other.dailyTarget, dailyTarget) &&
-        other.isProfileLoading == isProfileLoading;
+    if (other is! _AccountTabViewData) return false;
+    return other.isProfileLoading == isProfileLoading &&
+        other.userProfileModel == userProfileModel &&
+        other.dailyTargetModel == dailyTargetModel;
   }
 
   @override
   int get hashCode => Object.hash(
-        userProfile,
-        dailyTarget,
         isProfileLoading,
+        userProfileModel,
+        dailyTargetModel,
       );
 }
+
+class _EditProfileSheet extends StatefulWidget {
+  final UserProfile profile;
+  const _EditProfileSheet({required this.profile});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late TextEditingController heightController;
+  late TextEditingController weightController;
+  String? selectedActivity;
+  String? selectedGoal;
+  bool isLoading = false;
+
+  final activityLevels = ["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Super Active"];
+  final goals = ["Lose Weight", "Maintain Weight", "Gain Weight"];
+
+  @override
+  void initState() {
+    super.initState();
+    heightController = TextEditingController(text: widget.profile.height?.toString() ?? "");
+    weightController = TextEditingController(text: widget.profile.weight?.toString() ?? "");
+    
+    selectedActivity = widget.profile.activityLevel;
+    if (selectedActivity != null && !activityLevels.contains(selectedActivity)) {
+       activityLevels.add(selectedActivity!);
+    }
+    selectedGoal = widget.profile.goal;
+    if (selectedGoal != null && !goals.contains(selectedGoal)) {
+       goals.add(selectedGoal!);
+    }
+  }
+
+  @override
+  void dispose() {
+    heightController.dispose();
+    weightController.dispose();
+    super.dispose();
+  }
+
+  void _save() async {
+    final height = double.tryParse(heightController.text);
+    final weight = double.tryParse(weightController.text);
+
+    if (height == null || height <= 0 || weight == null || weight <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter valid positive numbers for height and weight.")),
+      );
+      return;
+    }
+    
+    if (selectedActivity == null || selectedGoal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select activity level and goal.")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+    final provider = context.read<DataProvider>();
+    final success = await provider.updateUserProfile({
+      "height": height,
+      "weight": weight,
+      "activityLevel": selectedActivity,
+      "goal": selectedGoal,
+    });
+
+    setState(() => isLoading = false);
+
+    if (success) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile updated")),
+        );
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to update profile")),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text("Edit Profile", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: heightController,
+            decoration: const InputDecoration(labelText: "Height (cm)", border: OutlineInputBorder()),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: weightController,
+            decoration: const InputDecoration(labelText: "Weight (kg)", border: OutlineInputBorder()),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: selectedActivity,
+            decoration: const InputDecoration(labelText: "Activity Level", border: OutlineInputBorder()),
+            items: activityLevels.map((act) => DropdownMenuItem(value: act, child: Text(act))).toList(),
+            onChanged: (val) => setState(() => selectedActivity = val),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: selectedGoal,
+            decoration: const InputDecoration(labelText: "Goal", border: OutlineInputBorder()),
+            items: goals.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+            onChanged: (val) => setState(() => selectedGoal = val),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: isLoading ? null : _save,
+            child: isLoading 
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
+              : const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

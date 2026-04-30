@@ -1,12 +1,16 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 
 # Virtual environment
 venv/
+.venv/
 
 # Secrets
 serviceAccountKey.json
+.env
+*.env
 
 # IDE
 .idea/
@@ -14,3 +18,16 @@ serviceAccountKey.json
 
 # OS files
 .DS_Store
+
+# Trained model binaries — safe to commit (all compressed < 100 MB via joblib compress=3)
+# Regenerate locally if needed:  python retrain_models_pipeline.py
+
+# Cache
+.cache/
+
+# Test output reports (generated files)
+test_accuracy_ascii.txt
+test_accuracy_results.txt
+test_clean.txt
+test_report_final.txt
+test_results_readable.txt

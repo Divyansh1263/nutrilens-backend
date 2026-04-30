@@ -154,7 +154,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         // Prime provider cache for Account/Diet greeting immediately
                         if (context.mounted) {
                           final dp = context.read<DataProvider>();
-                          if (dp.userProfile == null) {
+                          if (dp.userProfileModel == null) {
                             await dp.setUserProfile(response);
                           }
                         }
@@ -198,9 +198,43 @@ class _SignInScreenState extends State<SignInScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildSocialButton(
-                    'assets/images/google.png', // Placeholder for Google icon
-                        () {
-                      // TODO: Handle Google Sign In
+                    'assets/images/google.png',
+                    () async {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+
+                      final userData = await ApiService.signInWithGoogle();
+
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop(); // close loader
+
+                      if (userData != null) {
+                        await ApiService.completeOnboarding();
+                        if (context.mounted) {
+                          final dp = context.read<DataProvider>();
+                          await dp.setUserProfile(userData);
+                        }
+                        final isNew =
+                            userData['onboarding_completed'] == false;
+                        if (!context.mounted) return;
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          isNew ? '/onboarding' : '/dashboard',
+                          (Route<dynamic> route) => false,
+                        );
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Google Sign-In failed or cancelled.'),
+                            ),
+                          );
+                        }
+                      }
                     },
                   ),
                 ],

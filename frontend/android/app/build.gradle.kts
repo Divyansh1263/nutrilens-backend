@@ -3,10 +3,13 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Firebase / Google Sign-In — MUST come after the Android plugin
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.college_project"
+    // Must match the package_name registered in Firebase Console / google-services.json
+    namespace = "com.nutrilens.demo"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "29.0.13599879"
 
@@ -20,21 +23,37 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.college_project"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Package name MUST match Firebase Console → Android app → Package name
+        applicationId = "com.nutrilens.demo"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Sign with debug key for now (replace with release keystore for production)
             signingConfig = signingConfigs.getByName("debug")
+
+            // ── Size optimizations ─────────────────────────────────────────
+            // Removes unused Dart/Java code (R8 / ProGuard)
+            isMinifyEnabled = true
+            // Removes unused resources (drawables, strings, etc.)
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        debug {
+            // Keep debug builds fast — no shrinking
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

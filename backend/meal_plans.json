@@ -1,0 +1,2945 @@
+[
+  {
+    "planId": "p1",
+    "planName": "Classic Indian Veg Weight Loss",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Poha", "quantity": 1.5 },
+        { "mealName": "Curd", "quantity": 0.5 }
+      ],
+      "lunch": [
+        { "mealName": "Multigrain Roti", "quantity": 2 },
+        { "mealName": "Moong Dal", "quantity": 1 },
+        { "mealName": "Salad", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 },
+        { "mealName": "Tea (Less Sugar)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p2",
+    "planName": "High Protein Veg Weight Loss",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2100,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Sandwich", "quantity": 1 },
+        { "mealName": "Milk", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chole", "quantity": 1 },
+        { "mealName": "Salad", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p3",
+    "planName": "Low Carb Veg Weight Loss",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1900,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 },
+        { "mealName": "Tea (No Sugar)", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 1 },
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Salad", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts (Roasted)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 },
+        { "mealName": "Sauteed Vegetables", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p4",
+    "planName": "Light Dinner Fat Loss Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Upma", "quantity": 1 },
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Rajma", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Yogurt", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Soup", "quantity": 1 },
+        { "mealName": "Paneer Cubes (Grilled)", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p5",
+    "planName": "Budget Veg Weight Loss Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Aloo Paratha", "quantity": 1 },
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Masoor Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Khichdi", "quantity": 1 },
+        { "mealName": "Curd", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p6",
+    "planName": "Simple Roti Dal Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1950,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Upma", "quantity": 1 },
+        { "mealName": "Tea (Less Sugar)", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Arhar Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Makhana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p7",
+    "planName": "Dal Rice Balanced Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Moong Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p8",
+    "planName": "Paneer Focus Fat Loss",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2100,
+    "targetProtein": 105,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p9",
+    "planName": "Khichdi Light Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1850,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Dalia", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Khichdi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Soup", "quantity": 1 },
+        { "mealName": "Paneer Cubes (Grilled)", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p10",
+    "planName": "Office Lunch Friendly Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Peanut Butter", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chana Masala", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p11",
+    "planName": "Low Oil Home Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1900,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Idli", "quantity": 3 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Sambar", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Palak Paneer", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p12",
+    "planName": "Minimal Carb Dinner Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1950,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p13",
+    "planName": "High Fiber Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats Porridge", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p14",
+    "planName": "Weekend Relaxed Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2100,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Aloo Paratha", "quantity": 1 },
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Rajma", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Tea", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p15",
+    "planName": "Student Hostel Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Butter", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Biscuits", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p16",
+    "planName": "Classic Chicken Roti Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2100,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 },
+        { "mealName": "Tea (No Sugar)", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry (Home Style)", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p17",
+    "planName": "Egg Focus Weight Loss Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2000,
+    "targetProtein": 115,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Egg Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Egg White Omelette", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p18",
+    "planName": "Chicken High Protein Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2200,
+    "targetProtein": 130,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 3 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry (Home Style)", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p19",
+    "planName": "Fish Based Fat Loss Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2000,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Fish Curry (Rohu)", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Fish", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p20",
+    "planName": "Low Carb Chicken Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1950,
+    "targetProtein": 125,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg White Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Bhuna", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts (Roasted)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 },
+        { "mealName": "Sauteed Vegetables", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p21",
+    "planName": "Office Friendly Chicken Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2100,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p22",
+    "planName": "Budget Non Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2000,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Egg Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p23",
+    "planName": "Light Dinner Chicken Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2050,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p24",
+    "planName": "Mixed Protein Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2150,
+    "targetProtein": 125,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Rice", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p25",
+    "planName": "Gym Friendly Fat Loss Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2200,
+    "targetProtein": 135,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 4 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Breast Grilled", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Soup", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p26",
+    "planName": "Balanced Veg Muscle Gain",
+    "goal": "muscle_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2600,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Sandwich", "quantity": 1 },
+        { "mealName": "Milk", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p27",
+    "planName": "High Protein Veg Bulk Plan",
+    "goal": "muscle_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2800,
+    "targetProtein": 135,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 },
+        { "mealName": "Bread", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Rajma", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p28",
+    "planName": "Egg Based Muscle Gain",
+    "goal": "muscle_gain",
+    "dietType": "non-veg",
+    "targetCalories": 2700,
+    "targetProtein": 140,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 },
+        { "mealName": "Bread", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Egg Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 3 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p29",
+    "planName": "Chicken Bulk Plan",
+    "goal": "muscle_gain",
+    "dietType": "non-veg",
+    "targetCalories": 3000,
+    "targetProtein": 150,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 4 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1.5 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p30",
+    "planName": "Gym Starter Plan",
+    "goal": "muscle_gain",
+    "dietType": "mixed",
+    "targetCalories": 2600,
+    "targetProtein": 125,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Milk", "quantity": 1 },
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p31",
+    "planName": "Budget Muscle Gain Plan",
+    "goal": "muscle_gain",
+    "dietType": "mixed",
+    "targetCalories": 2500,
+    "targetProtein": 115,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Peanut Butter", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p32",
+    "planName": "High Carb Bulk Plan",
+    "goal": "muscle_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2900,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 2 },
+        { "mealName": "Chole", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Milk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p33",
+    "planName": "Lean Muscle Plan",
+    "goal": "muscle_gain",
+    "dietType": "non-veg",
+    "targetCalories": 2600,
+    "targetProtein": 140,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg White Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Breast Grilled", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Soup", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p34",
+    "planName": "Paneer + Soy Power Plan",
+    "goal": "muscle_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2800,
+    "targetProtein": 140,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 3 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p35",
+    "planName": "Advanced Gym Plan",
+    "goal": "muscle_gain",
+    "dietType": "non-veg",
+    "targetCalories": 3000,
+    "targetProtein": 160,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 5 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  }
+,
+
+  {
+    "planId": "p36",
+    "planName": "Veg Diabetes Control Plan",
+    "goal": "health",
+    "dietType": "vegetarian",
+    "targetCalories": 1900,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Upma", "quantity": 1 },
+        { "mealName": "Tea (No Sugar)", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Moong Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p37",
+    "planName": "Mixed Diabetes Plan (Egg + Veg)",
+    "goal": "health",
+    "dietType": "mixed",
+    "targetCalories": 2000,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p38",
+    "planName": "Low GI Veg Plan",
+    "goal": "health",
+    "dietType": "vegetarian",
+    "targetCalories": 1850,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats Porridge", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Tinda Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Makhana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Salad", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p39",
+    "planName": "Chicken + Veg Diabetes Plan",
+    "goal": "health",
+    "dietType": "non-veg",
+    "targetCalories": 2100,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry (Home Style)", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Palak Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p40",
+    "planName": "Light Carb Diabetes Plan",
+    "goal": "health",
+    "dietType": "mixed",
+    "targetCalories": 1800,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p41",
+    "planName": "Dal Based Diabetes Plan",
+    "goal": "health",
+    "dietType": "vegetarian",
+    "targetCalories": 1900,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Dalia", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Masoor Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts (Roasted)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Soup", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p42",
+    "planName": "Fish Diabetes Plan",
+    "goal": "health",
+    "dietType": "non-veg",
+    "targetCalories": 2000,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Fish Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p43",
+    "planName": "Office Diabetes Plan",
+    "goal": "health",
+    "dietType": "mixed",
+    "targetCalories": 1950,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p44",
+    "planName": "Low Oil Diabetes Plan",
+    "goal": "health",
+    "dietType": "vegetarian",
+    "targetCalories": 1850,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Idli", "quantity": 3 }
+      ],
+      "lunch": [
+        { "mealName": "Sambar", "quantity": 1 },
+        { "mealName": "Rice", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Makhana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p45",
+    "planName": "Balanced Diabetes Plan",
+    "goal": "health",
+    "dietType": "mixed",
+    "targetCalories": 2000,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats Porridge", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p46",
+    "planName": "Vegan Weight Loss Basic Plan",
+    "goal": "lose_weight",
+    "dietType": "vegan",
+    "targetCalories": 1900,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Moong Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p47",
+    "planName": "High Protein Vegan Plan",
+    "goal": "lose_weight",
+    "dietType": "vegan",
+    "targetCalories": 2000,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats (Water Based)", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chole", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts (Roasted)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p48",
+    "planName": "Dal Rice Vegan Plan",
+    "goal": "maintain_weight",
+    "dietType": "vegan",
+    "targetCalories": 2100,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Dalia", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Masoor Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p49",
+    "planName": "Low Carb Vegan Plan",
+    "goal": "lose_weight",
+    "dietType": "vegan",
+    "targetCalories": 1800,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Makhana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p50",
+    "planName": "Budget Vegan Plan",
+    "goal": "lose_weight",
+    "dietType": "vegan",
+    "targetCalories": 1900,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Jam", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Arhar Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p51",
+    "planName": "Office Vegan Plan",
+    "goal": "maintain_weight",
+    "dietType": "vegan",
+    "targetCalories": 2000,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chana Masala", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p52",
+    "planName": "Student Vegan Plan",
+    "goal": "maintain_weight",
+    "dietType": "vegan",
+    "targetCalories": 2100,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Butter", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Biscuits", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p53",
+    "planName": "High Fiber Vegan Plan",
+    "goal": "lose_weight",
+    "dietType": "vegan",
+    "targetCalories": 1900,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p54",
+    "planName": "Soy Rich Vegan Plan",
+    "goal": "muscle_gain",
+    "dietType": "vegan",
+    "targetCalories": 2400,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Soyabean Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 3 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p55",
+    "planName": "Balanced Vegan Plan",
+    "goal": "maintain_weight",
+    "dietType": "vegan",
+    "targetCalories": 2000,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Rajma", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Makhana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p56",
+    "planName": "Vegetarian Weight Gain Basic",
+    "goal": "weight_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2700,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Aloo Paratha", "quantity": 2 },
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1.5 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana Shake", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 3 }
+      ]
+    }
+  },
+  {
+    "planId": "p57",
+    "planName": "High Protein Veg Gain Plan",
+    "goal": "weight_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2800,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Sandwich", "quantity": 1 },
+        { "mealName": "Milk", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Chole", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p58",
+    "planName": "Egg + Veg Weight Gain",
+    "goal": "weight_gain",
+    "dietType": "mixed",
+    "targetCalories": 2900,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 },
+        { "mealName": "Bread", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1.5 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 3 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ]
+    }
+  },
+  {
+    "planId": "p59",
+    "planName": "Chicken + Veg Weight Gain",
+    "goal": "weight_gain",
+    "dietType": "non-veg",
+    "targetCalories": 3000,
+    "targetProtein": 130,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 3 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana Shake", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p60",
+    "planName": "Budget Weight Gain Plan",
+    "goal": "weight_gain",
+    "dietType": "mixed",
+    "targetCalories": 2600,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Butter", "quantity": 3 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 4 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p61",
+    "planName": "High Carb Bulk Plan",
+    "goal": "weight_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 3000,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 2 },
+        { "mealName": "Rajma", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p62",
+    "planName": "Lean Weight Gain Plan",
+    "goal": "weight_gain",
+    "dietType": "non-veg",
+    "targetCalories": 2800,
+    "targetProtein": 135,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg White Omelette", "quantity": 1 },
+        { "mealName": "Milk", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Breast Grilled", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Protein Shake (Whey)", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p63",
+    "planName": "Student Bulk Plan",
+    "goal": "weight_gain",
+    "dietType": "mixed",
+    "targetCalories": 2700,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Bread Peanut Butter", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p64",
+    "planName": "Paneer Heavy Gain Plan",
+    "goal": "weight_gain",
+    "dietType": "vegetarian",
+    "targetCalories": 2900,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Paratha", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 3 },
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Milk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p65",
+    "planName": "Balanced Gain Plan",
+    "goal": "weight_gain",
+    "dietType": "mixed",
+    "targetCalories": 2800,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Milk", "quantity": 1 },
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1.5 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p66",
+    "planName": "Besan Chilla Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1900,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Besan Chilla", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Tinda Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p67",
+    "planName": "Idli Sambar Weight Loss",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1850,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Idli", "quantity": 3 },
+        { "mealName": "Sambar", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p68",
+    "planName": "Paratha Controlled Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Gobhi Paratha", "quantity": 1 },
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p69",
+    "planName": "Egg + Dal Mixed Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 2000,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p70",
+    "planName": "Sprouts Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1850,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Sprouts Salad", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p71",
+    "planName": "Chicken Rice Light Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2100,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p72",
+    "planName": "Paneer Breakfast Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chole", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p73",
+    "planName": "Egg Sandwich Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 2000,
+    "targetProtein": 105,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p74",
+    "planName": "Rajma Rice Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 2000,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Rajma", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p75",
+    "planName": "Chicken + Roti Balanced",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 2100,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p86",
+    "planName": "1400 Cal Veg Light Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1400,
+    "targetProtein": 65,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Poha", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Moong Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p87",
+    "planName": "1500 Cal Dal Roti Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1500,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Dalia", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p88",
+    "planName": "1500 Cal Paneer Light Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1500,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p89",
+    "planName": "1450 Cal Egg Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1450,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p90",
+    "planName": "1500 Cal Chicken Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1500,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p91",
+    "planName": "1550 Cal Chicken Light Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1550,
+    "targetProtein": 105,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p92",
+    "planName": "1500 Cal Low Carb Veg",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1500,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p93",
+    "planName": "1600 Cal Balanced Veg",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1600,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p94",
+    "planName": "1550 Cal Egg + Dal Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1550,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p95",
+    "planName": "1500 Cal Simple Home Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1500,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p96",
+    "planName": "1300 Cal Ultra Light Veg",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1300,
+    "targetProtein": 60,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Dalia", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 1 },
+        { "mealName": "Lauki Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Moong Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p97",
+    "planName": "1350 Cal Dal Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1350,
+    "targetProtein": 65,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p98",
+    "planName": "1400 Cal Paneer Lean Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1400,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p99",
+    "planName": "1400 Cal Egg Veg Light",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1400,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 1 },
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p100",
+    "planName": "1450 Cal Chicken Controlled",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1450,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p101",
+    "planName": "1500 Cal Chicken Lean Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1500,
+    "targetProtein": 105,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p102",
+    "planName": "1450 Cal Low Carb Veg",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1450,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Peanuts", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p103",
+    "planName": "1500 Cal Simple Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1500,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p104",
+    "planName": "1500 Cal Egg + Veg Balanced",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1500,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p105",
+    "planName": "1550 Cal Mixed Home Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1550,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p106",
+    "planName": "Light South Indian Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1400,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Idli", "quantity": 2 },
+        { "mealName": "Sambar", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Moong Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p107",
+    "planName": "Protein Focus Veg Light",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1450,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Tikka", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p108",
+    "planName": "Office Light Meal Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1500,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p109",
+    "planName": "Soup Dinner Weight Loss",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1350,
+    "targetProtein": 70,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Soup", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p110",
+    "planName": "Egg Protein Light Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1400,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Egg Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p111",
+    "planName": "Chicken Soup Lean Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1450,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Soup", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p112",
+    "planName": "Fruit + Dal Light Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1350,
+    "targetProtein": 65,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p113",
+    "planName": "Minimal Carb Dinner Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1450,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Grilled Chicken", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p114",
+    "planName": "Chilla Weight Loss Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1400,
+    "targetProtein": 75,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Besan Chilla", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p115",
+    "planName": "Simple Home Light Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1500,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p116",
+    "planName": "1700 Cal Balanced Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1700,
+    "targetProtein": 80,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Upma", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p117",
+    "planName": "1750 Cal Paneer Protein Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1750,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Mixed Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p118",
+    "planName": "1800 Cal Dal Rice Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1800,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p119",
+    "planName": "1750 Cal Egg Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1750,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p120",
+    "planName": "1800 Cal Chicken Balanced",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1800,
+    "targetProtein": 115,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p121",
+    "planName": "1700 Cal Light Dinner Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1700,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Soup", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p122",
+    "planName": "1750 Cal Office Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1750,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Vegetable Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Banana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p123",
+    "planName": "1800 Cal Paneer + Dal Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1800,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p124",
+    "planName": "1750 Cal Egg + Chicken Mix",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1750,
+    "targetProtein": 110,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Rice", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p125",
+    "planName": "1700 Cal Simple Home Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1700,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Chicken Curry", "quantity": 1 }
+      ]
+    }
+  }
+,
+  {
+    "planId": "p126",
+    "planName": "Chilla + Dal Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1700,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Besan Chilla", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p127",
+    "planName": "Paneer + Rice Balanced",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1750,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Paneer Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rice", "quantity": 1 },
+        { "mealName": "Dal", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p128",
+    "planName": "Egg + Roti Structured Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1700,
+    "targetProtein": 100,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p129",
+    "planName": "Chicken + Dal Combo Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1800,
+    "targetProtein": 115,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p130",
+    "planName": "Poha + Paneer Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1750,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Poha", "quantity": 1.5 }
+      ],
+      "lunch": [
+        { "mealName": "Roti", "quantity": 2 },
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Dal", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p131",
+    "planName": "Egg + Chicken Balanced",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1800,
+    "targetProtein": 120,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Sandwich", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Rice", "quantity": 1 }
+      ],
+      "snack": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p132",
+    "planName": "Oats + Dal Veg Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1700,
+    "targetProtein": 85,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Oats", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Fruit Bowl", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Bhurji", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p133",
+    "planName": "Chicken Light Dinner Plan",
+    "goal": "lose_weight",
+    "dietType": "non-veg",
+    "targetCalories": 1750,
+    "targetProtein": 115,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Egg Omelette", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Chicken Curry", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Curd", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Soup", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p134",
+    "planName": "Rajma + Roti Plan",
+    "goal": "lose_weight",
+    "dietType": "vegetarian",
+    "targetCalories": 1800,
+    "targetProtein": 90,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Dalia", "quantity": 1 }
+      ],
+      "lunch": [
+        { "mealName": "Rajma", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Buttermilk", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Paneer Sabzi", "quantity": 1 }
+      ]
+    }
+  },
+  {
+    "planId": "p135",
+    "planName": "Simple Egg + Veg Home Plan",
+    "goal": "lose_weight",
+    "dietType": "mixed",
+    "targetCalories": 1700,
+    "targetProtein": 95,
+    "meals": {
+      "breakfast": [
+        { "mealName": "Boiled Eggs", "quantity": 2 }
+      ],
+      "lunch": [
+        { "mealName": "Dal", "quantity": 1 },
+        { "mealName": "Roti", "quantity": 2 }
+      ],
+      "snack": [
+        { "mealName": "Roasted Chana", "quantity": 1 }
+      ],
+      "dinner": [
+        { "mealName": "Vegetable Sabzi", "quantity": 1 }
+      ]
+    }
+  }
+
+]

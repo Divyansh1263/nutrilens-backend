@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../data/services/api_service.dart';
 import '../../../data/providers/data_provider.dart';
@@ -51,13 +52,15 @@ class _LoggingTabState extends State<LoggingTab> {
 
       if (result != null && result.isNotEmpty) {
         setState(() {
-          _analyzedMeals = result.map((item) => {
-            'mealName': item['mealName'] ?? item['meal'] ?? 'Unknown',
-            'quantity': (item['quantity'] ?? 1).toDouble(),
-            'calories': (item['calories'] ?? 0).toDouble(),
-            'protein': (item['protein'] ?? 0).toDouble(),
-            'carbs': (item['carbs'] ?? 0).toDouble(),
-            'fat': (item['fat'] ?? 0).toDouble(),
+          _analyzedMeals = result.map((item) {
+            return <String, dynamic>{
+              'mealName': item['mealName'] ?? item['meal'] ?? 'Unknown',
+              'quantity': (item['quantity'] ?? 1).toDouble(),
+              'calories': (item['calories'] ?? 0).toDouble(),
+              'protein': (item['protein'] ?? 0).toDouble(),
+              'carbs': (item['carbs'] ?? 0).toDouble(),
+              'fat': (item['fat'] ?? 0).toDouble(),
+            };
           }).toList();
           _showAnalyzedResults = true;
         });
@@ -78,8 +81,10 @@ class _LoggingTabState extends State<LoggingTab> {
   }
 
   Future<void> _confirmNLPLog() async {
-    // Log each analyzed meal individually via /log-meal
+    // Log each analyzed meal individually via /log-meal.
+    // refresh: false skips per-meal tracker refresh — one call at the end.
     final provider = Provider.of<DataProvider>(context, listen: false);
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     for (final meal in _analyzedMeals) {
       await provider.logMeal(
@@ -87,8 +92,12 @@ class _LoggingTabState extends State<LoggingTab> {
         (meal['quantity'] ?? 1.0).toDouble(),
         'Lunch', // default meal type for NLP
         'nlp',
+        false, // defer refresh until after loop
       );
     }
+
+    // Single refresh after all meals are logged.
+    await provider.refreshTrackerDataForDate(today, force: true);
 
     setState(() {
       _analyzedMeals = [];

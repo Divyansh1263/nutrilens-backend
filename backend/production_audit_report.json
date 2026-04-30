@@ -1,0 +1,23 @@
+{
+    "data_source": "OK",
+    "meal_planner": "OK",
+    "knn_model": "OK",
+    "nlp_pipeline": "OK",
+    "random_forest": "OK",
+    "calorie_accuracy": "OK",
+    "protein_accuracy": "Issues",
+    "fallback_system": "OK",
+    "backend_integration": "OK",
+    "frontend_integration": "OK",
+    "performance": "OK",
+    "retraining_status": {
+        "knn": true,
+        "nlp": true,
+        "random_forest": true
+    },
+    "issues_found": [
+        "Protein accuracy failed: diff is 0.2857142857142857"
+    ],
+    "critical_issues": [],
+    "recommendations": []
+}

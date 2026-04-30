@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/models.dart';
 import '../services/api_service.dart';
 
 class DataProvider extends ChangeNotifier {
@@ -13,13 +14,15 @@ class DataProvider extends ChangeNotifier {
   static const String _cachedUserProfileTimestampKey =
       'cachedUserProfileFetchedAt';
 
-  // Data State
-  Map<String, dynamic>? dailyTarget;
-  Map<String, dynamic>? mealPlan;
-  Map<String, dynamic>? trackerSummary;
-  Map<String, dynamic>? dailyRating;
-  Map<String, dynamic>? userProfile;
-  Map<String, dynamic>? streakData;
+  // ── Step 5: Typed model fields (sole source of truth) ────────────────────
+  MealPlan? mealPlanModel;
+  DailyTarget? dailyTargetModel;
+  TrackerSummary? trackerSummaryModel;
+  DailyRating? dailyRatingModel;
+  UserProfile? userProfileModel;
+  StreakData? streakDataModel;
+
+  // ── Loading flags ─────────────────────────────────────────────────────────
   bool isDailyTargetLoading = false;
   bool isMealPlanLoading = false;
   bool isTrackerLoading = false;
@@ -27,11 +30,13 @@ class DataProvider extends ChangeNotifier {
   bool isDailyRatingLoading = false;
   bool isStreakLoading = false;
 
-  // Date-keyed caches keep recent tracker/rating responses in memory.
-  final Map<String, Map<String, dynamic>?> _trackerSummaryCache = {};
-  final Map<String, Map<String, dynamic>?> _dailyRatingCache = {};
+  // ── Date-keyed typed model caches ─────────────────────────────────────────
+  final Map<String, TrackerSummary?> _trackerModelCache = {};
+  final Map<String, DailyRating?> _dailyRatingModelCache = {};
   final Map<String, DateTime> _trackerCacheTime = {};
   final Map<String, DateTime> _dailyRatingCacheTime = {};
+
+  // ── Pending-fetch dedup futures ───────────────────────────────────────────
   Future<void>? _pendingDailyTargetFetch;
   Future<void>? _pendingMealPlanFetch;
   Future<void>? _pendingUserProfileFetch;
@@ -48,12 +53,20 @@ class DataProvider extends ChangeNotifier {
     _loadCachedUserProfile();
   }
 
+  /// Set user profile from external caller (e.g. onboarding, login).
   Future<void> setUserProfile(Map<String, dynamic>? profile) async {
-    userProfile = profile;
     if (profile != null) {
-      await ApiService.writeCachedUserProfile(profile);
-      await _writeUserProfileTimestamp(DateTime.now());
-      _userProfileFetchedAt = DateTime.now();
+      try {
+        userProfileModel = UserProfile.fromJson(profile);
+        await ApiService.writeCachedUserProfile(profile);
+        await _writeUserProfileTimestamp(DateTime.now());
+        _userProfileFetchedAt = DateTime.now();
+        debugPrint('[provider] setUserProfile — name=${userProfileModel!.displayName}');
+      } catch (e) {
+        debugPrint('[model] UserProfileModel parse error (setUserProfile): $e');
+      }
+    } else {
+      userProfileModel = null;
     }
     _notifySafely();
   }
@@ -74,12 +87,18 @@ class DataProvider extends ChangeNotifier {
       if (userId != null && cachedUserId != userId) return;
       if (fetchedAtRaw == null) return;
 
-      mealPlan = Map<String, dynamic>.from(jsonDecode(cachedJson));
+      // Step 5 — parse directly into model; no intermediate Map field
+      final rawMap = Map<String, dynamic>.from(jsonDecode(cachedJson));
       _mealPlanFetchedAt = DateTime.tryParse(fetchedAtRaw);
-      _notifySafely();
+      try {
+        mealPlanModel = MealPlan.fromJson(rawMap);
+        debugPrint('[model] MealPlanModel restored from SharedPreferences cache');
+        _notifySafely();
+      } catch (e) {
+        debugPrint('[model] MealPlanModel parse error (cache): $e');
+      }
     } catch (e) {
       debugPrint('DataProvider._loadCachedMealPlan error: $e');
-      // cache should never crash app
     }
   }
 
@@ -88,12 +107,18 @@ class DataProvider extends ChangeNotifier {
       final cached = await ApiService.readCachedUserProfile();
       final prefs = await SharedPreferences.getInstance();
       final fetchedAtRaw = prefs.getString(_cachedUserProfileTimestampKey);
-      if (cached != null && userProfile == null) {
-        userProfile = cached;
+      // Step 5 — parse directly into model; no intermediate Map field
+      if (cached != null && userProfileModel == null) {
         _userProfileFetchedAt = fetchedAtRaw != null
             ? DateTime.tryParse(fetchedAtRaw)
             : null;
-        _notifySafely();
+        try {
+          userProfileModel = UserProfile.fromJson(cached);
+          debugPrint('[model] UserProfileModel restored from SecureStorage cache');
+          _notifySafely();
+        } catch (e) {
+          debugPrint('[model] UserProfileModel parse error (cache): $e');
+        }
       }
     } catch (e) {
       debugPrint('DataProvider._loadCachedUserProfile error: $e');
@@ -102,7 +127,8 @@ class DataProvider extends ChangeNotifier {
 
   // Fetch API 2: Daily Target
   Future<void> fetchDailyTarget() async {
-    if (dailyTarget != null) return;
+    // Step 5 — guard on model field
+    if (dailyTargetModel != null) return;
     if (_pendingDailyTargetFetch != null) {
       await _pendingDailyTargetFetch;
       return;
@@ -116,14 +142,12 @@ class DataProvider extends ChangeNotifier {
   Future<void> _fetchDailyTargetInternal() async {
     _setDailyTargetLoading(true);
     try {
-      final res = await ApiService.calculateTarget();
-      dailyTarget = (res is Map<String, dynamic> && res['success'] == true)
-          ? (res['data'] as Map<String, dynamic>?)
-          : null;
-      debugPrint(
-        'DataProvider.fetchDailyTarget availability: '
-        '${dailyTarget != null ? 'available' : 'missing'}',
-      );
+      // Step 5 — typed companion only; no Map fallback
+      final model = await ApiService.calculateTargetModel();
+      if (model != null) {
+        dailyTargetModel = model;
+        debugPrint('[api] DailyTargetModel fetched successfully — calories=${model.calories}');
+      }
     } catch (e) {
       debugPrint('DataProvider.fetchDailyTarget error: $e');
     } finally {
@@ -133,8 +157,9 @@ class DataProvider extends ChangeNotifier {
 
   // Fetch API 3: Meal Plan
   Future<void> fetchMealPlan({bool forceRefresh = false}) async {
+    // Step 5 — guard on model field
     if (!forceRefresh &&
-        mealPlan != null &&
+        mealPlanModel != null &&
         _isMealPlanCacheFreshForToday()) {
       return;
     }
@@ -207,15 +232,25 @@ class DataProvider extends ChangeNotifier {
       }
 
       if (nextMealPlan != null) {
-        mealPlan = nextMealPlan;
-        debugPrint('[meal-plan] mealPlan set successfully — notifying listeners');
-        // TASK 4: explicit notifyListeners after state update
-        _notifySafely();
-        await _persistMealPlanCache(mealPlan!);
+        // Step 5 — parse directly into model; no Map field assignment
+        try {
+          mealPlanModel = MealPlan.fromJson(nextMealPlan);
+          debugPrint(
+            '[api] MealPlanModel fetched successfully — '
+            'B:${mealPlanModel!.breakfast.length} '
+            'L:${mealPlanModel!.lunch.length} '
+            'S:${mealPlanModel!.snack.length} '
+            'D:${mealPlanModel!.dinner.length}',
+          );
+          _notifySafely();
+          await _persistMealPlanCache(nextMealPlan);
+        } catch (e) {
+          debugPrint('[model] MealPlanModel parse error: $e');
+        }
       } else {
         debugPrint(
           '[meal-plan] fetchMealPlan: no slots found in response — '
-          '${mealPlan != null ? "keeping existing cache" : "mealPlan remains null"}',
+          '${mealPlanModel != null ? "keeping existing cache" : "mealPlan remains null"}',
         );
       }
     } catch (e) {
@@ -233,7 +268,7 @@ class DataProvider extends ChangeNotifier {
     _currentTrackerDate = effectiveDateStr;
 
     if (!forceRefresh && _isTrackerCacheFresh(effectiveDateStr)) {
-      trackerSummary = _trackerSummaryCache[effectiveDateStr];
+      _syncTrackerFromCache(effectiveDateStr);
       _notifySafely();
       return;
     }
@@ -242,7 +277,7 @@ class DataProvider extends ChangeNotifier {
     if (pending != null && !forceRefresh) {
       await pending;
       if (_currentTrackerDate == effectiveDateStr) {
-        trackerSummary = _trackerSummaryCache[effectiveDateStr];
+        _syncTrackerFromCache(effectiveDateStr);
         _notifySafely();
       }
       return;
@@ -254,20 +289,28 @@ class DataProvider extends ChangeNotifier {
     _pendingTrackerSummaryFetches.remove(effectiveDateStr);
 
     if (_currentTrackerDate == effectiveDateStr) {
-      trackerSummary = _trackerSummaryCache[effectiveDateStr];
+      _syncTrackerFromCache(effectiveDateStr);
       _notifySafely();
     }
+  }
+
+  /// Step 5 — syncs model field from the typed cache.
+  void _syncTrackerFromCache(String dateStr) {
+    trackerSummaryModel = _trackerModelCache[dateStr];
   }
 
   Future<void> _fetchTrackerSummaryInternal(String dateStr) async {
     _setTrackerLoading(true);
     try {
-      final response = await ApiService.getTrackerSummary(dateStr);
-      if (response != null && response['success'] == true) {
-        _trackerSummaryCache[dateStr] =
-            response['data'] as Map<String, dynamic>?;
+      // Step 5 — typed model cache only
+      final model = await ApiService.getTrackerSummaryModel(dateStr);
+      if (model != null) {
+        _trackerModelCache[dateStr] = model;
         _trackerCacheTime[dateStr] = DateTime.now();
-        _trimDatedCache(_trackerSummaryCache, _trackerCacheTime);
+        _trimTypedDatedCache(_trackerModelCache, _trackerCacheTime);
+        debugPrint('[api] TrackerSummaryModel fetched successfully — '
+            'logs=${model.logs.length} '
+            'cal=${model.consumed.calories.toStringAsFixed(0)}');
       }
     } catch (e) {
       debugPrint('DataProvider.fetchTrackerSummary($dateStr) error: $e');
@@ -282,7 +325,7 @@ class DataProvider extends ChangeNotifier {
     _currentDailyRatingDate = effectiveDateStr;
 
     if (!forceRefresh && _isDailyRatingCacheFresh(effectiveDateStr)) {
-      dailyRating = _dailyRatingCache[effectiveDateStr];
+      _syncDailyRatingFromCache(effectiveDateStr);
       _notifySafely();
       return;
     }
@@ -291,7 +334,7 @@ class DataProvider extends ChangeNotifier {
     if (pending != null && !forceRefresh) {
       await pending;
       if (_currentDailyRatingDate == effectiveDateStr) {
-        dailyRating = _dailyRatingCache[effectiveDateStr];
+        _syncDailyRatingFromCache(effectiveDateStr);
         _notifySafely();
       }
       return;
@@ -303,20 +346,26 @@ class DataProvider extends ChangeNotifier {
     _pendingDailyRatingFetches.remove(effectiveDateStr);
 
     if (_currentDailyRatingDate == effectiveDateStr) {
-      dailyRating = _dailyRatingCache[effectiveDateStr];
+      _syncDailyRatingFromCache(effectiveDateStr);
       _notifySafely();
     }
+  }
+
+  /// Step 5 — syncs model field from the typed cache.
+  void _syncDailyRatingFromCache(String dateStr) {
+    dailyRatingModel = _dailyRatingModelCache[dateStr];
   }
 
   Future<void> _fetchDailyRatingInternal(String dateStr) async {
     _setDailyRatingLoading(true);
     try {
-      final response = await ApiService.generateDailyRating(dateStr);
-      if (response is Map<String, dynamic> && response['success'] == true) {
-        _dailyRatingCache[dateStr] =
-            response['data'] as Map<String, dynamic>?;
+      // Step 5 — typed model cache only
+      final model = await ApiService.generateDailyRatingModel(dateStr);
+      if (model != null) {
+        _dailyRatingModelCache[dateStr] = model;
         _dailyRatingCacheTime[dateStr] = DateTime.now();
-        _trimDatedCache(_dailyRatingCache, _dailyRatingCacheTime);
+        _trimTypedDatedCache(_dailyRatingModelCache, _dailyRatingCacheTime);
+        debugPrint('[api] DailyRatingModel fetched successfully — stars=${model.stars}');
       }
     } catch (e) {
       debugPrint('DataProvider.fetchDailyRating($dateStr) error: $e');
@@ -326,8 +375,9 @@ class DataProvider extends ChangeNotifier {
   }
 
   Future<void> refreshDietData() async {
-    dailyTarget = null;
-    mealPlan = null;
+    // Step 5 — clear model fields only
+    dailyTargetModel = null;
+    mealPlanModel = null;
     await fetchDailyTarget();
     await fetchMealPlan(forceRefresh: true);
     await fetchTrackerSummary(DateFormat('yyyy-MM-dd').format(DateTime.now()), true);
@@ -335,22 +385,16 @@ class DataProvider extends ChangeNotifier {
 
   Future<void> ensureHomeTabData() async {
     await fetchUserProfile();
-    debugPrint(
-      'DataProvider.ensureHomeTabData userProfile: '
-      '${userProfile != null ? 'available' : 'missing'}',
-    );
+    debugPrint('DataProvider.ensureHomeTabData userProfile: '
+        '${userProfileModel != null ? 'available' : 'missing'}');
 
     await fetchDailyTarget();
-    debugPrint(
-      'DataProvider.ensureHomeTabData dailyTarget: '
-      '${dailyTarget != null ? 'available' : 'missing'}',
-    );
+    debugPrint('DataProvider.ensureHomeTabData dailyTarget: '
+        '${dailyTargetModel != null ? 'available' : 'missing'}');
 
     await fetchMealPlan();
-    debugPrint(
-      'DataProvider.ensureHomeTabData mealPlan: '
-      '${mealPlan != null ? 'available' : 'missing'}',
-    );
+    debugPrint('DataProvider.ensureHomeTabData mealPlan: '
+        '${mealPlanModel != null ? 'available' : 'missing'}');
 
     fetchStreak();
     fetchTrackerSummary();
@@ -359,10 +403,10 @@ class DataProvider extends ChangeNotifier {
   Future<void> invalidateTrackerSummary([String? dateStr]) async {
     final effectiveDateStr =
         dateStr ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
-    _trackerSummaryCache.remove(effectiveDateStr);
+    _trackerModelCache.remove(effectiveDateStr);
     _trackerCacheTime.remove(effectiveDateStr);
     if (_currentTrackerDate == effectiveDateStr) {
-      trackerSummary = null;
+      trackerSummaryModel = null;
       _notifySafely();
     }
   }
@@ -370,10 +414,10 @@ class DataProvider extends ChangeNotifier {
   Future<void> invalidateDailyRating([String? dateStr]) async {
     final effectiveDateStr =
         dateStr ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
-    _dailyRatingCache.remove(effectiveDateStr);
+    _dailyRatingModelCache.remove(effectiveDateStr);
     _dailyRatingCacheTime.remove(effectiveDateStr);
     if (_currentDailyRatingDate == effectiveDateStr) {
-      dailyRating = null;
+      dailyRatingModel = null;
       _notifySafely();
     }
   }
@@ -389,32 +433,32 @@ class DataProvider extends ChangeNotifier {
     ]);
   }
 
-  Map<String, dynamic>? getTrackerSummaryForDate(String dateStr) {
-    return _trackerSummaryCache[dateStr];
-  }
+  // Step 5 — typed-only date getters (Map getters removed)
+  TrackerSummary? getTrackerModelForDate(String dateStr) =>
+      _trackerModelCache[dateStr];
 
-  Map<String, dynamic>? getDailyRatingForDate(String dateStr) {
-    return _dailyRatingCache[dateStr];
-  }
+  DailyRating? getDailyRatingModelForDate(String dateStr) =>
+      _dailyRatingModelCache[dateStr];
 
-  /// Replaces the meal plan immutably and notifies listeners.
+  /// Replaces the meal plan model and notifies listeners.
   void setMealPlan(Map<String, dynamic> newPlan) {
-    mealPlan = newPlan;
+    try {
+      mealPlanModel = MealPlan.fromJson(newPlan);
+      debugPrint('[provider] setMealPlan — model updated');
+    } catch (e) {
+      debugPrint('[model] MealPlanModel parse error (setMealPlan): $e');
+    }
     _notifySafely();
   }
 
   // Fetch API 4.7: User Profile
   Future<void> fetchUserProfile({bool forceRefresh = false}) async {
-    if (userProfile != null &&
-        !forceRefresh &&
-        _isUserProfileCacheFresh()) {
-      final hasRealProfileFields =
-          userProfile!.containsKey('name') ||
-          userProfile!.containsKey('height') ||
-          userProfile!.containsKey('weight') ||
-          userProfile!.containsKey('goal') ||
-          userProfile!.containsKey('activity_level');
-      if (hasRealProfileFields) return;
+    // Step 5 — guard on model field; check model has real content
+    if (userProfileModel != null && !forceRefresh && _isUserProfileCacheFresh()) {
+      final hasRealFields = userProfileModel!.height != null ||
+          userProfileModel!.weight != null ||
+          (userProfileModel!.goal?.isNotEmpty ?? false);
+      if (hasRealFields) return;
     }
     if (_pendingUserProfileFetch != null && !forceRefresh) {
       await _pendingUserProfileFetch;
@@ -429,21 +473,17 @@ class DataProvider extends ChangeNotifier {
   Future<void> _fetchUserProfileInternal() async {
     _setProfileLoading(true);
     try {
-      final res = await ApiService.getUserProfile();
-      final next = (res is Map<String, dynamic> && res['success'] == true)
-          ? (res['data'] as Map<String, dynamic>?)
-          : null;
-
-      if (next != null) {
-        userProfile = next;
+      // Step 5 — typed companion only; no Map fallback
+      final model = await ApiService.getUserProfileModel();
+      if (model != null) {
+        userProfileModel = model;
         _userProfileFetchedAt = DateTime.now();
-        await ApiService.writeCachedUserProfile(next);
+        await ApiService.writeCachedUserProfile(model.toJson());
         await _writeUserProfileTimestamp(_userProfileFetchedAt!);
+        debugPrint('[api] UserProfileModel fetched successfully — name=${model.displayName}');
       }
-      debugPrint(
-        'DataProvider.fetchUserProfile availability: '
-        '${userProfile != null ? 'available' : 'missing'}',
-      );
+      debugPrint('DataProvider.fetchUserProfile availability: '
+          '${userProfileModel != null ? 'available' : 'missing'}');
     } catch (e) {
       debugPrint('DataProvider.fetchUserProfile error: $e');
     } finally {
@@ -451,9 +491,36 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
+  // API 4.7.1: Update User Profile
+  Future<bool> updateUserProfile(Map<String, dynamic> data) async {
+    final updated = await ApiService.updateProfile(data);
+
+    if (updated != null && userProfileModel != null) {
+      userProfileModel = userProfileModel!.copyWith(
+        height: updated["height"] != null ? (updated["height"] as num).toDouble() : null,
+        weight: updated["weight"] != null ? (updated["weight"] as num).toDouble() : null,
+        activityLevel: updated["activityLevel"],
+        goal: updated["goal"],
+      );
+
+      _notifySafely();
+      
+      // Also write back to cache so it persists locally
+      await ApiService.writeCachedUserProfile(userProfileModel!.toJson());
+      
+      // Refresh targets using the new stats
+      await fetchDailyTarget();
+
+      return true;
+    }
+
+    return false;
+  }
+
   // Fetch API 4.8: Streak
   Future<void> fetchStreak() async {
-    if (streakData != null) return;
+    // Step 5 — guard on model field
+    if (streakDataModel != null) return;
     if (_pendingStreakFetch != null) {
       await _pendingStreakFetch;
       return;
@@ -467,10 +534,12 @@ class DataProvider extends ChangeNotifier {
   Future<void> _fetchStreakInternal() async {
     _setStreakLoading(true);
     try {
-      final res = await ApiService.getStreak();
-      streakData = (res is Map<String, dynamic> && res['success'] == true)
-          ? (res['data'] as Map<String, dynamic>?)
-          : streakData;
+      // Step 5 — model only; no Map field
+      final model = await ApiService.getStreakModel();
+      if (model != null) {
+        streakDataModel = model;
+        debugPrint('[api] StreakDataModel fetched successfully — streak=${model.streak}');
+      }
     } catch (e) {
       debugPrint('DataProvider.fetchStreak error: $e');
     } finally {
@@ -563,6 +632,124 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
+  // API 8: Update Log Quantity
+  // All UI quantity controls must go through this method — never call
+  // ApiService.updateLog directly from a widget.
+  //
+  // FIX v2.7: Two-phase update:
+  //   Phase 1 — instant optimistic patch from API response (server-computed,
+  //             no frontend multiplication, no drift).
+  //   Phase 2 — delayed full tracker re-fetch (300 ms) so the server state
+  //             overwrites the optimistic patch without causing a visible reset.
+  Future<bool> updateLog(String logId, double newQuantity, [String? dateKey]) async {
+    final effectiveKey =
+        dateKey ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      final updatedData = await ApiService.updateLog(logId, newQuantity);
+      if (updatedData != null) {
+        debugPrint('[provider] updateLog received: logId=$logId qty=${updatedData["quantity"]} cal=${updatedData["calories"]}');
+        // Phase 1: instant optimistic patch using server-returned values.
+        // NEVER recompute calories here — use exactly what the server sent.
+        _applyOptimisticLogUpdate(effectiveKey, logId, updatedData);
+        // Phase 2: delayed refresh — prevents the background fetch from
+        // landing before the optimistic patch and reverting the UI.
+        Future.delayed(const Duration(milliseconds: 300), () {
+          debugPrint('[provider] delayed tracker refresh — logId=$logId date=$effectiveKey');
+          fetchTrackerSummary(effectiveKey, true);
+          fetchDailyRating(effectiveKey, true);
+        });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('DataProvider.updateLog error: $e');
+      return false;
+    }
+  }
+
+  /// Patches a single [MealLog] entry in the in-memory tracker cache and
+  /// recomputes consumed macro totals.  Called immediately after a successful
+  /// /update-log response so the UI reacts with zero additional latency.
+  void _applyOptimisticLogUpdate(
+    String dateKey,
+    String logId,
+    Map<String, dynamic> updated,
+  ) {
+    final current = _trackerModelCache[dateKey];
+    if (current == null) return;
+
+    // Rebuild the logs list, replacing the matching entry.
+    // FIX v2.7: Read quantity as num (not int) — server returns fractional
+    // values like 1.3, 0.8 which must not be truncated to int.
+    // All macro values come directly from the server response — never
+    // recomputed on the client to avoid double-scaling.
+    final newLogs = current.logs.map((log) {
+      if (log.logId != logId) return log;
+
+      // Server quantity may be int or double — preserve as double
+      final qty = (updated['quantity'] as num?)?.toDouble() ?? log.quantity;
+
+      return MealLog(
+        logId:    log.logId,
+        mealName: log.mealName,
+        mealType: log.mealType,
+        // Use server-computed totals verbatim — no frontend multiplication.
+        calories: (updated['calories'] as num?)?.toDouble() ?? log.calories,
+        protein:  (updated['protein']  as num?)?.toDouble() ?? log.protein,
+        carbs:    (updated['carbs']    as num?)?.toDouble() ?? log.carbs,
+        fat:      (updated['fat']      as num?)?.toDouble() ?? log.fat,
+        quantity: qty,
+        date:     log.date,
+        source:   log.source,
+        servingSize: log.servingSize,
+        servingGrams: log.servingGrams,
+      );
+    }).toList();
+
+    // Recompute consumed totals from the updated log list.
+    final totalCal   = newLogs.fold<double>(0, (s, l) => s + l.calories);
+    final totalProt  = newLogs.fold<double>(0, (s, l) => s + l.protein);
+    final totalCarbs = newLogs.fold<double>(0, (s, l) => s + l.carbs);
+    final totalFat   = newLogs.fold<double>(0, (s, l) => s + l.fat);
+
+    _trackerModelCache[dateKey] = TrackerSummary(
+      date:     current.date,
+      targets:  current.targets,
+      consumed: NutrientTotals(
+        calories: totalCal,
+        protein:  totalProt,
+        carbs:    totalCarbs,
+        fat:      totalFat,
+      ),
+      logs: newLogs,
+    );
+
+    debugPrint('[provider] optimistic log update applied — '
+        'logId=$logId qty=${updated["quantity"]} '
+        'cal=${updated["calories"]}');
+    _notifySafely();
+  }
+
+  // API 9: Delete Log
+  // All UI delete actions must go through this method — never call
+  // ApiService.deleteLog directly from a widget.
+  Future<bool> deleteLog(String logId, [String? dateKey]) async {
+    final effectiveKey =
+        dateKey ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      final ok = await ApiService.deleteLog(logId);
+      if (ok) {
+        // Also apply a background refresh without clearing the cache instantly
+        fetchTrackerSummary(effectiveKey, true);
+        fetchDailyRating(effectiveKey, true);
+      }
+      return ok;
+    } catch (e) {
+      debugPrint('DataProvider.deleteLog error: $e');
+      return false;
+    }
+  }
+
   bool get isLoading =>
       isDailyTargetLoading ||
       isMealPlanLoading ||
@@ -573,17 +760,17 @@ class DataProvider extends ChangeNotifier {
 
   bool _isTrackerCacheFresh(String key) =>
       _isCacheFresh(_trackerCacheTime[key], _trackerCacheTtl) &&
-      _trackerSummaryCache.containsKey(key);
+      _trackerModelCache.containsKey(key);
 
   bool _isDailyRatingCacheFresh(String key) =>
       _isCacheFresh(_dailyRatingCacheTime[key], _dailyRatingCacheTtl) &&
-      _dailyRatingCache.containsKey(key);
+      _dailyRatingModelCache.containsKey(key);
 
   bool _isUserProfileCacheFresh() =>
       _isCacheFresh(_userProfileFetchedAt, _userProfileCacheTtl);
 
   bool _isMealPlanCacheFreshForToday() {
-    if (mealPlan == null || _mealPlanFetchedAt == null) return false;
+    if (mealPlanModel == null || _mealPlanFetchedAt == null) return false;
     final now = DateTime.now();
     final fetchedAt = _mealPlanFetchedAt!;
     return fetchedAt.year == now.year &&
@@ -625,8 +812,9 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  void _trimDatedCache(
-    Map<String, Map<String, dynamic>?> dataCache,
+  /// Step 5 — generic trim: evicts oldest entries from any dated model cache.
+  void _trimTypedDatedCache<T>(
+    Map<String, T?> dataCache,
     Map<String, DateTime> timeCache,
   ) {
     if (timeCache.length <= _maxDatedCacheEntries) return;

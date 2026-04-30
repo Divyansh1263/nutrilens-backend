@@ -35,7 +35,7 @@ MEAL_SPLIT_RATIOS = {
 # COLLECTION NAMES (Constant mapping to prevent typos)
 # ---------------------------------------------------------
 COL_USERS = "users"
-COL_MEALS = "meals"
+COL_MEALS = "meals_v3"
 COL_MEAL_PLANS = "meal_plans"
 COL_MEAL_LOGS = "meal_logs"
 COL_DAILY_TARGETS = "daily_targets"

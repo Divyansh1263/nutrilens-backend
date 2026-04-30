@@ -106,14 +106,14 @@ def determine_tags(meal):
 # BATCH UPDATE
 batch = db.batch()
 count = 0
-docs = db.collection("meals").stream()
+docs = db.collection("meals_v3").stream()
 
 for doc in docs:
     meal = doc.to_dict()
     new_tags = determine_tags(meal)
     
     # Update logic
-    ref = db.collection("meals").document(doc.id)
+    ref = db.collection("meals_v3").document(doc.id)
     batch.update(ref, new_tags)
     count += 1
     
