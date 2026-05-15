@@ -403,13 +403,18 @@ def update_log():
     # TASK 1 FIX: include quantity in response so the UI never resets to the
     # old value.  updated_macros may or may not contain "quantity" already;
     # we always stamp it explicitly from the validated request value.
-    return success({
+    response_payload = {
         "quantity": quantity,
         "calories": updated_macros.get("calories"),
         "protein":  updated_macros.get("protein"),
         "carbs":    updated_macros.get("carbs"),
         "fat":      updated_macros.get("fat"),
-    }, "Log quantity updated")
+    }
+    # FIX 5.3: Include authoritative tracker totals so frontend can
+    # skip local recomputation and use backend as source of truth.
+    if updated_macros.get("tracker_consumed"):
+        response_payload["tracker_consumed"] = updated_macros["tracker_consumed"]
+    return success(response_payload, "Log quantity updated")
 
 @meal_bp.route("/delete-log", methods=["DELETE"])
 def delete_log():
@@ -554,16 +559,58 @@ def swap_meal():
     from repositories.meal_repository import meal_repo
     from services.tracker_service import tracker_service
     from firebase_admin import firestore as fs
+    from utils.diet_utils import get_diet_flags, _NON_VEG_KWS
 
     log = tracker_repo.get_log(log_id)
     if not log:
         return error("Log not found", 404)
+
+    # FIX 2.1: Load user profile to enforce dietary restrictions on swaps
+    user_id = log.get("userId")
+    _swap_user = None
+    if user_id:
+        try:
+            from repositories.user_repository import user_repo
+            _swap_user = user_repo.get_user_profile(user_id) or {}
+        except Exception:
+            _swap_user = {}
+    flags = get_diet_flags(_swap_user) if _swap_user else {
+        "is_vegetarian": False, "is_vegan": False,
+        "is_gluten_free": False, "is_nut_free": False
+    }
+
+    def _meal_passes_diet(meal_dict):
+        """FIX 2.1: Check if a single meal passes dietary restrictions."""
+        if flags["is_vegan"]:
+            if not meal_dict.get("is_vegan"):
+                name_l = (meal_dict.get("mealName") or "").lower()
+                # Also check keywords for items without boolean flags
+                if any(kw in name_l for kw in _NON_VEG_KWS):
+                    return False
+                if not meal_dict.get("is_vegan"):
+                    return False
+            return True
+        if flags["is_vegetarian"]:
+            if meal_dict.get("is_vegetarian") is not True:
+                name_l = (meal_dict.get("mealName") or "").lower()
+                if any(kw in name_l for kw in _NON_VEG_KWS):
+                    return False
+                # If no boolean flag, reject unless we can confirm it's veg
+                if meal_dict.get("is_vegetarian") is not True and meal_dict.get("is_vegan") is not True:
+                    return False
+            return True
+        return True
 
     # ──────────────────────────────────────────────────────────
     # TIER 1: Exact Firestore match on mealName
     # ──────────────────────────────────────────────────────────
     new_meal = meal_repo.get_meal_by_name(new_meal_name)
     matched_by = "exact"
+
+    # FIX 2.1: Validate diet safety of exact match
+    if new_meal and not _meal_passes_diet(new_meal):
+        print(f"[swap-meal] TIER 1 exact match '{new_meal_name}' REJECTED: dietary violation")
+        new_meal = None
 
     # ──────────────────────────────────────────────────────────
     # TIER 2: Case-insensitive partial name match (in-memory)
@@ -575,6 +622,7 @@ def swap_meal():
             candidates = [
                 m for m in MEALS
                 if query in (m.get("mealName") or "").lower()
+                and _meal_passes_diet(m)  # FIX 2.1: diet filter
             ]
             if not candidates:
                 # Try word-level: any word in query matches any word in name
@@ -582,6 +630,7 @@ def swap_meal():
                 candidates = [
                     m for m in MEALS
                     if query_words & set((m.get("mealName") or "").lower().split())
+                    and _meal_passes_diet(m)  # FIX 2.1: diet filter
                 ]
             if candidates:
                 new_meal = candidates[0]
@@ -598,23 +647,24 @@ def swap_meal():
             target_cal = float(log.get("calories") or 300) / float(log.get("quantity") or 1)
             target_cat = log.get("mealType", "")
 
-            # Prefer same category
-            pool = [m for m in MEALS if m.get("category", "").lower() == target_cat.lower()]
+            # Prefer same category + diet-safe
+            pool = [m for m in MEALS
+                    if m.get("category", "").lower() == target_cat.lower()
+                    and _meal_passes_diet(m)]  # FIX 2.1: diet filter
             if not pool:
-                pool = MEALS  # fallback to all meals
+                pool = [m for m in MEALS if _meal_passes_diet(m)]  # FIX 2.1: diet filter
 
-            new_meal = min(
-                pool,
-                key=lambda m: abs((m.get("calories") or 0) - target_cal)
-            )
-            matched_by = "calorie_similar"
+            if pool:
+                new_meal = min(
+                    pool,
+                    key=lambda m: abs((m.get("calories") or 0) - target_cal)
+                )
+                matched_by = "calorie_similar"
         except Exception:
-            pass  # FIX 2: fall through to custom-meal creation instead of erroring
+            pass
 
     # ──────────────────────────────────────────────────────────
-    # FIX 2: TIER 4 — Custom meal (not in DB) — store with 0 macros
-    # If the user typed a food not in the dataset, create it on-the-fly
-    # so the swap always succeeds.
+    # TIER 4: Custom meal (not in DB) — store with 0 macros
     # ──────────────────────────────────────────────────────────
     if not new_meal:
         new_meal = {

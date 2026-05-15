@@ -10,7 +10,44 @@
 #   4. resolve_explanation()   — dynamic explanation string for a meal+user pair
 #   5. annotate_plan_item()    — attach explanation to a plan item dict
 
-_NON_VEG_KWS = frozenset({"chicken", "mutton", "fish", "egg"})
+_NON_VEG_KWS = frozenset({
+    "chicken", "mutton", "fish", "egg", "prawn", "shrimp", "lamb",
+    "pork", "beef", "crab", "lobster", "bacon", "ham", "sausage",
+    "keema", "meat", "tandoori chicken", "butter chicken", "seekh",
+})
+
+
+# ==============================================================================
+# 0. CENTRALIZED DIETARY FLAG READER
+# ==============================================================================
+
+def get_diet_flags(user: dict) -> dict:
+    """
+    Single source of truth for reading dietary restriction flags.
+
+    Reads from BOTH:
+      - top-level:  user["is_vegetarian"]
+      - nested:     user["dietary_restrictions"]["is_vegetarian"]
+
+    Returns dict with boolean flags:
+      is_vegetarian, is_vegan, is_gluten_free, is_nut_free
+
+    EVERY code path that checks dietary restrictions MUST use this function.
+    """
+    if not user:
+        return {"is_vegetarian": False, "is_vegan": False,
+                "is_gluten_free": False, "is_nut_free": False}
+
+    dr = user.get("dietary_restrictions", {})
+    if not isinstance(dr, dict):
+        dr = {}
+
+    return {
+        "is_vegetarian": bool(dr.get("is_vegetarian") or user.get("is_vegetarian")),
+        "is_vegan":      bool(dr.get("is_vegan")      or user.get("is_vegan")),
+        "is_gluten_free": bool(dr.get("is_gluten_free") or user.get("is_gluten_free")),
+        "is_nut_free":   bool(dr.get("is_nut_free")   or user.get("is_nut_free")),
+    }
 
 
 # ==============================================================================
@@ -26,18 +63,21 @@ def apply_diet_filter(meals: list, user: dict) -> list:
         is_vegetarian → only meals where is_vegetarian is True
                         AND mealName contains no non-veg keyword
 
-    Falls back to the full pool if filtering would produce an empty list.
+    SAFETY: Returns empty list if no meals pass — NEVER returns unfiltered pool.
 
     Args:
         meals: list of meal dicts from Firestore / in-memory cache
         user:  Firestore user profile dict
 
     Returns:
-        filtered list (or original list if result would be empty)
+        filtered list (may be empty — caller must handle)
     """
-    dr = user.get("dietary_restrictions", {}) if user else {}
-    is_veg   = bool(dr.get("is_vegetarian") or (user or {}).get("is_vegetarian"))
-    is_vegan = bool(dr.get("is_vegan")      or (user or {}).get("is_vegan"))
+    import logging
+    _log = logging.getLogger(__name__)
+
+    flags = get_diet_flags(user)
+    is_veg   = flags["is_vegetarian"]
+    is_vegan = flags["is_vegan"]
 
     if not (is_veg or is_vegan):
         return meals
@@ -52,7 +92,17 @@ def apply_diet_filter(meals: list, user: dict) -> list:
         return not any(kw in name_lower for kw in _NON_VEG_KWS)
 
     filtered = [m for m in meals if _passes(m)]
-    return filtered if filtered else meals   # safe fallback
+
+    # FIX 1.1: NEVER return unfiltered meals — return empty list instead.
+    # Caller must handle empty result (e.g. log warning, skip swap).
+    if not filtered:
+        restriction = "vegan" if is_vegan else "vegetarian"
+        _log.warning(
+            "[diet-filter] EMPTY RESULT: 0/%d meals passed %s filter. "
+            "Returning empty list — NOT falling back to unfiltered pool.",
+            len(meals), restriction,
+        )
+    return filtered
 
 
 # ==============================================================================
@@ -71,9 +121,9 @@ def validate_plan(plan: dict, user: dict) -> tuple:
         - is_veg    users: every item must have is_vegetarian == True
                            AND mealName must contain no non-veg keyword
     """
-    dr = user.get("dietary_restrictions", {}) if user else {}
-    is_veg   = bool(dr.get("is_vegetarian") or (user or {}).get("is_vegetarian"))
-    is_vegan = bool(dr.get("is_vegan")      or (user or {}).get("is_vegan"))
+    flags = get_diet_flags(user)
+    is_veg   = flags["is_vegetarian"]
+    is_vegan = flags["is_vegan"]
 
     if not (is_veg or is_vegan):
         return True, []

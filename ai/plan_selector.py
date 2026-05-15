@@ -1,5 +1,6 @@
 import random
 from utils.logger import app_logger
+from utils.diet_utils import get_diet_flags
 
 class PlanSelector:
     def __init__(self, db_client):
@@ -7,46 +8,13 @@ class PlanSelector:
 
     def calculate_targets(self, user):
         """
-        Calculate BMR using Mifflin-St Jeor equation.
+        FIX 3.1: Single source of truth — delegates to compute_base_targets().
+        Previously had a duplicate Mifflin-St Jeor implementation that diverged
+        on protein calculation (weight*1.3 vs 25% of calories / 4).
         """
-        weight = float(user.get("weight", 70))
-        height = float(user.get("height", 170))
-        age = int(user.get("age", 30))
-        gender = user.get("gender", "male").lower()
-
-        # Base BMR
-        bmr = 10 * weight + 6.25 * height - 5 * age
-        if gender == "female":
-            bmr -= 161
-        else:
-            bmr += 5
-
-        # Activity Multiplier
-        activity = user.get("activityLevel", "sedentary").lower()
-        multipliers = {
-            "sedentary": 1.2,
-            "lightly_active": 1.375,
-            "moderately_active": 1.55,
-            "very_active": 1.725
-        }
-        tdee = bmr * multipliers.get(activity, 1.2)
-
-        # Goal Adjustment & Protein
-        goal = user.get("goal", "maintain").lower()
-        
-        if "lose" in goal:
-            tdee -= 400
-            target_protein = weight * 1.3
-        elif "gain" in goal:
-            tdee += 400
-            target_protein = weight * 1.8
-        else:
-            target_protein = weight * 1.2
-            
-        target_calories = round(tdee)
-        target_protein = round(target_protein)
-        
-        return target_calories, target_protein
+        from ai.target_calculator import compute_base_targets
+        targets = compute_base_targets(user)
+        return targets["calories"], round(targets["protein"])
 
     def get_calorie_bucket(self, target_calories):
         if target_calories <= 1600:
@@ -75,8 +43,10 @@ class PlanSelector:
         bucket = self.get_calorie_bucket(target_calories)
         
         user_goal = user.get("goal", "maintain").lower()
-        is_veg = bool(user.get("is_vegetarian", False))
-        is_vegan = bool(user.get("is_vegan", False))
+        # FIX 1.3: Use centralized get_diet_flags() — reads both top-level and nested
+        flags = get_diet_flags(user)
+        is_veg = flags["is_vegetarian"]
+        is_vegan = flags["is_vegan"]
 
         print(f"[DEBUG] Target Calories: {target_calories}, Target Protein: {target_protein}")
 
@@ -157,7 +127,8 @@ class PlanSelector:
             cal_diff = abs(plan_cal - target_calories)
             prot_diff = abs(plan_prot - target_protein)
             
-            score = 0.7 * cal_diff + 0.3 * prot_diff
+            # FIX 4.1: Rebalance scoring — prioritize protein matching
+            score = 0.45 * cal_diff + 0.55 * prot_diff
             scored_plans.append((score, plan))
 
         # Select Plan

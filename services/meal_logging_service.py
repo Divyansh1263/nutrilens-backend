@@ -185,6 +185,15 @@ class MealLoggingService:
         from services.tracker_service import tracker_service
         tracker_service.recalculate_daily_tracker(log_data["userId"], log_data["date"])
 
+        # FIX 5.3: Include tracker totals so frontend can update atomically
+        tracker_totals = None
+        try:
+            summary = tracker_service.get_tracker_summary(log_data["userId"], log_data["date"])
+            if summary:
+                tracker_totals = summary.get("consumed")
+        except Exception as _te:
+            _log.warning("[update-log] Failed to read tracker totals: %s", _te)
+
         updated_macros = {
             "logId":    log_id,
             "mealName": log_data.get("mealName", ""),
@@ -194,6 +203,9 @@ class MealLoggingService:
             "carbs":    carbs,
             "fat":      fat,
         }
+        # Attach tracker totals if available (FIX 5.3)
+        if tracker_totals:
+            updated_macros["tracker_consumed"] = tracker_totals
         return True, "", updated_macros
         
     def delete_log(self, log_id):

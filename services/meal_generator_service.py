@@ -1,5 +1,6 @@
 # services/meal_generator_service.py
 from utils.logger import app_logger
+from utils.diet_utils import get_diet_flags
 from repositories.user_repository import user_repo
 from repositories.tracker_repository import tracker_repo
 from ai.plan_selector import PlanSelector
@@ -117,7 +118,26 @@ class MealGeneratorService:
 
         # --- STEP 1: FINAL DIET SAFETY GUARANTEE (CRITICAL) ---
         final_plan = self.apply_knn_validation(final_plan, all_meals, profile)
-        
+
+        # FIX 1.4: FINAL RESPONSE VALIDATION — hard-reject any remaining violations
+        from utils.diet_utils import validate_plan
+        is_valid, violations = validate_plan(
+            {"breakfast": final_plan.get("meals", {}).get("breakfast", []),
+             "lunch": final_plan.get("meals", {}).get("lunch", []),
+             "snack": final_plan.get("meals", {}).get("snack", []),
+             "dinner": final_plan.get("meals", {}).get("dinner", [])},
+            profile
+        )
+        if not is_valid:
+            app_logger.warning("[meal-plan] FINAL VALIDATION: %d dietary violations found. Removing violating items.", len(violations))
+            for slot, meal_name, reason in violations:
+                app_logger.warning("[meal-plan]   VIOLATION: slot=%s meal=%s reason=%s", slot, meal_name, reason)
+                items = final_plan.get("meals", {}).get(slot, [])
+                final_plan["meals"][slot] = [
+                    item for item in items
+                    if (item.get("mealName") or "") != meal_name
+                ]
+
         # --- STEP 2: FINAL MACRO CONSISTENCY ---
         final_plan = self._recompute_totals(final_plan)
         after_cal = final_plan["actual_calories"]
@@ -287,6 +307,56 @@ class MealGeneratorService:
                 # Can't fix further with these constraints
                 break
 
+        # FIX 4.4: Protein-aware micro-adjust — scale protein-dense items
+        # independently when protein is below target.
+        plan = self._recompute_totals(plan)
+        target_protein = float(plan.get("target_macros", {}).get("protein", 0))
+        if "user_target_protein" in plan:
+            target_protein = float(plan["user_target_protein"])
+
+        if target_protein > 0:
+            prot_deficit = target_protein - plan.get("actual_protein", 0)
+            _PROTEIN_DENSE_KWS = ["paneer", "dal", "curd", "dahi", "yogurt", "tofu",
+                                  "soy chunk", "egg", "chicken breast", "whey",
+                                  "protein shake", "greek yogurt", "cottage cheese"]
+
+            if prot_deficit > target_protein * 0.10:  # >10% deficit
+                for slot in ["lunch", "dinner", "breakfast", "snack"]:
+                    items = plan.get("meals", {}).get(slot, [])
+                    for item in items:
+                        name = item.get("mealName", "").lower()
+                        if any(kw in name for kw in _PROTEIN_DENSE_KWS):
+                            old_qty = float(item.get("quantity", 1))
+                            base_prot = float(item.get("base_protein") or item.get("protein", 0) / max(old_qty, 0.5))
+                            base_cal = float(item.get("base_calories") or item.get("calories", 0) / max(old_qty, 0.5))
+
+                            if base_prot < 5:  # Not actually protein-dense
+                                continue
+
+                            new_qty = old_qty + 0.5
+                            if new_qty > 3.0:  # Cap at 3 servings
+                                continue
+
+                            # Check calorie headroom (allow up to 110%)
+                            extra_cal = base_cal * 0.5
+                            if plan.get("actual_calories", 0) + extra_cal > user_target_calories * 1.10:
+                                continue
+
+                            item["quantity"] = new_qty
+                            item["calories"] = round(base_cal * new_qty, 1)
+                            item["protein"] = round(base_prot * new_qty, 1)
+                            base_carbs = float(item.get("base_carbs", 0))
+                            base_fat = float(item.get("base_fat", 0))
+                            item["carbs"] = round(base_carbs * new_qty, 1)
+                            item["fat"] = round(base_fat * new_qty, 1)
+
+                            plan = self._recompute_totals(plan)
+                            prot_deficit = target_protein - plan.get("actual_protein", 0)
+                            if prot_deficit <= target_protein * 0.10:
+                                break
+                    if prot_deficit <= target_protein * 0.10:
+                        break
+
         return plan
 
     def _adjust_item_qty(self, plan, keywords, step):
@@ -322,8 +392,10 @@ class MealGeneratorService:
         if deficit <= 5:
             return plan
 
-        is_vegan = bool(user.get("is_vegan", False))
-        is_veg = bool(user.get("is_vegetarian", False))
+        # FIX 1.3: Use centralized dietary flag reader
+        flags = get_diet_flags(user)
+        is_vegan = flags["is_vegan"]
+        is_veg = flags["is_vegetarian"]
 
         # Helper to get high protein candidates
         high_protein_candidates = []
@@ -351,7 +423,8 @@ class MealGeneratorService:
         if "user_target_calories" in plan:
              target_calories = plan["user_target_calories"]
         # Limit target_calories to 1.05 for strict calorie boundary
-        max_cals = target_calories * 1.05
+        # FIX 4.2: Relax calorie ceiling from 1.05 to 1.10 during protein correction
+        max_cals = target_calories * 1.10
 
         # STEP 1: PRIORITY SWAPS
         swaps = 0
@@ -372,7 +445,7 @@ class MealGeneratorService:
 
         for lp in low_protein_items:
             # Check calorie limit FIRST before proceeding
-            if plan.get("actual_calories", 0) >= target_calories * 1.05:
+            if plan.get("actual_calories", 0) >= target_calories * 1.10:
                 break
                 
             if swaps >= 5 or current_protein >= target_protein - 5:
@@ -431,7 +504,7 @@ class MealGeneratorService:
             swaps += 1
 
         # STEP 2: ADDITIONS IF STILL DEFICIT
-        if current_protein < target_protein - 5 and plan.get("actual_calories", 0) < target_calories * 1.05:
+        if current_protein < target_protein - 5 and plan.get("actual_calories", 0) < target_calories * 1.10:
             additions = 0
             slots_cycle = ["breakfast", "snack", "dinner", "lunch"]
             
@@ -439,7 +512,7 @@ class MealGeneratorService:
                 if additions >= 2 or current_protein >= target_protein - 5:
                     break
                     
-                if plan.get("actual_calories", 0) >= target_calories * 1.05:
+                if plan.get("actual_calories", 0) >= target_calories * 1.10:
                     break
                     
                 name = candidate.get("mealName", "")
@@ -492,10 +565,12 @@ class MealGeneratorService:
         return plan
 
     def apply_knn_validation(self, plan, meals_db, user):
-        is_vegan = bool(user.get("is_vegan", False))
-        is_veg = bool(user.get("is_vegetarian", False))
-        is_gf = bool(user.get("is_gluten_free", False))
-        is_nf = bool(user.get("is_nut_free", False))
+        # FIX 1.3: Use centralized dietary flag reader
+        flags = get_diet_flags(user)
+        is_vegan = flags["is_vegan"]
+        is_veg = flags["is_vegetarian"]
+        is_gf = flags["is_gluten_free"]
+        is_nf = flags["is_nut_free"]
 
         if not (is_vegan or is_veg or is_gf or is_nf):
             return plan

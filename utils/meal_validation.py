@@ -84,7 +84,7 @@ def deduplicate_meals(meals: list) -> list:
 
 # Per-serving physiological upper bounds
 _MAX_CALORIES = 500   # kcal  — single-serving cap
-_MAX_PROTEIN  = 50    # g     — protein cap per serving
+_MAX_PROTEIN  = 80    # g     — protein cap per serving (FIX 4.3: raised from 50)
 _MAX_CARBS    = 150   # g     — carbs cap per serving
 
 
@@ -95,7 +95,7 @@ def hard_validate_meal(meal: dict) -> bool:
 
     Limits:
         calories  <= 500 kcal
-        protein   <= 50 g
+        protein   <= 80 g
         carbs     <= 150 g
     """
     name     = meal.get("mealName") or "unknown"

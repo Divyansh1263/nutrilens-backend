@@ -128,8 +128,11 @@ def apply_calorie_banking(user_id, base_targets, db):
 
         target = target_doc.to_dict().get("calories", 0)
 
+        # FIX 6.1: Add date filter — previously summed ALL historical logs!
+        day_str = day.strftime("%Y-%m-%d")
         logs = db.collection("meal_logs") \
                  .where("userId", "==", user_id) \
+                 .where("date", "==", day_str) \
                  .stream()
 
         consumed = sum(
