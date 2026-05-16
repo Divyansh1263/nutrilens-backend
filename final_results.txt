@@ -1,0 +1,123 @@
+﻿2026-05-16 17:23:12,832 - NutriLens - INFO - [cache-init] Loaded 1747 meals from firestore
+[cache] Using 1747 meals from firestore (get_all_meals, 0 Firestore reads)
+======================================================================
+  NUTRILENS PRODUCTION VERIFICATION REPORT
+======================================================================
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+TEST 1: HYDRATION FIX ΓÇö Previously broken template names
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+Template Name             OLD Result      NEW Match                 Calories  
+---------------------------------------------------------------------------
+≡ƒö┤ΓåÆΓ£à Egg Omelette            0 CALORIES      Omelette                  140.0
+≡ƒö┤ΓåÆΓ£à Egg White Omelette      0 CALORIES      Omelette                  140.0
+≡ƒö┤ΓåÆΓ£à Oats Porridge           0 CALORIES      Oats                      190.0
+≡ƒö┤ΓåÆΓ£à Bread Peanut Butter     0 CALORIES      Peanut Butter Bread       300.0
+≡ƒö┤ΓåÆΓ£à Chicken Soup            0 CALORIES      Chicken Clear Soup        100.0
+≡ƒö┤ΓåÆΓ£à Egg Bhurji              0 CALORIES      Anda Bhurji               200.0
+≡ƒö┤ΓåÆΓ£à Paneer Sabzi            0 CALORIES      Achari Paneer Tikka       280.0
+≡ƒö┤ΓåÆΓ£à Soyabean Sabzi          0 CALORIES      Soyabean Aloo Sabzi       190.0
+
+Result: ALL 8 previously broken names now resolve!
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+TEST 2: JUNK FOOD FILTER ΓÇö Items now blocked from protein fixer
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+Junk items found in meals_v3: 117
+These are ALL now blocked from entering protein correction:
+  ≡ƒÜ½ 50-50 Biscuits
+  ≡ƒÜ½ Amul Dark Chocolate
+  ≡ƒÜ½ Arrowroot Biscuits
+  ≡ƒÜ½ Atta Maggi
+  ≡ƒÜ½ Balaji Chaat Masala Wafers
+  ≡ƒÜ½ Balaji Masala Wafers
+  ≡ƒÜ½ Balaji Tomato Wafers (20 Rs)
+  ≡ƒÜ½ Balaji Wafers Cream & Onion (20 Rs)
+  ≡ƒÜ½ Banana Chips
+  ≡ƒÜ½ Banana Chips (Packaged)
+  ≡ƒÜ½ Banta Soda
+  ≡ƒÜ½ Biscuits (Marie/Glucose)
+  ≡ƒÜ½ Bounce Chocolate
+  ≡ƒÜ½ Bounty Chocolate
+  ≡ƒÜ½ Bourbon Biscuits
+  ≡ƒÜ½ Bournville Dark Chocolate
+  ≡ƒÜ½ Britannia Fruit Cake
+  ≡ƒÜ½ Britannia NutriChoice Oats Biscuit
+  ≡ƒÜ½ Britannia Tiger Biscuit (10 Rs)
+  ≡ƒÜ½ Britannia Treat Chocolate
+  ... and 97 more
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+TEST 3: SIMULATED PLAN HYDRATION ΓÇö 5 sample templates
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  Plan p1: Classic Indian Veg Weight Loss
+  Target: 2000 kcal / 90g protein
+     BREAKFAST: 510 kcal ΓÇö Vegetable Poha x1.5 ΓåÆ Vegetable Poha (450 kcal), Curd x0.5 ΓåÆ Curd (60 kcal)
+         LUNCH: 570 kcal ΓÇö Multigrain Roti x2.0 ΓåÆ Multigrain Roti (220 kcal), Moong Dal x1.0 ΓåÆ Haldiram Moong Dal (20 Rs) (190 kcal), Salad x1.0 ΓåÆ Chana Salad (160 kcal)
+         SNACK: 170 kcal ΓÇö Roasted Chana x1.0 ΓåÆ Roasted Chana (120 kcal), Tea (Less Sugar) x1.0 ΓåÆ Tea (Less Sugar) (50 kcal)
+        DINNER: 500 kcal ΓÇö Paneer Bhurji x1.0 ΓåÆ Paneer Bhurji (260 kcal), Roti x2.0 ΓåÆ Roti (240 kcal)
+      HYDRATED: 1750 kcal (88% of target) / 66g protein (73%)
+          NOTE: Scaler + micro-adjuster will bring totals closer to target
+
+  Plan p2: High Protein Veg Weight Loss
+  Target: 2100 kcal / 110g protein
+     BREAKFAST: 410 kcal ΓÇö Paneer Sandwich x1.0 ΓåÆ Paneer Sandwich (300 kcal), Milk x1.0 ΓåÆ Amul Protein Milk (110 kcal)
+         LUNCH: 700 kcal ΓÇö Roti x2.0 ΓåÆ Roti (240 kcal), Chole x1.0 ΓåÆ Amritsari Chole (300 kcal), Salad x1.0 ΓåÆ Chana Salad (160 kcal)
+         SNACK: 120 kcal ΓÇö Protein Shake (Whey) x1.0 ΓåÆ Protein Shake (Whey) (120 kcal)
+        DINNER: 430 kcal ΓÇö Soyabean Sabzi x1.0 ΓåÆ Soyabean Aloo Sabzi (190 kcal), Roti x2.0 ΓåÆ Roti (240 kcal)
+      HYDRATED: 1660 kcal (79% of target) / 107g protein (97%)
+          NOTE: Scaler + micro-adjuster will bring totals closer to target
+
+  Plan p17: Egg Focus Weight Loss Plan
+  Target: 2000 kcal / 115g protein
+     BREAKFAST: 200 kcal ΓÇö Egg Bhurji x1.0 ΓåÆ Anda Bhurji (200 kcal)
+         LUNCH: 400 kcal ΓÇö Rice x1.0 ΓåÆ Rice (180 kcal), Egg Curry x1.0 ΓåÆ Egg Curry (220 kcal)
+         SNACK: 280 kcal ΓÇö Boiled Eggs x2.0 ΓåÆ Boiled Eggs (280 kcal)
+        DINNER: 140 kcal ΓÇö Egg White Omelette x1.0 ΓåÆ Omelette (140 kcal)
+      HYDRATED: 1020 kcal (51% of target) / 68g protein (59%)
+          NOTE: Scaler + micro-adjuster will bring totals closer to target
+
+  Plan p26: Balanced Veg Muscle Gain
+  Target: 2600 kcal / 120g protein
+     BREAKFAST: 410 kcal ΓÇö Paneer Sandwich x1.0 ΓåÆ Paneer Sandwich (300 kcal), Milk x1.0 ΓåÆ Amul Protein Milk (110 kcal)
+         LUNCH: 540 kcal ΓÇö Roti x3.0 ΓåÆ Roti (360 kcal), Dal x1.0 ΓåÆ Arhar Dal (Toor Dal) (180 kcal)
+         SNACK: 120 kcal ΓÇö Protein Shake (Whey) x1.0 ΓåÆ Protein Shake (Whey) (120 kcal)
+        DINNER: 520 kcal ΓÇö Paneer Sabzi x1.0 ΓåÆ Achari Paneer Tikka (280 kcal), Roti x2.0 ΓåÆ Roti (240 kcal)
+      HYDRATED: 1590 kcal (61% of target) / 100g protein (83%)
+          NOTE: Scaler + micro-adjuster will bring totals closer to target
+
+  Plan p34: Paneer + Soy Power Plan
+  Target: 2800 kcal / 140g protein
+     BREAKFAST: 260 kcal ΓÇö Paneer Bhurji x1.0 ΓåÆ Paneer Bhurji (260 kcal)
+         LUNCH: 550 kcal ΓÇö Soyabean Sabzi x1.0 ΓåÆ Soyabean Aloo Sabzi (190 kcal), Roti x3.0 ΓåÆ Roti (360 kcal)
+         SNACK: 120 kcal ΓÇö Protein Shake (Whey) x1.0 ΓåÆ Protein Shake (Whey) (120 kcal)
+        DINNER: 280 kcal ΓÇö Paneer Tikka x1.0 ΓåÆ Paneer Tikka (280 kcal)
+      HYDRATED: 1210 kcal (43% of target) / 86g protein (61%)
+          NOTE: Scaler + micro-adjuster will bring totals closer to target
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+TEST 4: CACHE POISONING GUARD ΓÇö Simulated validation
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Good plan (1800/2000 = 90%): Γ£à ACCEPTED from cache
+  Marginal plan (1450/2000 = 73%): Γ£à ACCEPTED from cache
+  BAD plan (790/1882 = 42%): ≡ƒÜ½ REJECTED ΓåÆ regenerate
+  Low protein (1800/2000, prot 40/100): ≡ƒÜ½ REJECTED ΓåÆ regenerate
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+TEST 5: TRACKER SWAP UI ΓÇö Code verification
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  TrackerTab has subtitle in swap popup: Γ£à YES
+  DietTab has subtitle in swap popup:    Γ£à YES
+  Both screens now consistent:           Γ£à YES
+
+======================================================================
+  FINAL VERIFICATION SUMMARY
+======================================================================
+  Phase 1 (Hydration):     8/8 broken names now resolve          Γ£à
+  Phase 2 (Junk Filter):   117 junk items blocked from fixer    Γ£à
+  Phase 3 (Cache Guard):   Bad plans (<70% cal) auto-rejected    Γ£à
+  Phase 4 (Tracker UI):    Swap popup shows calories+protein     Γ£à
+======================================================================

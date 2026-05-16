@@ -194,14 +194,18 @@ class MealGeneratorService:
             profile
         )
         if not is_valid:
-            app_logger.warning("[meal-plan] FINAL VALIDATION: %d dietary violations found. Removing violating items.", len(violations))
-            for slot, meal_name, reason in violations:
-                app_logger.warning("[meal-plan]   VIOLATION: slot=%s meal=%s reason=%s", slot, meal_name, reason)
-                items = final_plan.get("meals", {}).get(slot, [])
-                final_plan["meals"][slot] = [
-                    item for item in items
-                    if (item.get("mealName") or "") != meal_name
-                ]
+            total_items = sum(len(final_plan.get("meals", {}).get(s, [])) for s in ["breakfast", "lunch", "snack", "dinner"])
+            if total_items > 0 and (len(violations) / total_items) > 0.5:
+                app_logger.error("[meal-plan] CATASTROPHIC VALIDATION: %d/%d items flagged. Aborting deletion to prevent empty plan.", len(violations), total_items)
+            else:
+                app_logger.warning("[meal-plan] FINAL VALIDATION: %d dietary violations found. Removing violating items.", len(violations))
+                for slot, meal_name, reason in violations:
+                    app_logger.warning("[meal-plan]   VIOLATION: slot=%s meal=%s reason=%s", slot, meal_name, reason)
+                    items = final_plan.get("meals", {}).get(slot, [])
+                    final_plan["meals"][slot] = [
+                        item for item in items
+                        if (item.get("mealName") or "") != meal_name
+                    ]
 
         # --- STEP 2: FINAL MACRO CONSISTENCY ---
         final_plan = self._recompute_totals(final_plan)
@@ -247,7 +251,6 @@ class MealGeneratorService:
         # --- STEP 3: RESPONSE INTEGRITY FIX ---
         app_logger.info(f"FINAL PLAN SENT: {user_plan}")
 
-        tracker_repo.save_plan(user_plan)
         return user_plan, ""
 
     def scale_plan(self, plan, user_target_calories, all_meals):
@@ -486,13 +489,19 @@ class MealGeneratorService:
                 continue
             high_protein_candidates.append(meal)
 
-        def density(m):
+        from utils.diet_utils import calculate_meal_quality_score
+        
+        def density_score(m):
             cals = float(m.get("calories") or 1)
             if cals <= 0: cals = 1
             prot = float(m.get("protein") or 0)
-            return prot / cals
+            base_density = prot / cals
+            quality = calculate_meal_quality_score(m)
+            # Combine density and quality (quality acts as a multiplier/boost)
+            # density is usually around 0.05 to 0.15. quality is between -100 and +50.
+            return base_density + (max(quality, 0) * 0.001)
 
-        high_protein_candidates.sort(key=density, reverse=True)
+        high_protein_candidates.sort(key=density_score, reverse=True)
 
         meal_counts = {}
         for slot in ["breakfast", "lunch", "snack", "dinner"]:

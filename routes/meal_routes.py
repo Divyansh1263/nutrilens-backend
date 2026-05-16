@@ -133,54 +133,68 @@ def generate_meal_plan():
             user_id, date_str
         )
 
-    # Generate (or regenerate) — save_plan() inside overwrites Firestore
-    try:
-        print(f"[DEBUG] meal_routes.py: generate_meal_plan called with data={data}")
-        plan, err = meal_generator_service.generate_daily_plan(user_id, date_str)
-    except Exception as exc:
-        import traceback
-        error_trace = traceback.format_exc()
-        print("ERROR TRACE:", error_trace)
-        from flask import jsonify
-        return jsonify({
-            "success": False,
-            "error": str(exc),
-            "trace": error_trace
-        }), 500
+    # PHASE 2 & 3: Generate with Retry Loop and Post-Validation
+    plan = None
+    err = None
+    is_valid_plan = False
+    
+    import traceback
+    from flask import jsonify
 
-    if err:
+    for attempt in range(3):
+        try:
+            print(f"[DEBUG] meal_routes.py: generate_meal_plan attempt {attempt+1} for {user_id}")
+            temp_plan, temp_err = meal_generator_service.generate_daily_plan(user_id, date_str)
+            
+            if temp_err or not temp_plan:
+                err = temp_err
+                continue
+                
+            temp_plan = _normalize_plan_structure(temp_plan)
+            
+            # Post-generation Validation (Step 3.1)
+            if _is_plan_empty(temp_plan):
+                app_logger.warning(f"[meal-plan] Attempt {attempt+1} generated empty plan.")
+                continue
+                
+            cal = float(temp_plan.get("actual_calories", 0))
+            target_cal = float(temp_plan.get("target_calories", 2000))
+            prot = float(temp_plan.get("actual_protein", 0))
+            target_prot = float(temp_plan.get("target_macros", {}).get("protein", 0))
+            
+            cal_ratio = cal / target_cal if target_cal > 0 else 1.0
+            prot_ratio = prot / target_prot if target_prot > 0 else 1.0
+            
+            if cal_ratio < 0.80 or prot_ratio < 0.70:
+                app_logger.warning(f"[meal-plan] Attempt {attempt+1} failed macro validation: cal={cal_ratio:.0%}, prot={prot_ratio:.0%}")
+                continue
+                
+            # Success!
+            plan = temp_plan
+            is_valid_plan = True
+            break
+            
+        except Exception as exc:
+            error_trace = traceback.format_exc()
+            app_logger.error(f"ERROR TRACE: {error_trace}")
+            err = str(exc)
+            
+    # STEP 2.2 — STRUCTURED HEALTHY FALLBACK
+    if not is_valid_plan:
+        app_logger.error("[meal-plan] ALL retries failed. Applying structured safe fallback.")
+        plan = _generate_safe_fallback_plan(user_id, date_str, data)
+        # Even safe fallback might be slightly off, but it's guaranteed safe from junk.
+        is_valid_plan = True
+        
+    if not plan and err:
         return error(err, 500 if "Error" in err else 400)
-
-    # TASK 1: normalize fresh plan too (defensive)
-    plan = _normalize_plan_structure(plan)
-
-    # TASK 4: final safety — force-fill any still-empty slot
-    slots = ("breakfast", "lunch", "snack", "dinner")
-    if _is_plan_empty(plan):
-        import random
-        app_logger.warning("[meal-plan] WARNING: generated plan is empty → forcing fallback")
-        from meals_cache import MEALS_CACHE
-        pool = list(MEALS_CACHE) if MEALS_CACHE else []
-        for slot in slots:
-            if not plan.get(slot) and pool:
-                m = random.choice(pool)
-                plan[slot] = [{
-                    "mealName": m.get("mealName", "fallback"),
-                    "quantity":  1.0,
-                    "calories": round(float(m.get("calories") or 0), 1),
-                    "protein":  round(float(m.get("protein")  or 0), 1),
-                    "carbs":    round(float(m.get("carbs")    or 0), 1),
-                    "fat":      round(float(m.get("fat")      or 0), 1),
-                }]
-
-    # TASK 2: DEBUG PLAN — log full item keys before response serialization
-    print("[DEBUG PLAN]", {
-        slot: [
-            {k: v for k, v in item.items()}
-            for item in plan.get(slot, [])
-        ]
-        for slot in slots
-    })
+        
+    # STEP 3.2 — BLOCK CACHE SAVE OF BAD PLANS
+    if is_valid_plan and not _is_plan_empty(plan):
+        tracker_repo.save_plan(plan)
+        app_logger.info(f"[meal-plan] Valid plan saved to cache for {user_id}")
+    else:
+        app_logger.error("[meal-plan] Plan STILL invalid/empty. NOT saving to cache.")
 
     return _meal_plan_response(plan, "Meal plan generated")
 
@@ -224,6 +238,109 @@ def _is_plan_empty(plan: dict) -> bool:
     return False
 
 
+
+
+def _generate_safe_fallback_plan(user_id: str, date_str: str, data: dict) -> dict:
+    import random
+    from meals_cache import MEALS_CACHE
+    from services.meal_generator_service import meal_generator_service
+    
+    SAFE_FALLBACK = {
+      "breakfast": [
+        "Poha", "Oats", "Vegetable Upma", "Paneer Sandwich", "Egg Omelette"
+      ],
+      "lunch": [
+        "Roti", "Dal Tadka", "Jeera Rice", "Mixed Vegetable Sabzi", "Paneer Curry", "Chicken Curry"
+      ],
+      "snack": [
+        "Banana", "Apple", "Milk", "Buttermilk", "Roasted Chana"
+      ],
+      "dinner": [
+        "Roti", "Dal Fry", "Paneer Bhurji", "Grilled Chicken", "Vegetable Pulao"
+      ]
+    }
+    
+    pool = list(MEALS_CACHE) if MEALS_CACHE else []
+    
+    # We must filter by diet flags
+    from utils.diet_utils import get_diet_flags
+    from repositories.tracker_repository import tracker_repo
+    profile = tracker_repo.get_profile(user_id)
+    flags = get_diet_flags(profile)
+    is_vegan = flags["is_vegan"]
+    is_veg = flags["is_vegetarian"]
+    from utils.diet_utils import _NON_VEG_KWS
+    
+    plan = {
+        "userId": user_id,
+        "date": date_str,
+        "target_calories": 2000,
+        "actual_calories": 0,
+        "actual_protein": 0,
+        "target_macros": {"protein": 100},
+        "breakfast": [], "lunch": [], "snack": [], "dinner": [],
+        "source_plan_id": "fallback",
+        "source_plan_name": "Emergency Safe Fallback"
+    }
+    
+    for slot, safe_names in SAFE_FALLBACK.items():
+        candidates = []
+        for name in safe_names:
+            matched = meal_generator_service._find_meal_match(name, pool)
+            if not matched: continue
+            
+            if is_vegan and not matched.get("is_vegan"): continue
+            if is_veg and not matched.get("is_vegan") and not matched.get("is_vegetarian"): continue
+            
+            if (is_vegan or is_veg) and any(kw in matched.get("mealName", "").lower() for kw in _NON_VEG_KWS):
+                continue
+                
+            candidates.append(matched)
+            
+        if not candidates and pool:
+            # Absolute fallback if somehow safe items are missing for vegan
+            from utils.diet_utils import apply_diet_filter
+            filtered = apply_diet_filter(pool, profile)
+            if filtered:
+                candidates = [random.choice(filtered)]
+        
+        if candidates:
+            # Pick one primary
+            m = random.choice(candidates)
+            item = {
+                "mealName": m.get("mealName", "fallback"),
+                "quantity": 1.0,
+                "calories": round(float(m.get("calories") or 0), 1),
+                "protein": round(float(m.get("protein") or 0), 1),
+                "carbs": round(float(m.get("carbs") or 0), 1),
+                "fat": round(float(m.get("fat") or 0), 1),
+                "explanation": m.get("explanation", ""),
+                "servingSize": m.get("servingSize", "")
+            }
+            plan[slot].append(item)
+            plan["actual_calories"] += item["calories"]
+            plan["actual_protein"] += item["protein"]
+            
+            # If lunch/dinner, maybe add a secondary item from candidates
+            if slot in ["lunch", "dinner"] and len(candidates) > 1:
+                m2 = random.choice([c for c in candidates if c.get("mealName") != m.get("mealName")])
+                item2 = {
+                    "mealName": m2.get("mealName", "fallback"),
+                    "quantity": 1.0,
+                    "calories": round(float(m2.get("calories") or 0), 1),
+                    "protein": round(float(m2.get("protein") or 0), 1),
+                    "carbs": round(float(m2.get("carbs") or 0), 1),
+                    "fat": round(float(m2.get("fat") or 0), 1),
+                    "explanation": m2.get("explanation", ""),
+                    "servingSize": m2.get("servingSize", "")
+                }
+                plan[slot].append(item2)
+                plan["actual_calories"] += item2["calories"]
+                plan["actual_protein"] += item2["protein"]
+                
+    plan["finalCalories"] = plan["actual_calories"]
+    plan["finalProtein"] = plan["actual_protein"]
+    return plan
 
 
 def _meal_plan_response(plan, message):

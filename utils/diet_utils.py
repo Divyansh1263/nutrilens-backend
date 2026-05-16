@@ -128,16 +128,34 @@ def validate_plan(plan: dict, user: dict) -> tuple:
     if not (is_veg or is_vegan):
         return True, []
 
+    import logging
+    _log = logging.getLogger(__name__)
+
+    from meals_cache import MEALS_CACHE
+    from services.meal_generator_service import MealGeneratorService
+    pool = list(MEALS_CACHE) if MEALS_CACHE else []
+
     violations = []
     for slot in ("breakfast", "lunch", "snack", "dinner"):
         for item in plan.get(slot, []):
             name = item.get("mealName") or ""
+            
+            # STEP 1.1: Canonical DB Lookup
+            matched_meal = MealGeneratorService._find_meal_match(name, pool)
+            
+            if not matched_meal:
+                _log.warning("[validate_plan] Could not resolve '%s' in MEALS_CACHE. Skipping strict validation.", name)
+                # Fallback to keyword checking if unresolved
+                if any(kw in name.lower() for kw in _NON_VEG_KWS):
+                    violations.append((slot, name, "non-veg keyword in unresolved name"))
+                continue
+
             if is_vegan:
-                if item.get("is_vegan") is not True:
-                    violations.append((slot, name, "not is_vegan"))
+                if matched_meal.get("is_vegan") is not True:
+                    violations.append((slot, name, "not is_vegan in DB"))
             elif is_veg:
-                if item.get("is_vegetarian") is not True:
-                    violations.append((slot, name, "not is_vegetarian"))
+                if matched_meal.get("is_vegetarian") is not True and matched_meal.get("is_vegan") is not True:
+                    violations.append((slot, name, "not is_vegetarian in DB"))
                 elif any(kw in name.lower() for kw in _NON_VEG_KWS):
                     violations.append((slot, name, "non-veg keyword in name"))
 
@@ -333,6 +351,30 @@ def annotate_plan_item(item: dict, source_meal: dict, user: dict) -> dict:
 
     enriched["servingSize"] = serving
     enriched["servingGrams"] = serving_grams
-    enriched["servingGrams"] = serving_grams
 
     return enriched
+
+# ==============================================================================
+# 5. MEAL QUALITY SCORING
+# ==============================================================================
+
+def calculate_meal_quality_score(meal: dict) -> int:
+    score = 0
+    name = meal.get("mealName", "").lower()
+    
+    # STEP 4.1: JUNK PENALTY
+    junk_keywords = ["chips", "soda", "chocolate", "syrup", "candy", "biscuits", "packaged snacks", "lay's", "7up", "mountain dew"]
+    if any(k in name for k in junk_keywords):
+        score -= 100
+        
+    category = meal.get("category", "").lower()
+    if category == "beverage":
+        # Beverage penalty for main meals handled dynamically, but intrinsic score is lower
+        score -= 30
+        
+    # STEP 4.2: CORE MEAL BONUS
+    core_keywords = ["roti", "dal", "sabzi", "paneer", "egg", "chicken", "rice", "oats", "fruits", "apple", "banana"]
+    if any(k in name for k in core_keywords):
+        score += 50
+        
+    return score
