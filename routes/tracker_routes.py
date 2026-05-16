@@ -3,12 +3,12 @@ from flask import Blueprint, request
 from utils.response_utils import success, error
 from services.tracker_service import tracker_service
 from services.streak_service import streak_service
-from utils.auth_middleware import firebase_auth_optional, get_user_id_from_request
+from utils.auth_middleware import firebase_auth_required, get_user_id_from_request
 
 tracker_bp = Blueprint('tracker', __name__)
 
 @tracker_bp.route("/tracker-summary", methods=["GET"])
-@firebase_auth_optional
+@firebase_auth_required
 def get_tracker_summary():
     user_id = get_user_id_from_request()
     date_str = request.args.get("date")
@@ -32,7 +32,7 @@ def get_tracker_summary():
         }), 500
 
 @tracker_bp.route("/get-streak", methods=["GET"])
-@firebase_auth_optional
+@firebase_auth_required
 def get_streak():
     user_id = get_user_id_from_request()
     if not user_id:

@@ -1,0 +1,30 @@
+{
+  "users": {
+    "count": 37,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\users_backup_20260516_201332.json"
+  },
+  "meal_logs": {
+    "count": 451,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\meal_logs_backup_20260516_201332.json"
+  },
+  "meal_plans": {
+    "count": 93,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\meal_plans_backup_20260516_201332.json"
+  },
+  "daily_targets": {
+    "count": 56,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\daily_targets_backup_20260516_201332.json"
+  },
+  "daily_tracker_summary": {
+    "count": 42,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\daily_tracker_summary_backup_20260516_201332.json"
+  },
+  "daily_ratings": {
+    "count": 19,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\daily_ratings_backup_20260516_201332.json"
+  },
+  "user_meal_history": {
+    "count": 267,
+    "file": "D:\\NutriLens\\backend\\migration_backups\\user_meal_history_backup_20260516_201332.json"
+  }
+}

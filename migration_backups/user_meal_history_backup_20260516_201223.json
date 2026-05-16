@@ -1,0 +1,1604 @@
+{
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Cadbury_Dairy_Milk_Mini": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Cadbury Dairy Milk Mini",
+    "count": 2,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Chhaas_(Buttermilk)": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Chhaas (Buttermilk)",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Chicken_Do_Pyaza": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Chicken Do Pyaza"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Echorer_Dalna": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Echorer Dalna",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Gujarati_Toor_Dal": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Gujarati Toor Dal",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Indori_Poha": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Indori Poha",
+    "count": 5,
+    "last_eaten": "2026-05-01"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Kanchipuram_Idli": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Kanchipuram Idli"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Karela_Sabzi": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-29",
+    "count": 2,
+    "meal_name": "Karela Sabzi"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Lauki_Sabzi": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Lauki Sabzi",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Masala_Buttermilk": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Masala Buttermilk",
+    "count": 2,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Milo_Milk": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Milo Milk",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Moong_Dal_Tadka": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Moong Dal Tadka",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Mother_Dairy_Classic_Yogurt": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Mother Dairy Classic Yogurt",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Multigrain_Roti": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Multigrain Roti",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Mung_Dal_Packaged": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Mung Dal Packaged"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Muskmelon_Juice": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Muskmelon Juice",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Paneer_Biryani": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-30",
+    "count": 2,
+    "meal_name": "Paneer Biryani"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Paneer_Butter_Masala": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Paneer Butter Masala",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Paneer_Lababdar": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Paneer Lababdar",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Paneer_Pasanda": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Paneer Pasanda"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Peach_Iced_Tea": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Peach Iced Tea",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Plain_Roti": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Plain Roti",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Raw_Banana_Sabzi": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Raw Banana Sabzi",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Roti_with_Matar_Paneer": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Roti with Matar Paneer",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Samak_Rice": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Samak Rice",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Spring_Roll": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Spring Roll"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_Sweet_Paniyaram": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "meal_name": "Sweet Paniyaram",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Bread_Butter": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-04",
+    "count": 1,
+    "meal_name": "Bread Butter"
+  },
+  "divyansh_045019_tmu_ac_in_Chole": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Chole"
+  },
+  "divyansh_045019_tmu_ac_in_Dal": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-04",
+    "count": 1,
+    "meal_name": "Dal"
+  },
+  "divyansh_045019_tmu_ac_in_Lassi": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Lassi",
+    "count": 3,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh_045019_tmu_ac_in_Milk": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Milk"
+  },
+  "divyansh_045019_tmu_ac_in_Moong_Dal": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Moong Dal",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Multigrain_Roti": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Multigrain Roti",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Paneer_Bhurji": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Paneer Bhurji",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Paneer_Sandwich": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Paneer Sandwich"
+  },
+  "divyansh_045019_tmu_ac_in_Plain_Poha": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Plain Poha",
+    "count": 2,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh_045019_tmu_ac_in_Plain_Roti": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 2,
+    "meal_name": "Plain Roti"
+  },
+  "divyansh_045019_tmu_ac_in_Protein_Shake_(Whey)": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Protein Shake (Whey)"
+  },
+  "divyansh_045019_tmu_ac_in_Rajma_Masala": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Rajma Masala"
+  },
+  "divyansh_045019_tmu_ac_in_Roasted_Chana": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Roasted Chana",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Roti": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Roti",
+    "count": 4,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh_045019_tmu_ac_in_Roti_with_Matar_Paneer": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Roti with Matar Paneer",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Salad": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Salad",
+    "count": 2,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh_045019_tmu_ac_in_Soyabean_Sabzi": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Soyabean Sabzi"
+  },
+  "divyansh_045019_tmu_ac_in_Vegetable_Poha": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Vegetable Poha",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "divyansh_045019_tmu_ac_in_Whey_Protein_Shake": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "meal_name": "Whey Protein Shake",
+    "count": 5,
+    "last_eaten": "2026-05-04"
+  },
+  "divyansh__7Up_(200ml)": {
+    "userId": "divyansh_",
+    "meal_name": "7Up (200ml)",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh__Aloo_Paratha": {
+    "userId": "divyansh_",
+    "meal_name": "Aloo Paratha",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh__Lay's_Spanish_Tomato_Tango_(20_Rs)": {
+    "userId": "divyansh_",
+    "meal_name": "Lay's Spanish Tomato Tango (20 Rs)",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh__Masala_Corn": {
+    "userId": "divyansh_",
+    "meal_name": "Masala Corn",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh__Mountain_Dew_(200ml)": {
+    "userId": "divyansh_",
+    "meal_name": "Mountain Dew (200ml)",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyansh_gmail_com_Butter_Roti": {
+    "userId": "divyansh_gmail_com",
+    "meal_name": "Butter Roti",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyansh_gmail_com_Egg_Bhurji": {
+    "userId": "divyansh_gmail_com",
+    "meal_name": "Egg Bhurji",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyansh_gmail_com_Neyyappam": {
+    "userId": "divyansh_gmail_com",
+    "meal_name": "Neyyappam",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyansh_gmail_com_Paneer_Lababdar": {
+    "userId": "divyansh_gmail_com",
+    "meal_name": "Paneer Lababdar",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyansh_gmail_com_Sambar_Vada": {
+    "userId": "divyansh_gmail_com",
+    "meal_name": "Sambar Vada",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyansh_gmail_com_Snake_Gourd_Kootu": {
+    "userId": "divyansh_gmail_com",
+    "meal_name": "Snake Gourd Kootu",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyanshtyagi1263_gmail_com_Aloo_Mooli": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Aloo Mooli",
+    "count": 1,
+    "last_eaten": "2026-05-15"
+  },
+  "divyanshtyagi1263_gmail_com_Aloo_Paratha": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Aloo Paratha",
+    "count": 4,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Aloo_Posto": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Aloo Posto",
+    "count": 2,
+    "last_eaten": "2026-03-23"
+  },
+  "divyanshtyagi1263_gmail_com_Aloo_Sandwich": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 2,
+    "meal_name": "Aloo Sandwich"
+  },
+  "divyanshtyagi1263_gmail_com_Aloo_Wrap": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-20",
+    "count": 1,
+    "meal_name": "Aloo Wrap"
+  },
+  "divyanshtyagi1263_gmail_com_Banana": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Banana",
+    "count": 2,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Besan_Chilla": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Besan Chilla",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Boiled_Egg": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Boiled Egg",
+    "count": 4,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Bombay_Sandwich": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Bombay Sandwich"
+  },
+  "divyanshtyagi1263_gmail_com_Bourbon_Biscuits": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Bourbon Biscuits",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyanshtyagi1263_gmail_com_Bournville_Dark_Chocolate": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Bournville Dark Chocolate",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "divyanshtyagi1263_gmail_com_Britannia_Good_Day_Pista": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Britannia Good Day Pista",
+    "count": 1,
+    "last_eaten": "2026-05-15"
+  },
+  "divyanshtyagi1263_gmail_com_Broccoli_Matar": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Broccoli Matar",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Butter_Popcorn": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Butter Popcorn",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyanshtyagi1263_gmail_com_Butter_Roti": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 2,
+    "meal_name": "Butter Roti"
+  },
+  "divyanshtyagi1263_gmail_com_Chicken_Biryani": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Chicken Biryani",
+    "count": 1,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Chicken_Burger": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Chicken Burger",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "divyanshtyagi1263_gmail_com_Chilli_Paneer_(Dry)": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Chilli Paneer (Dry)",
+    "count": 3,
+    "last_eaten": "2026-04-15"
+  },
+  "divyanshtyagi1263_gmail_com_Coriander_Rice": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-19",
+    "count": 1,
+    "meal_name": "Coriander Rice"
+  },
+  "divyanshtyagi1263_gmail_com_Curd": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Curd"
+  },
+  "divyanshtyagi1263_gmail_com_Dal_Chawal": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Dal Chawal",
+    "count": 2,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Dal_Tadka": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Dal Tadka",
+    "count": 8,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Dal_rice": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Dal rice",
+    "count": 2,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Dalma": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Dalma",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "divyanshtyagi1263_gmail_com_Egg_Roast": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-15",
+    "count": 2,
+    "meal_name": "Egg Roast"
+  },
+  "divyanshtyagi1263_gmail_com_Gobi_Manchurian": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Gobi Manchurian",
+    "count": 1,
+    "last_eaten": "2026-05-15"
+  },
+  "divyanshtyagi1263_gmail_com_Hershey's_Chocolate_Syrup": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Hershey's Chocolate Syrup",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyanshtyagi1263_gmail_com_Kachumber_Salad": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Kachumber Salad",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Kerala_Parotta": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Kerala Parotta"
+  },
+  "divyanshtyagi1263_gmail_com_Khamiri_Roti": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-19",
+    "count": 2,
+    "meal_name": "Khamiri Roti"
+  },
+  "divyanshtyagi1263_gmail_com_Kharode_Ka_Soup": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Kharode Ka Soup",
+    "count": 1,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Kheer": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Kheer"
+  },
+  "divyanshtyagi1263_gmail_com_Kinder_Joy": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Kinder Joy",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Lasooni_Dal": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-19",
+    "count": 2,
+    "meal_name": "Lasooni Dal"
+  },
+  "divyanshtyagi1263_gmail_com_Low_Fat_Curd": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Low Fat Curd",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "divyanshtyagi1263_gmail_com_Makki_Ki_Roti": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Makki Ki Roti",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyanshtyagi1263_gmail_com_Malai_Soya_Chaap": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-20",
+    "count": 1,
+    "meal_name": "Malai Soya Chaap"
+  },
+  "divyanshtyagi1263_gmail_com_Masala_Buttermilk": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Masala Buttermilk",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "divyanshtyagi1263_gmail_com_Masala_Oats": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Masala Oats",
+    "count": 3,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Masala_Peanuts": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Masala Peanuts",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "divyanshtyagi1263_gmail_com_Masala_Toast_Sandwich": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Masala Toast Sandwich",
+    "count": 2,
+    "last_eaten": "2026-04-29"
+  },
+  "divyanshtyagi1263_gmail_com_Milo_Milk": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Milo Milk",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Mix_Dal": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Mix Dal",
+    "count": 4,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Mixed_Vegetable_Sabzi": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-26",
+    "count": 1,
+    "meal_name": "Mixed Vegetable Sabzi"
+  },
+  "divyanshtyagi1263_gmail_com_Mooli_Paratha": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Mooli Paratha",
+    "count": 2,
+    "last_eaten": "2026-03-23"
+  },
+  "divyanshtyagi1263_gmail_com_Mother_Dairy_Classic_Yogurt": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Mother Dairy Classic Yogurt",
+    "count": 1,
+    "last_eaten": "2026-04-29"
+  },
+  "divyanshtyagi1263_gmail_com_Nargisi_Kofta": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Nargisi Kofta",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "divyanshtyagi1263_gmail_com_Onion_Paratha": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Onion Paratha"
+  },
+  "divyanshtyagi1263_gmail_com_Palak_Pakora": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Palak Pakora"
+  },
+  "divyanshtyagi1263_gmail_com_Papaya_Salad": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Papaya Salad",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "divyanshtyagi1263_gmail_com_Paratha": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-20",
+    "count": 1,
+    "meal_name": "Paratha"
+  },
+  "divyanshtyagi1263_gmail_com_Pathiri": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Pathiri"
+  },
+  "divyanshtyagi1263_gmail_com_Pindi_Chole": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-19",
+    "count": 1,
+    "meal_name": "Pindi Chole"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Atta_Roti": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-26",
+    "count": 1,
+    "meal_name": "Plain Atta Roti"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Dal": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Plain Dal",
+    "count": 2,
+    "last_eaten": "2026-04-29"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Fruit_Salad": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-15",
+    "count": 1,
+    "meal_name": "Plain Fruit Salad"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Khakhra": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Plain Khakhra",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Kulcha": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-19",
+    "count": 1,
+    "meal_name": "Plain Kulcha"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Lassi": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Plain Lassi",
+    "count": 5,
+    "last_eaten": "2026-04-26"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Poha": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Plain Poha",
+    "count": 3,
+    "last_eaten": "2026-04-29"
+  },
+  "divyanshtyagi1263_gmail_com_Plain_Rice": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Plain Rice",
+    "count": 3,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Prawn_Biryani": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Prawn Biryani",
+    "count": 2,
+    "last_eaten": "2026-04-20"
+  },
+  "divyanshtyagi1263_gmail_com_Prawn_Roast": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Prawn Roast",
+    "count": 1,
+    "last_eaten": "2026-05-15"
+  },
+  "divyanshtyagi1263_gmail_com_Protein_powder": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Protein powder"
+  },
+  "divyanshtyagi1263_gmail_com_Rajma_Chawal": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Rajma Chawal",
+    "count": 2,
+    "last_eaten": "2026-04-20"
+  },
+  "divyanshtyagi1263_gmail_com_Raw_Banana_Fry": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Raw Banana Fry",
+    "count": 2,
+    "last_eaten": "2026-03-23"
+  },
+  "divyanshtyagi1263_gmail_com_Roti": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Roti",
+    "count": 9,
+    "last_eaten": "2026-04-29"
+  },
+  "divyanshtyagi1263_gmail_com_Samosa": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Samosa"
+  },
+  "divyanshtyagi1263_gmail_com_Schezwan_Fried_Rice": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Schezwan Fried Rice",
+    "count": 1,
+    "last_eaten": "2026-03-23"
+  },
+  "divyanshtyagi1263_gmail_com_Soya_Chunks_Masala": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-29",
+    "count": 1,
+    "meal_name": "Soya Chunks Masala"
+  },
+  "divyanshtyagi1263_gmail_com_Star_Fruit": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-15",
+    "count": 2,
+    "meal_name": "Star Fruit"
+  },
+  "divyanshtyagi1263_gmail_com_Stuffed_Capsicum": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Stuffed Capsicum",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "divyanshtyagi1263_gmail_com_Thums_Up": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "last_eaten": "2026-04-20",
+    "count": 1,
+    "meal_name": "Thums Up"
+  },
+  "divyanshtyagi1263_gmail_com_Turai_Sabzi": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Turai Sabzi",
+    "count": 1,
+    "last_eaten": "2026-04-28"
+  },
+  "divyanshtyagi1263_gmail_com_Vegetable_Raita": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Vegetable Raita",
+    "count": 1,
+    "last_eaten": "2026-04-27"
+  },
+  "divyanshtyagi1263_gmail_com_Wheat_Dosa": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "meal_name": "Wheat Dosa",
+    "count": 1,
+    "last_eaten": "2026-04-19"
+  },
+  "faraz_gmail_com_Chana_Dal": {
+    "userId": "faraz_gmail_com",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Chana Dal"
+  },
+  "gaurav3101911_gmail_com_Butter_Roti": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Butter Roti",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "gaurav3101911_gmail_com_Neyyappam": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Neyyappam",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "gaurav3101911_gmail_com_Paneer_Lababdar": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Paneer Lababdar",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "gaurav3101911_gmail_com_Rajma_Chawal": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Rajma Chawal",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "gaurav3101911_gmail_com_Sambar_Vada": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Sambar Vada",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "gaurav3101911_gmail_com_Snake_Gourd_Kootu": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Snake Gourd Kootu",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "gaurav3101911_gmail_com_Vegetable_Fried_Rice": {
+    "userId": "gaurav3101911_gmail_com",
+    "meal_name": "Vegetable Fried Rice",
+    "count": 1,
+    "last_eaten": "2026-03-18"
+  },
+  "high_protein_user_Chole": {
+    "userId": "high_protein_user",
+    "meal_name": "Chole",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "high_protein_user_Grilled_Chicken_Breast_(100g)": {
+    "userId": "high_protein_user",
+    "meal_name": "Grilled Chicken Breast (100g)",
+    "count": 4,
+    "last_eaten": "2026-05-01"
+  },
+  "high_protein_user_Milk": {
+    "userId": "high_protein_user",
+    "meal_name": "Milk",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "high_protein_user_Poha": {
+    "userId": "high_protein_user",
+    "meal_name": "Poha",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "high_protein_user_Rice": {
+    "userId": "high_protein_user",
+    "meal_name": "Rice",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "high_protein_user_Roti": {
+    "userId": "high_protein_user",
+    "meal_name": "Roti",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "high_protein_user_Whey_Protein_Shake": {
+    "userId": "high_protein_user",
+    "meal_name": "Whey Protein Shake",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "junaid123_gmail_com_Boiled_Egg": {
+    "userId": "junaid123_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Boiled Egg"
+  },
+  "junaid123_gmail_com_Chai": {
+    "userId": "junaid123_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Chai"
+  },
+  "junaid123_gmail_com_Masala_Oats": {
+    "userId": "junaid123_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Masala Oats"
+  },
+  "junaid123_gmail_com_Plain_Poha": {
+    "userId": "junaid123_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Plain Poha"
+  },
+  "live_test_user_01_Curd": {
+    "userId": "live_test_user_01",
+    "meal_name": "Curd",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Moong_Dal": {
+    "userId": "live_test_user_01",
+    "meal_name": "Moong Dal",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Multigrain_Roti": {
+    "userId": "live_test_user_01",
+    "meal_name": "Multigrain Roti",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Paneer_Bhurji": {
+    "userId": "live_test_user_01",
+    "meal_name": "Paneer Bhurji",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Roasted_Chana": {
+    "userId": "live_test_user_01",
+    "meal_name": "Roasted Chana",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Roti": {
+    "userId": "live_test_user_01",
+    "meal_name": "Roti",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Salad": {
+    "userId": "live_test_user_01",
+    "meal_name": "Salad",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Vegetable_Poha": {
+    "userId": "live_test_user_01",
+    "meal_name": "Vegetable Poha",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_01_Whey_Protein_Shake": {
+    "userId": "live_test_user_01",
+    "meal_name": "Whey Protein Shake",
+    "count": 3,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_02_Bread_Butter": {
+    "userId": "live_test_user_02",
+    "meal_name": "Bread Butter",
+    "count": 1,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_02_Dal": {
+    "userId": "live_test_user_02",
+    "meal_name": "Dal",
+    "count": 1,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_02_Grilled_Chicken_Breast_(100g)": {
+    "userId": "live_test_user_02",
+    "meal_name": "Grilled Chicken Breast (100g)",
+    "count": 1,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_02_Roti": {
+    "userId": "live_test_user_02",
+    "meal_name": "Roti",
+    "count": 2,
+    "last_eaten": "2026-05-02"
+  },
+  "live_test_user_02_Whey_Protein_Shake": {
+    "userId": "live_test_user_02",
+    "meal_name": "Whey Protein Shake",
+    "count": 1,
+    "last_eaten": "2026-05-02"
+  },
+  "madhutyagi033_gmail_com_Banana": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Banana",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Boiled_Egg": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Boiled Egg",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Dal_Tadka": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Dal Tadka",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Mango_(Ripe)": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Mango (Ripe)",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Masala_Oats": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Masala Oats",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Pepsi_Can": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Pepsi Can",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Plain_Rice": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Plain Rice",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "madhutyagi033_gmail_com_Samosa": {
+    "userId": "madhutyagi033_gmail_com",
+    "meal_name": "Samosa",
+    "count": 1,
+    "last_eaten": "2026-04-26"
+  },
+  "normal_user_Curd": {
+    "userId": "normal_user",
+    "meal_name": "Curd",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Moong_Dal": {
+    "userId": "normal_user",
+    "meal_name": "Moong Dal",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Multigrain_Roti": {
+    "userId": "normal_user",
+    "meal_name": "Multigrain Roti",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Paneer_Bhurji": {
+    "userId": "normal_user",
+    "meal_name": "Paneer Bhurji",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Roasted_Chana": {
+    "userId": "normal_user",
+    "meal_name": "Roasted Chana",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Roti": {
+    "userId": "normal_user",
+    "meal_name": "Roti",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Salad": {
+    "userId": "normal_user",
+    "meal_name": "Salad",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Tea_(Less_Sugar)": {
+    "userId": "normal_user",
+    "meal_name": "Tea (Less Sugar)",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "normal_user_Vegetable_Poha": {
+    "userId": "normal_user",
+    "meal_name": "Vegetable Poha",
+    "count": 3,
+    "last_eaten": "2026-05-01"
+  },
+  "rajeshnathtyagi_gmail_com_Banana": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Banana"
+  },
+  "rajeshnathtyagi_gmail_com_Boiled_Egg": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Boiled Egg"
+  },
+  "rajeshnathtyagi_gmail_com_Dal_Tadka": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Dal Tadka"
+  },
+  "rajeshnathtyagi_gmail_com_Masala_Oats": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Masala Oats"
+  },
+  "rajeshnathtyagi_gmail_com_Plain_Rice": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Plain Rice"
+  },
+  "rajeshnathtyagi_gmail_com_Plain_Wheat_Roti": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 1,
+    "meal_name": "Plain Wheat Roti"
+  },
+  "rajeshnathtyagi_gmail_com_Roti": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "last_eaten": "2026-04-27",
+    "count": 2,
+    "meal_name": "Roti"
+  },
+  "riddhimatyagi006_gmail_com_Banana_Shake": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "meal_name": "Banana Shake",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "riddhimatyagi006_gmail_com_Boiled_Eggs": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "meal_name": "Boiled Eggs",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "riddhimatyagi006_gmail_com_Chicken_Curry": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "meal_name": "Chicken Curry",
+    "count": 2,
+    "last_eaten": "2026-04-30"
+  },
+  "riddhimatyagi006_gmail_com_Rice": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "meal_name": "Rice",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "riddhimatyagi006_gmail_com_Roti": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "meal_name": "Roti",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "riddhimatyagi007_gmail_com_Banana_Shake": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 2,
+    "meal_name": "Banana Shake"
+  },
+  "riddhimatyagi007_gmail_com_Boiled_Eggs": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 2,
+    "meal_name": "Boiled Eggs"
+  },
+  "riddhimatyagi007_gmail_com_Chicken_Curry": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 4,
+    "meal_name": "Chicken Curry"
+  },
+  "riddhimatyagi007_gmail_com_Rice": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 2,
+    "meal_name": "Rice"
+  },
+  "riddhimatyagi007_gmail_com_Roti": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 2,
+    "meal_name": "Roti"
+  },
+  "riddhimatyagi007_gmail_com_Samosa": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "meal_name": "Samosa",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "salik_gmail_com_Boiled_Eggs": {
+    "userId": "salik_gmail_com",
+    "meal_name": "Boiled Eggs",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "salik_gmail_com_Chicken_Curry": {
+    "userId": "salik_gmail_com",
+    "meal_name": "Chicken Curry",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "salik_gmail_com_Palak_Paneer": {
+    "userId": "salik_gmail_com",
+    "meal_name": "Palak Paneer",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "salik_gmail_com_Plain_Roti": {
+    "userId": "salik_gmail_com",
+    "meal_name": "Plain Roti",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "salik_gmail_com_Rice": {
+    "userId": "salik_gmail_com",
+    "meal_name": "Rice",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Curd": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Curd",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Moong_Dal": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Moong Dal",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Multigrain_Roti": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Multigrain Roti",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Paneer_Bhurji": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Paneer Bhurji",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Roasted_Chana": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Roasted Chana",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Roti": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Roti",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Salad": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Salad",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Vegetable_Poha": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Vegetable Poha",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test10_gmail_com_Whey_Protein_Shake": {
+    "userId": "test10_gmail_com",
+    "meal_name": "Whey Protein Shake",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test14_gmail_com_Dalia": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Dalia"
+  },
+  "test14_gmail_com_Fruit_Bowl": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Fruit Bowl"
+  },
+  "test14_gmail_com_Lassi": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Lassi"
+  },
+  "test14_gmail_com_Masoor_Dal": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Masoor Dal"
+  },
+  "test14_gmail_com_Rasgulla": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Rasgulla"
+  },
+  "test14_gmail_com_Rice": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Rice"
+  },
+  "test14_gmail_com_Roti": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Roti"
+  },
+  "test14_gmail_com_Veg_Fried_Rice": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Veg Fried Rice"
+  },
+  "test14_gmail_com_Vegetable_Sabzi": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Vegetable Sabzi"
+  },
+  "test14_gmail_com_Whey_Protein_Shake": {
+    "userId": "test14_gmail_com",
+    "last_eaten": "2026-04-30",
+    "count": 1,
+    "meal_name": "Whey Protein Shake"
+  },
+  "test20_gmail_com_Bread_Butter": {
+    "userId": "test20_gmail_com",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Bread Butter"
+  },
+  "test20_gmail_com_Dal": {
+    "userId": "test20_gmail_com",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Dal"
+  },
+  "test20_gmail_com_Rice": {
+    "userId": "test20_gmail_com",
+    "meal_name": "Rice",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test21_gmail_Curd": {
+    "userId": "test21_gmail",
+    "meal_name": "Curd",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test21_gmail_Moong_Dal": {
+    "userId": "test21_gmail",
+    "meal_name": "Moong Dal",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test21_gmail_Multigrain_Roti": {
+    "userId": "test21_gmail",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Multigrain Roti"
+  },
+  "test21_gmail_Paneer_Bhurji": {
+    "userId": "test21_gmail",
+    "meal_name": "Paneer Bhurji",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test21_gmail_Roasted_Chana": {
+    "userId": "test21_gmail",
+    "meal_name": "Roasted Chana",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test21_gmail_Roti": {
+    "userId": "test21_gmail",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Roti"
+  },
+  "test21_gmail_Salad": {
+    "userId": "test21_gmail",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Salad"
+  },
+  "test21_gmail_Vegetable_Poha": {
+    "userId": "test21_gmail",
+    "meal_name": "Vegetable Poha",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test21_gmail_Whey_Protein_Shake": {
+    "userId": "test21_gmail",
+    "last_eaten": "2026-05-01",
+    "count": 1,
+    "meal_name": "Whey Protein Shake"
+  },
+  "test31_gmail_Bread_Butter": {
+    "userId": "test31_gmail",
+    "meal_name": "Bread Butter",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test31_gmail_Dal": {
+    "userId": "test31_gmail",
+    "meal_name": "Dal",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test31_gmail_Grilled_Chicken_Breast_(100g)": {
+    "userId": "test31_gmail",
+    "meal_name": "Grilled Chicken Breast (100g)",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test31_gmail_Rice": {
+    "userId": "test31_gmail",
+    "meal_name": "Rice",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test31_gmail_Roti": {
+    "userId": "test31_gmail",
+    "meal_name": "Roti",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test31_gmail_Whey_Protein_Shake": {
+    "userId": "test31_gmail",
+    "meal_name": "Whey Protein Shake",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "test_user_1571_Chana_Masala": {
+    "userId": "test_user_1571",
+    "meal_name": "Chana Masala",
+    "count": 2,
+    "last_eaten": "2026-05-02"
+  },
+  "test_user_1571_Roti": {
+    "userId": "test_user_1571",
+    "meal_name": "Roti",
+    "count": 4,
+    "last_eaten": "2026-05-02"
+  },
+  "test_user_1571_Soy_Chunks": {
+    "userId": "test_user_1571",
+    "meal_name": "Soy Chunks",
+    "count": 2,
+    "last_eaten": "2026-05-02"
+  },
+  "test_user_1571_Whey_Protein_Shake": {
+    "userId": "test_user_1571",
+    "meal_name": "Whey Protein Shake",
+    "count": 4,
+    "last_eaten": "2026-05-02"
+  },
+  "testuser_gmail_com_Bread_Butter": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Bread Butter",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "testuser_gmail_com_Dal": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Dal",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "testuser_gmail_com_Protein_Shake_(Whey)": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Protein Shake (Whey)",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "testuser_gmail_com_Rice": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Rice",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "testuser_gmail_com_Roti": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Roti",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "testuser_gmail_com_Sabzi": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Sabzi",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "testuser_gmail_com_Tofu": {
+    "userId": "testuser_gmail_com",
+    "meal_name": "Tofu",
+    "count": 1,
+    "last_eaten": "2026-04-30"
+  },
+  "user_123_Custom_Food": {
+    "userId": "user_123",
+    "meal_name": "Custom Food",
+    "count": 1,
+    "last_eaten": "2026-05-01"
+  },
+  "veg_user_Chole": {
+    "userId": "veg_user",
+    "meal_name": "Chole",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "veg_user_Paneer_Bhurji": {
+    "userId": "veg_user",
+    "meal_name": "Paneer Bhurji",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "veg_user_Roti": {
+    "userId": "veg_user",
+    "meal_name": "Roti",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "veg_user_Soy_Chunks": {
+    "userId": "veg_user",
+    "meal_name": "Soy Chunks",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "veg_user_Whey_Protein_Shake": {
+    "userId": "veg_user",
+    "meal_name": "Whey Protein Shake",
+    "count": 2,
+    "last_eaten": "2026-05-01"
+  },
+  "xyz__Amul_Protein_Milk": {
+    "userId": "xyz_",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Amul Protein Milk"
+  },
+  "xyz__Paneer_Tikka": {
+    "userId": "xyz_",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Paneer Tikka"
+  },
+  "xyz__Poha": {
+    "userId": "xyz_",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Poha"
+  },
+  "xyz__Rajma": {
+    "userId": "xyz_",
+    "meal_name": "Rajma",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "xyz__Soy_Chunks": {
+    "userId": "xyz_",
+    "meal_name": "Soy Chunks",
+    "count": 1,
+    "last_eaten": "2026-05-16"
+  },
+  "xyz__Whey_Protein_Shake": {
+    "userId": "xyz_",
+    "last_eaten": "2026-05-16",
+    "count": 1,
+    "meal_name": "Whey Protein Shake"
+  }
+}

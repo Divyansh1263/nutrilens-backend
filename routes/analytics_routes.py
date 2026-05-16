@@ -2,15 +2,15 @@
 from flask import Blueprint, request
 from utils.response_utils import success, error
 from services.rating_service import rating_service
-from utils.auth_middleware import firebase_auth_optional, get_user_id_from_request
+from utils.auth_middleware import firebase_auth_required, get_user_id_from_request
 
 analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route("/generate-daily-rating", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def generate_rating():
     data = request.get_json(force=True)
-    user_id  = get_user_id_from_request(data)   # B5 FIX: token-first
+    user_id  = get_user_id_from_request()
     date_str = data.get("date")
 
     if not user_id or not date_str:
@@ -23,10 +23,10 @@ def generate_rating():
     return success(rating_data, "Daily rating generated")
 
 @analytics_bp.route("/get-analytics", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def get_analytics():
     data = request.get_json(force=True)
-    user_id = get_user_id_from_request(data)    # B5 FIX: token-first
+    user_id = get_user_id_from_request()
     if not user_id:
         return error("userId required")
 
@@ -46,9 +46,9 @@ def get_analytics():
     return success(result, "Analytics retrieved")
 
 @analytics_bp.route("/get-daily-ratings", methods=["GET"])
-@firebase_auth_optional
+@firebase_auth_required
 def get_daily_ratings():
-    user_id = get_user_id_from_request()        # B5 FIX: token-first (GET)
+    user_id = get_user_id_from_request()
     if not user_id:
         return error("userId required")
     from repositories.tracker_repository import tracker_repo
@@ -58,10 +58,10 @@ def get_daily_ratings():
     return success({"ratings": ratings}, "Ratings fetched")
 
 @analytics_bp.route("/recalculate-analytics", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def recalculate_analytics():
     data = request.get_json(force=True)
-    user_id = get_user_id_from_request(data)    # B5 FIX: token-first
+    user_id = get_user_id_from_request()
     if not user_id:
         return error("userId required")
     from services.streak_service import streak_service

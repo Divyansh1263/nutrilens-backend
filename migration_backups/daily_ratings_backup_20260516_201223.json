@@ -1,0 +1,234 @@
+{
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_2026-04-29": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "star_rating": 1,
+    "target_diff": 4670.0,
+    "macro_deviation": {
+      "protein": "High"
+    },
+    "date": "2026-04-29",
+    "generated_at": "2026-04-29T15:53:15.972000+00:00",
+    "calories_consumed": 6641.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_2026-04-30": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "star_rating": 1,
+    "target_diff": 1073.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-04-30",
+    "generated_at": "2026-04-30T16:58:58.906000+00:00",
+    "calories_consumed": 3653.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyansh_045019_tmu_ac_in_2026-05-01": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "star_rating": 1,
+    "target_diff": 950.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-05-01",
+    "generated_at": "2026-05-01T08:27:49.391000+00:00",
+    "calories_consumed": 770.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyansh_045019_tmu_ac_in_2026-05-04": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "star_rating": 3,
+    "target_diff": 440.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-05-04",
+    "generated_at": "2026-05-04T02:43:00.681000+00:00",
+    "calories_consumed": 1430.0,
+    "feedback": "Great job! Your intake stayed close to target."
+  },
+  "divyansh_045019_tmu_ac_in_2026-05-16": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "star_rating": 1,
+    "target_diff": 868.0,
+    "macro_deviation": {
+      "protein": "High"
+    },
+    "date": "2026-05-16",
+    "generated_at": "2026-05-16T14:15:08.241000+00:00",
+    "calories_consumed": 2600.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyansh__2026-05-16": {
+    "userId": "divyansh_",
+    "star_rating": 2,
+    "target_diff": 525.0,
+    "calories_consumed": 1207.0,
+    "date": "2026-05-16",
+    "generated_at": "2026-05-16T12:09:17.390000+00:00",
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-28": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "star_rating": 1,
+    "target_diff": 1053.0,
+    "calories_consumed": 2785.0,
+    "date": "2026-04-28",
+    "generated_at": "2026-05-16T09:10:41.161000+00:00",
+    "macro_deviation": {
+      "protein": "Good"
+    },
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-29": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "star_rating": 1,
+    "target_diff": 4283.0,
+    "calories_consumed": 6015.0,
+    "date": "2026-04-29",
+    "generated_at": "2026-05-16T09:10:40.562000+00:00",
+    "macro_deviation": {
+      "protein": "High"
+    },
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-15": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "star_rating": 1,
+    "target_diff": 742.0,
+    "calories_consumed": 990.0,
+    "date": "2026-05-15",
+    "generated_at": "2026-05-16T09:10:29.056000+00:00",
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-16": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "star_rating": 1,
+    "target_diff": 1092.0,
+    "calories_consumed": 790.0,
+    "date": "2026-05-16",
+    "generated_at": "2026-05-16T12:07:24.047000+00:00",
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "fakeUser_2026-04-29": {
+    "userId": "fakeUser",
+    "created_at": "2026-04-29T13:51:39.748000+00:00",
+    "optimization_score": 0.474,
+    "macro_deviation": {
+      "calories": 0.002,
+      "carbs": 0.2942,
+      "protein": -0.4984,
+      "fat": 0.066
+    },
+    "date": "2026-04-29",
+    "ml_score_label": "Needs Improvement",
+    "target_calories": 2000,
+    "score_label": "Needs improvement",
+    "ml_score": 0.0316123714984124
+  },
+  "riddhimatyagi006_gmail_com_2026-04-30": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "star_rating": 4,
+    "target_diff": 363.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-04-30",
+    "generated_at": "2026-04-30T17:03:38.130000+00:00",
+    "calories_consumed": 2490.0,
+    "feedback": "Great job! Your intake stayed close to target."
+  },
+  "riddhimatyagi007_gmail_com_2026-04-30": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "star_rating": 5,
+    "target_diff": 118.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-04-30",
+    "generated_at": "2026-04-30T16:17:08.550000+00:00",
+    "calories_consumed": 2210.0,
+    "feedback": "Great job! Your intake stayed close to target."
+  },
+  "salik_gmail_com_2026-05-01": {
+    "userId": "salik_gmail_com",
+    "star_rating": 5,
+    "target_diff": 78.0,
+    "calories_consumed": 2265.0,
+    "date": "2026-05-01",
+    "generated_at": "2026-05-01T06:25:23.375000+00:00",
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "feedback": "Great job! Your intake stayed close to target."
+  },
+  "test10_gmail_com_2026-05-01": {
+    "userId": "test10_gmail_com",
+    "star_rating": 2,
+    "target_diff": 609.0,
+    "macro_deviation": {
+      "protein": "Good"
+    },
+    "date": "2026-05-01",
+    "generated_at": "2026-04-30T20:27:06.410000+00:00",
+    "calories_consumed": 2180.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "test14_gmail_com_2026-04-30": {
+    "userId": "test14_gmail_com",
+    "star_rating": 1,
+    "target_diff": 1409.0,
+    "macro_deviation": {
+      "protein": "Good"
+    },
+    "date": "2026-04-30",
+    "generated_at": "2026-04-30T18:03:45.310000+00:00",
+    "calories_consumed": 3225.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "test20_gmail_com_2026-05-01": {
+    "userId": "test20_gmail_com",
+    "star_rating": 3,
+    "target_diff": 526.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-05-01",
+    "generated_at": "2026-04-30T20:28:13.684000+00:00",
+    "calories_consumed": 1445.0,
+    "feedback": "Great job! Your intake stayed close to target."
+  },
+  "test21_gmail_2026-05-01": {
+    "userId": "test21_gmail",
+    "star_rating": 2,
+    "target_diff": 524.0,
+    "macro_deviation": {
+      "protein": "Good"
+    },
+    "date": "2026-05-01",
+    "generated_at": "2026-04-30T20:32:37.673000+00:00",
+    "calories_consumed": 2095.0,
+    "feedback": "You missed your targets quite a bit today. Let's try to improve tomorrow!"
+  },
+  "testuser_gmail_com_2026-04-30": {
+    "userId": "testuser_gmail_com",
+    "star_rating": 3,
+    "target_diff": 464.0,
+    "macro_deviation": {
+      "protein": "Low"
+    },
+    "date": "2026-04-30",
+    "generated_at": "2026-04-30T17:09:32.536000+00:00",
+    "calories_consumed": 2435.0,
+    "feedback": "Great job! Your intake stayed close to target."
+  }
+}

@@ -4,7 +4,7 @@ from flask import Blueprint, request
 from datetime import datetime
 from utils.response_utils import success, error
 from utils.logger import app_logger
-from utils.auth_middleware import firebase_auth_optional, get_user_id_from_request
+from utils.auth_middleware import firebase_auth_required, get_user_id_from_request
 from validators.meal_validator import (
     validate_generate_plan, validate_log_meal,
     validate_update_log, validate_delete_log
@@ -52,7 +52,7 @@ def get_demo_meal_plan() -> dict:
 # GENERATION
 # =============================================================================
 @meal_bp.route("/generate-meal-plan", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def generate_meal_plan():
     # TASK 3: DEMO MODE — short-circuit everything, return hardcoded plan
     if DEMO_MODE:
@@ -91,7 +91,7 @@ def generate_meal_plan():
     if not is_valid:
         return error(msg)
 
-    user_id = get_user_id_from_request(data)
+    user_id = get_user_id_from_request()
     date_str = data.get("date")
     if not date_str:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")
@@ -425,7 +425,7 @@ def food_details():
     return success(details)
 
 @meal_bp.route("/log-meal", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def log_meal():
     data = request.get_json(force=True)
     is_valid, msg = validate_log_meal(data)
@@ -433,7 +433,7 @@ def log_meal():
         return error(msg)
 
     log_id, err = meal_logging_service.log_meal(
-        user_id=get_user_id_from_request(data),  # B2 FIX: token-first
+        user_id=get_user_id_from_request(),
         meal_name=data.get("mealName"),
         quantity=data.get("quantity", 1),
         meal_type=data.get("mealType"),
@@ -496,10 +496,10 @@ def analyze_meal_nlp():
 # ==========================================
 
 @meal_bp.route("/log-meal-nlp-ml", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def log_meal_nlp_ml():
     data = request.get_json(force=True)
-    user_id  = get_user_id_from_request(data)
+    user_id  = get_user_id_from_request()
     date_str = data.get("date")
     text     = data.get("text")
     
@@ -522,7 +522,7 @@ def log_meal_nlp_ml():
     return success({"items": result.get("items", [])}, result.get("message", "NLP meals logged"))
 
 @meal_bp.route("/update-log", methods=["PUT"])
-@firebase_auth_optional
+@firebase_auth_required
 def update_log():
     data = request.get_json(force=True)
     is_valid, msg = validate_update_log(data)
@@ -596,7 +596,7 @@ def replace_meal():
     # ── Resolve user profile (for dietary filter + explanations) ───────────────
     _profile = {}
     try:
-        user_id = get_user_id_from_request(data)
+        user_id = get_user_id_from_request()
         if user_id:
             from repositories.user_repository import user_repo as _ur
             _profile = _ur.get_user_profile(user_id) or {}

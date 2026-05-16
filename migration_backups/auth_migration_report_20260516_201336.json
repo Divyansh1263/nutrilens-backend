@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-05-16T20:13:36.658341",
+  "total_users": 37,
+  "custom_auth_users": 20,
+  "google_auth_users": 17,
+  "unknown_auth_users": 0,
+  "duplicate_emails": 1,
+  "duplicates": [
+    {
+      "email": "divyanshtyagi1263@gmail.com",
+      "doc_ids": [
+        "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+        "divyanshtyagi1263_gmail_com"
+      ],
+      "providers": [
+        "google",
+        "custom"
+      ]
+    }
+  ],
+  "merge_plan": [
+    {
+      "email": "divyanshtyagi1263@gmail.com",
+      "keep_id": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+      "merge_from_id": "divyanshtyagi1263_gmail_com",
+      "custom_profile_complete": true,
+      "google_profile_complete": false,
+      "custom_data_counts": {
+        "meal_logs": 98,
+        "meal_plans": 6,
+        "daily_targets": 19
+      },
+      "google_data_counts": {
+        "meal_logs": 30,
+        "meal_plans": 10,
+        "daily_targets": 3
+      },
+      "fields_to_merge": [
+        "age",
+        "gender",
+        "target_weight",
+        "weight_loss_speed",
+        "dietary_restrictions",
+        "health_conditions"
+      ]
+    }
+  ],
+  "custom_auth_user_ids": [
+    "divyansh_",
+    "divyansh_045019_tmu_ac_in",
+    "divyansh_gmail_com",
+    "divyanshtyagi12345_gmail_com",
+    "divyanshtyagi1263_gmail_com",
+    "faraz_gmail_com",
+    "gaurav3101911_gmail_com",
+    "junaid123_gmail_com",
+    "madhutyagi033_gmail_com",
+    "rajeshnathtyagi_gmail_com",
+    "riddhimatyagi006_gmail_com",
+    "riddhimatyagi007_gmail_com",
+    "salik_gmail_com",
+    "test10_gmail_com",
+    "test14_gmail_com",
+    "test20_gmail_com",
+    "test21_gmail",
+    "test31_gmail",
+    "testuser_gmail_com",
+    "xyz_"
+  ],
+  "google_auth_user_ids": [
+    "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "simulated_user1",
+    "simulated_user10",
+    "simulated_user2",
+    "simulated_user3",
+    "simulated_user4",
+    "simulated_user5",
+    "simulated_user6",
+    "simulated_user7",
+    "simulated_user8",
+    "simulated_user9",
+    "test_user1",
+    "test_user2",
+    "test_user3",
+    "test_user4",
+    "test_user5",
+    "test_user_1571"
+  ]
+}

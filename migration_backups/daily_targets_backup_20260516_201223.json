@@ -1,0 +1,562 @@
+{
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_2026-04-29": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "calories": 1971,
+    "carbs": 221.7,
+    "created_at": "2026-04-29T14:24:14.883000+00:00",
+    "fat": 65.7,
+    "date": "2026-04-29",
+    "generated_by": "ai",
+    "protein": 123.2
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_2026-04-30": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "calories": 2580,
+    "carbs": 290.2,
+    "created_at": "2026-04-30T06:00:14.361000+00:00",
+    "fat": 86.0,
+    "date": "2026-04-30",
+    "protein": 161.2,
+    "generated_by": "ai"
+  },
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83_2026-05-01": {
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "calories": 2580,
+    "carbs": 290.2,
+    "created_at": "2026-04-30T21:46:10.720000+00:00",
+    "fat": 86.0,
+    "date": "2026-05-01",
+    "generated_by": "ai",
+    "protein": 161.2
+  },
+  "divyansh_045019_tmu_ac_in_2026-05-01": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "calories": 1720,
+    "carbs": 193.5,
+    "created_at": "2026-05-01T03:42:56.867000+00:00",
+    "fat": 57.3,
+    "date": "2026-05-01",
+    "generated_by": "ai",
+    "protein": 107.5
+  },
+  "divyansh_045019_tmu_ac_in_2026-05-04": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "calories": 1870,
+    "carbs": 210.4,
+    "created_at": "2026-05-04T02:41:32.357000+00:00",
+    "fat": 62.3,
+    "date": "2026-05-04",
+    "generated_by": "ai",
+    "protein": 116.9
+  },
+  "divyansh_045019_tmu_ac_in_2026-05-16": {
+    "userId": "divyansh_045019_tmu_ac_in",
+    "calories": 1732,
+    "carbs": 194.8,
+    "created_at": "2026-05-16T12:38:35.164000+00:00",
+    "fat": 57.7,
+    "date": "2026-05-16",
+    "generated_by": "ai",
+    "protein": 108.2
+  },
+  "divyansh__2026-05-15": {
+    "userId": "divyansh_",
+    "calories": 1732,
+    "carbs": 194.8,
+    "created_at": "2026-05-16T12:08:19.395000+00:00",
+    "fat": 57.7,
+    "date": "2026-05-15",
+    "protein": 108.2,
+    "generated_by": "ai"
+  },
+  "divyansh__2026-05-16": {
+    "userId": "divyansh_",
+    "calories": 1732,
+    "carbs": 194.8,
+    "created_at": "2026-05-16T12:08:08.632000+00:00",
+    "fat": 57.7,
+    "date": "2026-05-16",
+    "protein": 108.2,
+    "generated_by": "ai"
+  },
+  "divyansh_gmail_com_2026-03-18": {
+    "userId": "divyansh_gmail_com",
+    "calories": 2011,
+    "carbs": 226.2,
+    "created_at": "2026-03-18T04:42:42.786000+00:00",
+    "fat": 67.0,
+    "date": "2026-03-18",
+    "protein": 125.7,
+    "generated_by": "ai"
+  },
+  "divyansh_gmail_com_2026-03-23": {
+    "userId": "divyansh_gmail_com",
+    "calories": 2011,
+    "carbs": 226.2,
+    "created_at": "2026-03-23T06:17:06.073000+00:00",
+    "fat": 67.0,
+    "date": "2026-03-23",
+    "protein": 125.7,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-18": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1594,
+    "carbs": 179.3,
+    "created_at": "2026-03-18T02:24:48.424000+00:00",
+    "fat": 53.1,
+    "date": "2026-03-18",
+    "protein": 99.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-19": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-03-23T06:23:53.049000+00:00",
+    "fat": 48.1,
+    "date": "2026-03-19",
+    "protein": 90.2,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-20": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-03-23T06:23:50.960000+00:00",
+    "fat": 48.1,
+    "date": "2026-03-20",
+    "protein": 90.2,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-21": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-03-23T06:23:49.256000+00:00",
+    "fat": 48.1,
+    "date": "2026-03-21",
+    "protein": 90.2,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-22": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1594,
+    "carbs": 179.3,
+    "created_at": "2026-03-23T06:23:47.947000+00:00",
+    "fat": 53.1,
+    "date": "2026-03-22",
+    "protein": 99.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-23": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1594,
+    "carbs": 179.3,
+    "created_at": "2026-03-23T06:19:01.414000+00:00",
+    "fat": 53.1,
+    "date": "2026-03-23",
+    "protein": 99.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-03-24": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-03-23T06:24:03.602000+00:00",
+    "fat": 48.1,
+    "date": "2026-03-24",
+    "protein": 90.2,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-15": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1594,
+    "carbs": 179.3,
+    "created_at": "2026-04-15T07:21:58.478000+00:00",
+    "fat": 53.1,
+    "date": "2026-04-15",
+    "generated_by": "ai",
+    "protein": 99.6
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-19": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1594,
+    "carbs": 179.3,
+    "created_at": "2026-04-19T16:23:57.312000+00:00",
+    "fat": 53.1,
+    "date": "2026-04-19",
+    "protein": 99.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-20": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-04-20T05:39:05.430000+00:00",
+    "fat": 48.1,
+    "date": "2026-04-20",
+    "generated_by": "ai",
+    "protein": 90.2
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-26": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1594,
+    "carbs": 179.3,
+    "created_at": "2026-04-26T12:20:24.926000+00:00",
+    "fat": 53.1,
+    "date": "2026-04-26",
+    "protein": 99.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-27": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-04-27T05:27:45.087000+00:00",
+    "fat": 48.1,
+    "date": "2026-04-27",
+    "generated_by": "ai",
+    "protein": 90.2
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-28": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1444,
+    "carbs": 162.4,
+    "created_at": "2026-04-28T06:02:21.178000+00:00",
+    "fat": 48.1,
+    "date": "2026-04-28",
+    "generated_by": "ai",
+    "protein": 90.2
+  },
+  "divyanshtyagi1263_gmail_com_2026-04-29": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1464,
+    "carbs": 164.7,
+    "created_at": "2026-04-29T03:20:02.904000+00:00",
+    "fat": 48.8,
+    "date": "2026-04-29",
+    "generated_by": "ai",
+    "protein": 91.5
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-01": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1570,
+    "carbs": 176.6,
+    "created_at": "2026-04-30T21:46:03.366000+00:00",
+    "fat": 52.3,
+    "date": "2026-05-01",
+    "generated_by": "ai",
+    "protein": 98.1
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-08": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1882,
+    "carbs": 211.7,
+    "created_at": "2026-05-16T09:10:36.198000+00:00",
+    "fat": 62.7,
+    "date": "2026-05-08",
+    "protein": 117.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-09": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1882,
+    "carbs": 211.7,
+    "created_at": "2026-05-16T09:10:35.664000+00:00",
+    "fat": 62.7,
+    "date": "2026-05-09",
+    "protein": 117.6,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-15": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1732,
+    "carbs": 194.8,
+    "created_at": "2026-05-15T16:12:58.279000+00:00",
+    "fat": 57.7,
+    "date": "2026-05-15",
+    "protein": 108.2,
+    "generated_by": "ai"
+  },
+  "divyanshtyagi1263_gmail_com_2026-05-16": {
+    "userId": "divyanshtyagi1263_gmail_com",
+    "calories": 1882,
+    "carbs": 211.7,
+    "created_at": "2026-05-16T09:09:56.816000+00:00",
+    "fat": 62.7,
+    "date": "2026-05-16",
+    "protein": 117.6,
+    "generated_by": "ai"
+  },
+  "faraz_gmail_com_2026-05-01": {
+    "userId": "faraz_gmail_com",
+    "calories": 2295,
+    "carbs": 258.2,
+    "created_at": "2026-05-01T10:40:45.764000+00:00",
+    "fat": 76.5,
+    "date": "2026-05-01",
+    "protein": 143.4,
+    "generated_by": "ai"
+  },
+  "gaurav3101911_gmail_com_2026-03-18": {
+    "userId": "gaurav3101911_gmail_com",
+    "calories": 1624,
+    "carbs": 182.7,
+    "created_at": "2026-03-18T04:27:20.025000+00:00",
+    "fat": 54.1,
+    "date": "2026-03-18",
+    "protein": 101.5,
+    "generated_by": "ai"
+  },
+  "high_protein_user_2026-05-01": {
+    "userId": "high_protein_user",
+    "calories": 2208,
+    "carbs": 248.4,
+    "created_at": "2026-04-30T18:39:04.880000+00:00",
+    "fat": 73.6,
+    "date": "2026-05-01",
+    "protein": 138.0,
+    "generated_by": "ai"
+  },
+  "junaid123_gmail_com_2026-04-27": {
+    "userId": "junaid123_gmail_com",
+    "calories": 2554,
+    "carbs": 287.3,
+    "created_at": "2026-04-27T06:30:42.869000+00:00",
+    "fat": 85.1,
+    "date": "2026-04-27",
+    "generated_by": "ai",
+    "protein": 159.6
+  },
+  "madhutyagi033_gmail_com_2026-04-26": {
+    "userId": "madhutyagi033_gmail_com",
+    "calories": 1200,
+    "carbs": 135.0,
+    "created_at": "2026-04-26T14:27:44.103000+00:00",
+    "fat": 40.0,
+    "date": "2026-04-26",
+    "generated_by": "ai",
+    "protein": 75.0
+  },
+  "nonveg_user_2026-04-30": {
+    "userId": "nonveg_user",
+    "calories": 2076,
+    "carbs": 233.6,
+    "created_at": "2026-04-30T17:44:31.938000+00:00",
+    "fat": 69.2,
+    "date": "2026-04-30",
+    "protein": 129.8,
+    "generated_by": "ai"
+  },
+  "normal_user_2026-05-01": {
+    "userId": "normal_user",
+    "calories": 1941,
+    "carbs": 218.4,
+    "created_at": "2026-04-30T18:38:16.039000+00:00",
+    "fat": 64.7,
+    "date": "2026-05-01",
+    "protein": 121.3,
+    "generated_by": "ai"
+  },
+  "rajeshnathtyagi_gmail_com_2026-04-27": {
+    "userId": "rajeshnathtyagi_gmail_com",
+    "calories": 1478,
+    "carbs": 166.3,
+    "created_at": "2026-04-27T06:32:29.260000+00:00",
+    "fat": 49.3,
+    "date": "2026-04-27",
+    "generated_by": "ai",
+    "protein": 92.4
+  },
+  "riddhimatyagi006_gmail_com_2026-04-30": {
+    "userId": "riddhimatyagi006_gmail_com",
+    "calories": 2127,
+    "carbs": 239.3,
+    "created_at": "2026-04-30T17:02:58.401000+00:00",
+    "fat": 70.9,
+    "date": "2026-04-30",
+    "generated_by": "ai",
+    "protein": 132.9
+  },
+  "riddhimatyagi007_gmail_com_2026-04-30": {
+    "userId": "riddhimatyagi007_gmail_com",
+    "calories": 2092,
+    "carbs": 235.3,
+    "created_at": "2026-04-30T16:14:42.561000+00:00",
+    "fat": 69.7,
+    "date": "2026-04-30",
+    "protein": 130.8,
+    "generated_by": "ai"
+  },
+  "salik_gmail_com_2026-05-01": {
+    "userId": "salik_gmail_com",
+    "calories": 2343,
+    "carbs": 263.6,
+    "created_at": "2026-05-01T06:23:42.096000+00:00",
+    "fat": 78.1,
+    "date": "2026-05-01",
+    "generated_by": "ai",
+    "protein": 146.4
+  },
+  "test10_gmail_com_2026-04-30": {
+    "userId": "test10_gmail_com",
+    "calories": 1571,
+    "carbs": 176.7,
+    "created_at": "2026-04-30T18:55:25.134000+00:00",
+    "fat": 52.4,
+    "date": "2026-04-30",
+    "generated_by": "ai",
+    "protein": 98.2
+  },
+  "test10_gmail_com_2026-05-01": {
+    "userId": "test10_gmail_com",
+    "calories": 1571,
+    "carbs": 176.7,
+    "created_at": "2026-04-30T18:55:25.109000+00:00",
+    "fat": 52.4,
+    "date": "2026-05-01",
+    "generated_by": "ai",
+    "protein": 98.2
+  },
+  "test14_gmail_com_2026-04-30": {
+    "userId": "test14_gmail_com",
+    "calories": 1816,
+    "carbs": 204.3,
+    "created_at": "2026-04-30T18:01:49.037000+00:00",
+    "fat": 60.5,
+    "date": "2026-04-30",
+    "generated_by": "ai",
+    "protein": 113.5
+  },
+  "test20_gmail_com_2026-04-30": {
+    "userId": "test20_gmail_com",
+    "calories": 1971,
+    "carbs": 221.7,
+    "created_at": "2026-04-30T20:27:37.431000+00:00",
+    "fat": 65.7,
+    "date": "2026-04-30",
+    "protein": 123.2,
+    "generated_by": "ai"
+  },
+  "test20_gmail_com_2026-05-01": {
+    "userId": "test20_gmail_com",
+    "calories": 1971,
+    "carbs": 221.7,
+    "created_at": "2026-04-30T20:27:37.562000+00:00",
+    "fat": 65.7,
+    "date": "2026-05-01",
+    "protein": 123.2,
+    "generated_by": "ai"
+  },
+  "test21_gmail_2026-04-30": {
+    "userId": "test21_gmail",
+    "calories": 1571,
+    "carbs": 176.7,
+    "created_at": "2026-04-30T20:32:11.704000+00:00",
+    "fat": 52.4,
+    "date": "2026-04-30",
+    "protein": 98.2,
+    "generated_by": "ai"
+  },
+  "test21_gmail_2026-05-01": {
+    "userId": "test21_gmail",
+    "calories": 1571,
+    "carbs": 176.7,
+    "created_at": "2026-04-30T20:32:11.658000+00:00",
+    "fat": 52.4,
+    "date": "2026-05-01",
+    "protein": 98.2,
+    "generated_by": "ai"
+  },
+  "test31_gmail_2026-04-30": {
+    "userId": "test31_gmail",
+    "calories": 1977,
+    "carbs": 222.4,
+    "created_at": "2026-04-30T21:44:03.557000+00:00",
+    "fat": 65.9,
+    "date": "2026-04-30",
+    "generated_by": "ai",
+    "protein": 123.6
+  },
+  "test31_gmail_2026-05-01": {
+    "userId": "test31_gmail",
+    "calories": 1977,
+    "carbs": 222.4,
+    "created_at": "2026-04-30T21:44:03.508000+00:00",
+    "fat": 65.9,
+    "date": "2026-05-01",
+    "generated_by": "ai",
+    "protein": 123.6
+  },
+  "test_user_1571_2026-05-01": {
+    "userId": "test_user_1571",
+    "calories": 1571,
+    "carbs": 176.7,
+    "created_at": "2026-04-30T20:41:41.650000+00:00",
+    "fat": 52.4,
+    "date": "2026-05-01",
+    "protein": 98.2,
+    "generated_by": "ai"
+  },
+  "test_user_1571_2026-05-02": {
+    "userId": "test_user_1571",
+    "calories": 1571,
+    "carbs": 176.7,
+    "created_at": "2026-04-30T20:59:53.981000+00:00",
+    "fat": 52.4,
+    "date": "2026-05-02",
+    "protein": 98.2,
+    "generated_by": "ai"
+  },
+  "testuser_gmail_com_2026-04-30": {
+    "userId": "testuser_gmail_com",
+    "calories": 1971,
+    "carbs": 221.7,
+    "created_at": "2026-04-30T17:08:34.320000+00:00",
+    "fat": 65.7,
+    "date": "2026-04-30",
+    "generated_by": "ai",
+    "protein": 123.2
+  },
+  "veg_user_2026-04-30": {
+    "userId": "veg_user",
+    "calories": 1710,
+    "carbs": 192.4,
+    "created_at": "2026-04-30T17:44:29.207000+00:00",
+    "fat": 57.0,
+    "date": "2026-04-30",
+    "protein": 106.9,
+    "generated_by": "ai"
+  },
+  "veg_user_2026-05-01": {
+    "userId": "veg_user",
+    "calories": 1504,
+    "carbs": 169.2,
+    "created_at": "2026-04-30T18:39:11.326000+00:00",
+    "fat": 50.1,
+    "date": "2026-05-01",
+    "protein": 94.0,
+    "generated_by": "ai"
+  },
+  "vegan_user_2026-04-30": {
+    "userId": "vegan_user",
+    "calories": 1814,
+    "carbs": 204.1,
+    "created_at": "2026-04-30T17:44:30.520000+00:00",
+    "fat": 60.5,
+    "date": "2026-04-30",
+    "protein": 113.4,
+    "generated_by": "ai"
+  },
+  "xyz__2026-05-16": {
+    "userId": "xyz_",
+    "calories": 1535,
+    "carbs": 172.7,
+    "created_at": "2026-05-16T12:36:46.798000+00:00",
+    "fat": 51.2,
+    "date": "2026-05-16",
+    "generated_by": "ai",
+    "protein": 95.9
+  }
+}

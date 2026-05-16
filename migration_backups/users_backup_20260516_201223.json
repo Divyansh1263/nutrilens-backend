@@ -1,0 +1,894 @@
+{
+  "I8ydLGD6i7SKcq86LRh4oD3WcL83": {
+    "height": 181.0,
+    "userId": "I8ydLGD6i7SKcq86LRh4oD3WcL83",
+    "onboarding_completed": false,
+    "updated_at": "2026-04-29T13:04:06.537000+00:00",
+    "created_at": "2026-04-29T13:04:06.537000+00:00",
+    "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocLR_Fxb4pQNdjtvu66PGJ75BlAzvZAzbNVukbcCfUObRyYdbQ=s96-c",
+    "email": "divyanshtyagi1263@gmail.com",
+    "activityLevel": "Moderately Active",
+    "goal": "Lose Weight",
+    "auth_provider": "google",
+    "weight": 75.0,
+    "name": "Divyansh Tyagi"
+  },
+  "divyansh_": {
+    "gender": "male",
+    "created_at": "2026-05-16T12:08:02.260000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$kfOTmNfMNdMiFoet$5f3f5a2d1e69502504616d1b773483f09b4fc83854a7888073f7e6e52e18e08136cdcb2c45c9e4673c63e182819ce2f93629eb5bc1344a996dbe64376f670728",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 75.0,
+    "age": 22,
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "userId": "divyansh_",
+    "updated_at": "2026-05-16T12:08:02.260000+00:00",
+    "email": "divyansh@",
+    "goal": "lose_weight",
+    "height": 181.0,
+    "name": "divyansh"
+  },
+  "divyansh_045019_tmu_ac_in": {
+    "gender": "male",
+    "created_at": "2026-05-16T12:39:57.168000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$UvwnJgKSgQcCPDZ3$7be61601956cd7d5e77609321a98eb080b0deaaadf2c5d8ebb222d9b772e69b3b42a498458affe058c62b13cd0c082066a0d4efc8bb77b4b5b19ac6835d6e4b7",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 75.0,
+    "age": 22,
+    "userId": "divyansh_045019_tmu_ac_in",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-05-16T12:39:57.168000+00:00",
+    "email": "divyansh.045019@tmu.ac.in",
+    "goal": "lose_weight",
+    "height": 181.0,
+    "name": "Divyansh Tyagi"
+  },
+  "divyansh_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-03-18T04:42:41.299000+00:00",
+    "target_weight": 72.0,
+    "name": "Divyansh",
+    "dietary_goal": "lose_weight",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": true,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 84.0,
+    "age": 45,
+    "userId": "divyansh_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "medium",
+    "activity_level": "moderately_active",
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": true
+    },
+    "updated_at": "2026-03-18T04:42:41.299000+00:00",
+    "email": "divyansh@gmail.com",
+    "height": 160.0,
+    "password_hash": "scrypt:32768:8:1$a863SsQDJTTYGuQt$43ee29a35e90a14d00cfad0998da78cde20db20961eecba414f5f398535de18dca4c83d7779e44f1ee86b467be6e60645bd3d804a91953abf55ab456fe89120a"
+  },
+  "divyanshtyagi12345_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-05-16T14:17:15.353000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$3wefGjgKat4kACZX$482712c829d86bead3a70275c9512e0fca0522336ae35174685b87741c29384723a5f2313cc13ba681cd679a17b7652bdeec0c3ce6c6682ed20fbfaf7311bb92",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 75.0,
+    "age": 22,
+    "userId": "divyanshtyagi12345_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-05-16T14:17:15.353000+00:00",
+    "email": "divyanshtyagi12345@gmail.com",
+    "goal": "lose_weight",
+    "height": 181.0,
+    "name": "Divyansh Tyagi"
+  },
+  "divyanshtyagi1263_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-05-16T12:07:23.018000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$517une57InxUVJMX$a55a704ac8b7cad20822482081b6e500597813391d432d1676127ba2ddc54e41e3a46bb80df5f17e5f356fa7b0391f12344e2f671bbfb2242e8f9d25891462e4",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 75.0,
+    "age": 22,
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "userId": "divyanshtyagi1263_gmail_com",
+    "updated_at": "2026-05-16T12:07:23.018000+00:00",
+    "email": "divyanshtyagi1263@gmail.com",
+    "goal": "lose_weight",
+    "height": 181.0,
+    "name": "Divyansh Tyagi"
+  },
+  "faraz_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-05-01T10:40:45.293000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$UcXyGTkb0W7JqUGF$14a6c7935d9c6242339dd9c75b339f0b162af6e238c7c00292060dc67929bd37e07b6756e7616718aa886769596fe0cf39df6fa9020704ff29d017b4b9d07382",
+    "activityLevel": "lightly_active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 65.0,
+    "age": 21,
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "userId": "faraz_gmail_com",
+    "updated_at": "2026-05-01T10:40:45.293000+00:00",
+    "email": "faraz@gmail.com",
+    "goal": "gain_weight",
+    "height": 178.0,
+    "name": "faraz"
+  },
+  "gaurav3101911_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-03-18T04:27:18.193000+00:00",
+    "target_weight": 68.0,
+    "name": "gaurav",
+    "dietary_goal": "lose_weight",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 75.0,
+    "age": 22,
+    "userId": "gaurav3101911_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "medium",
+    "activity_level": "sedentary",
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": true
+    },
+    "updated_at": "2026-03-18T04:27:18.193000+00:00",
+    "email": "gaurav3101911@gmail.com",
+    "height": 180.0,
+    "password_hash": "scrypt:32768:8:1$rIjgOCKHHQTIPzgx$7e103c19694830d29818e332da93dce0a49dc707c4793420238bfc8e1628c3fc16e5616fe9c872a990976eaa63c2f91dba89bb403b64c2036ed1a62a450cc247"
+  },
+  "junaid123_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-04-27T06:30:42.558000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$dUDjfKctQOG88qsk$49bde9659e37e126d0fd421790123a0355ea2421c7f15ab5e610a3e2ccb32a4e4c23e3cefd9976c4932f51760697990b393acc5c2a072d3d7f2dd0653e4a5ec7",
+    "dietary_goal": "maintain_weight",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "is_nut_free": true,
+      "is_gluten_free": true
+    },
+    "weight": 70.0,
+    "age": 24,
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": true,
+      "explanations.fever": true,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "activity_level": "moderately_active",
+    "weight_loss_speed": "medium",
+    "userId": "junaid123_gmail_com",
+    "updated_at": "2026-04-27T06:30:42.558000+00:00",
+    "email": "junaid123@gmail.com",
+    "height": 170.0,
+    "name": "Junaid"
+  },
+  "madhutyagi033_gmail_com": {
+    "gender": "female",
+    "created_at": "2026-04-26T14:27:43.360000+00:00",
+    "target_weight": 60.0,
+    "password_hash": "scrypt:32768:8:1$AA2hBmmKH8tsrLmH$6425794528a4daa69e30f806d62355e1149d46ebd8fa40c98ba14022fca83652ed0ff79942e19d294d480ac71b332791a6f67e122795d6417ec952e33949924b",
+    "dietary_goal": "lose_weight",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 66.0,
+    "age": 43,
+    "userId": "madhutyagi033_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "medium",
+    "activity_level": "lightly_active",
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-26T14:27:43.360000+00:00",
+    "email": "madhutyagi033@gmail.com",
+    "height": 154.0,
+    "name": "Madhu"
+  },
+  "rajeshnathtyagi_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-04-27T06:32:28.487000+00:00",
+    "target_weight": 66.0,
+    "password_hash": "scrypt:32768:8:1$ABbrhJduvjqNPwGo$939e4a0854795c4c89002a3386dafab25651940642ca71f736ca48ac842603c2ecb37c5b76baf2f4441446c3d7a476b9cda974504f38478062c84ff6bdb9e8c1",
+    "dietary_goal": "lose_weight",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 70.0,
+    "age": 25,
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "activity_level": "lightly_active",
+    "weight_loss_speed": "medium",
+    "userId": "rajeshnathtyagi_gmail_com",
+    "updated_at": "2026-04-27T06:32:28.487000+00:00",
+    "email": "rajeshnathtyagi@gmail.com",
+    "height": 171.0,
+    "name": "Rajesh Nath Tyagi"
+  },
+  "riddhimatyagi006_gmail_com": {
+    "gender": "female",
+    "created_at": "2026-04-30T17:02:53.032000+00:00",
+    "target_weight": 63.0,
+    "password_hash": "scrypt:32768:8:1$4WDQ2YVnlvrIadCW$a603d5736b8cfb3d2424a836f5a2e85828e530e3ed72f5027b5684af8aba14a9a74d9d503626e3bf985eadc8a88c6ab71f5efb56c25c912b9521a8514bbed6aa",
+    "activityLevel": "lightly_active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 61.0,
+    "age": 21,
+    "userId": "riddhimatyagi006_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-30T17:02:53.032000+00:00",
+    "email": "riddhimatyagi006@gmail.com",
+    "goal": "gain_weight",
+    "height": 162.0,
+    "name": "Gungun"
+  },
+  "riddhimatyagi007_gmail_com": {
+    "gender": "female",
+    "created_at": "2026-04-30T16:14:41.248000+00:00",
+    "target_weight": 63.0,
+    "name": "Riddhima",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 61.0,
+    "age": 18,
+    "userId": "riddhimatyagi007_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-30T16:14:41.248000+00:00",
+    "email": "riddhimatyagi007@gmail.com",
+    "goal": "gain_weight",
+    "height": 155.0,
+    "password_hash": "scrypt:32768:8:1$j17E0SPuD1LnoiIE$24ead5c8ecf5bf0fdeecd1b23eab0b0587b08ceb9843cebd8fe23a12be5272f409ab2e1a4f8bad4f4094a052a3f3478fe7aa8f70967793a09c0c9f9ecc61a19c"
+  },
+  "salik_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-05-01T06:23:40.880000+00:00",
+    "target_weight": 80.0,
+    "name": "Salik Khan",
+    "activityLevel": "lightly_active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 69.0,
+    "age": 21,
+    "userId": "salik_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-05-01T06:23:40.880000+00:00",
+    "email": "salik@gmail.com",
+    "goal": "gain_weight",
+    "height": 178.0,
+    "password_hash": "scrypt:32768:8:1$wB4KLgwrY4m0YUPv$e5316ee3981ac5d5d1ab7b17b5ed11c19ce76cd4780295db9f216d7d30b729a114641155d2e2a318c7b087618199f1ae968eea71f57b6672333d65f3a23e9f4f"
+  },
+  "simulated_user1": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-02-05T09:15:00+00:00",
+    "activity_level": "moderately active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "maintain_weight",
+    "height": 155,
+    "weight": 52,
+    "age": 22
+  },
+  "simulated_user10": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-03-10T08:30:00+00:00",
+    "activity_level": "active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "gain_weight",
+    "height": 152,
+    "weight": 50,
+    "age": 18
+  },
+  "simulated_user2": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": true,
+      "diabetic": false
+    },
+    "created_at": "2025-02-08T10:00:00+00:00",
+    "activity_level": "active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "lose_weight",
+    "height": 182,
+    "weight": 92,
+    "age": 38
+  },
+  "simulated_user3": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": true,
+      "diabetic": true
+    },
+    "created_at": "2025-02-10T08:45:00+00:00",
+    "activity_level": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": true,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "lose_weight",
+    "height": 160,
+    "weight": 78,
+    "age": 55
+  },
+  "simulated_user4": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-02-14T07:00:00+00:00",
+    "activity_level": "active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "gain_weight",
+    "height": 178,
+    "weight": 65,
+    "age": 26
+  },
+  "simulated_user5": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-02-18T09:30:00+00:00",
+    "activity_level": "moderately active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": true
+    },
+    "dietary_goal": "maintain_weight",
+    "height": 163,
+    "weight": 60,
+    "age": 42
+  },
+  "simulated_user6": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-02-20T11:00:00+00:00",
+    "activity_level": "moderately active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "gain_weight",
+    "height": 170,
+    "weight": 58,
+    "age": 19
+  },
+  "simulated_user7": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": true,
+      "diabetic": true
+    },
+    "created_at": "2025-02-25T08:00:00+00:00",
+    "activity_level": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "lose_weight",
+    "height": 174,
+    "weight": 88,
+    "age": 47
+  },
+  "simulated_user8": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-03-01T10:15:00+00:00",
+    "activity_level": "active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": true,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "maintain_weight",
+    "height": 166,
+    "weight": 63,
+    "age": 31
+  },
+  "simulated_user9": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": true
+    },
+    "created_at": "2025-03-05T09:00:00+00:00",
+    "activity_level": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": true,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "lose_weight",
+    "height": 168,
+    "weight": 80,
+    "age": 60
+  },
+  "test10_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-04-30T18:55:23.862000+00:00",
+    "target_weight": 65.0,
+    "name": "test 10",
+    "activityLevel": "moderately_active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 70.0,
+    "age": 25,
+    "userId": "test10_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "medium",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-30T18:55:23.862000+00:00",
+    "email": "test10@gmail.com",
+    "goal": "lose_weight",
+    "height": 170.0,
+    "password_hash": "scrypt:32768:8:1$vXANAfmEPKdjqFGt$87ce1b86c4c10437e74ee91c4eae97ccef1621f7f663286059ae96fe1ea2a6b32eeba1571846b2821f5280f6f32cd80d7ecc8943d175adfeb5768e54e3089d7d"
+  },
+  "test14_gmail_com": {
+    "gender": "female",
+    "created_at": "2026-04-30T18:01:47.961000+00:00",
+    "target_weight": 63.0,
+    "name": "test 15",
+    "activityLevel": "moderately_active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 63.0,
+    "age": 23,
+    "userId": "test14_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-30T18:01:47.961000+00:00",
+    "email": "test14@gmail.com",
+    "goal": "maintain_weight",
+    "height": 159.0,
+    "password_hash": "scrypt:32768:8:1$R3qvNmD72MmN69mI$85331d141abd3d026b58440bae3ec35ba641eea62dc76a0341809c07d9b8e1ea24e3725b029d468dbedd3cedd4e2dd5306df734df72de4dd687a643b3744fbb4"
+  },
+  "test20_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-04-30T20:27:28.963000+00:00",
+    "target_weight": 70.0,
+    "name": "test 20",
+    "activityLevel": "lightly_active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 70.0,
+    "age": 25,
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "userId": "test20_gmail_com",
+    "updated_at": "2026-04-30T20:27:28.963000+00:00",
+    "email": "test20@gmail.com",
+    "goal": "maintain_weight",
+    "height": 170.0,
+    "password_hash": "scrypt:32768:8:1$kX0gTVOKkxlm5MIJ$689644d41f889edc3f017aab2cda0b5e36af39405e3ff6e408d223a21d85c41efd710410bb4934ddbf2a8d704d962f36764c8783f32032dc1e12089e79724584"
+  },
+  "test21_gmail": {
+    "gender": "male",
+    "created_at": "2026-04-30T20:32:10.804000+00:00",
+    "target_weight": 65.0,
+    "name": "test 21",
+    "activityLevel": "lightly_active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 70.0,
+    "age": 25,
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "onboarding_completed": true,
+    "weight_loss_speed": "medium",
+    "userId": "test21_gmail",
+    "updated_at": "2026-04-30T20:32:10.804000+00:00",
+    "email": "test21@gmail",
+    "goal": "lose_weight",
+    "height": 170.0,
+    "password_hash": "scrypt:32768:8:1$d9V7jzjeoiopZZD0$7052dc331d73d14976c364ab6e2319364a907db7a7f17f84eb37c308451305a5e7ba53ffb8f18116ad4fdf88279b1fea9072811d3d237d5ea027b5983afed640"
+  },
+  "test31_gmail": {
+    "gender": "male",
+    "created_at": "2026-04-30T21:44:02.448000+00:00",
+    "target_weight": 70.0,
+    "name": "test 31",
+    "activityLevel": "lightly_active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 70.0,
+    "age": 24,
+    "userId": "test31_gmail",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-30T21:44:02.448000+00:00",
+    "email": "test31@gmail",
+    "goal": "maintain_weight",
+    "height": 170.0,
+    "password_hash": "scrypt:32768:8:1$sk8wlwhKdvEnnoeX$e9d796adba89e5b97564bf086d9992eb252e4b58d8ebbd388737a3de471195dd702d959777350925915cdff9d203bcc3107f469d4a36c13b9385613071d860e4"
+  },
+  "test_user1": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-01-10T09:00:00+00:00",
+    "activity_level": "moderately active",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "lose_weight",
+    "height": 175,
+    "weight": 72,
+    "age": 24
+  },
+  "test_user2": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": true
+    },
+    "created_at": "2025-01-15T10:30:00+00:00",
+    "activity_level": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": true,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "lose_weight",
+    "height": 162,
+    "weight": 68,
+    "age": 34
+  },
+  "test_user3": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-01-18T08:00:00+00:00",
+    "activity_level": "active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "gain_weight",
+    "height": 180,
+    "weight": 85,
+    "age": 28
+  },
+  "test_user4": {
+    "gender": "female",
+    "health_conditions": {
+      "hypertension": true,
+      "diabetic": true
+    },
+    "created_at": "2025-01-22T11:00:00+00:00",
+    "activity_level": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": true
+    },
+    "dietary_goal": "lose_weight",
+    "height": 158,
+    "weight": 76,
+    "age": 45
+  },
+  "test_user5": {
+    "gender": "male",
+    "health_conditions": {
+      "hypertension": false,
+      "diabetic": false
+    },
+    "created_at": "2025-02-01T07:30:00+00:00",
+    "activity_level": "active",
+    "dietary_restrictions": {
+      "is_vegetarian": false,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "dietary_goal": "maintain_weight",
+    "height": 172,
+    "weight": 70,
+    "age": 30
+  },
+  "test_user_1571": {
+    "gender": "male",
+    "userId": "test_user_1571",
+    "name": "Test User",
+    "is_vegetarian": true,
+    "goal": "lose_weight",
+    "activityLevel": "sedentary",
+    "dietType": "vegetarian",
+    "is_vegan": false,
+    "height": 170,
+    "weight": 72.5,
+    "age": 30
+  },
+  "testuser_gmail_com": {
+    "gender": "male",
+    "created_at": "2026-04-30T17:08:32.707000+00:00",
+    "target_weight": 70.0,
+    "password_hash": "scrypt:32768:8:1$YbOYVniIMBLAPP7Z$1a01bdf5cf5e53e38b197ff663222f55a0c21796e2026b500906dea08df0b034b403724c6add5b17f5a2a71833e16b90519b0629a54c76271c51c3177ae7b0e9",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 70.0,
+    "age": 25,
+    "userId": "testuser_gmail_com",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": false,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-04-30T17:08:32.707000+00:00",
+    "email": "testuser@gmail.com",
+    "goal": "maintain_weight",
+    "height": 170.0,
+    "name": "Test user 15"
+  },
+  "xyz_": {
+    "gender": "male",
+    "created_at": "2026-05-16T12:36:45.618000+00:00",
+    "target_weight": 65.0,
+    "name": "Xyz",
+    "activityLevel": "sedentary",
+    "dietary_restrictions": {
+      "is_vegetarian": true,
+      "is_vegan": false,
+      "is_nut_free": false,
+      "is_gluten_free": false
+    },
+    "weight": 67.0,
+    "age": 25,
+    "userId": "xyz_",
+    "onboarding_completed": true,
+    "weight_loss_speed": "slow",
+    "health_conditions": {
+      "explanations.weight_loss": true,
+      "explanations.diabetes": false,
+      "explanations.fever": false,
+      "explanations.muscle_gain": false
+    },
+    "updated_at": "2026-05-16T12:36:45.618000+00:00",
+    "email": "xyz@",
+    "goal": "lose_weight",
+    "height": 170.0,
+    "password_hash": "scrypt:32768:8:1$nLUPbfhRKJzalCgb$bf9b8531fda6ffe8bb504d55a11e93ff15d3cc6a6d2715b1840c73b74a4bb17f3a7e3cf9adcba037db030641e488fb64ecaa7d978a919a231fbe003744f02c26"
+  }
+}

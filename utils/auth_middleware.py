@@ -2,16 +2,9 @@
 #
 # Firebase idToken verification middleware.
 #
-# Strategy:
-#   1. If an "Authorization: Bearer <idToken>" header is present,
-#      verify it with Firebase Admin SDK and store the decoded uid
-#      on request.firebase_uid.
-#   2. If the header is absent (old APK / dev calls), fall back to
-#      reading userId from the request body / query params as before.
-#      request.firebase_uid will be None in this case.
-#
-# This dual-mode approach means the existing APK continues to work
-# without any forced upgrade, while new clients use secure tokens.
+# Post-migration: ALL endpoints require a valid Firebase Bearer token.
+# The userId is ALWAYS derived from the verified token (request.firebase_uid).
+# Body/query "userId" fallbacks have been REMOVED for security.
 #
 from functools import wraps
 
@@ -30,45 +23,12 @@ def _extract_bearer_token() -> str | None:
     return None
 
 
-def firebase_auth_optional(f):
-    """
-    Decorator: verify Firebase idToken when present; fall back gracefully
-    if absent.  Sets ``request.firebase_uid`` (str | None).
-
-    Use this on endpoints that must support BOTH old (no-token) and new
-    (token-bearing) clients during the transition period.
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = _extract_bearer_token()
-        if token:
-            try:
-                decoded = firebase_admin.auth.verify_id_token(token)
-                request.firebase_uid = decoded["uid"]
-                app_logger.debug(
-                    "[auth] token verified — uid=%s", request.firebase_uid
-                )
-            except firebase_admin.auth.ExpiredIdTokenError:
-                app_logger.warning("[auth] idToken expired")
-                request.firebase_uid = None
-            except firebase_admin.auth.InvalidIdTokenError as e:
-                app_logger.warning("[auth] invalid idToken: %s", e)
-                request.firebase_uid = None
-            except Exception as e:
-                app_logger.error("[auth] token verification error: %s", e)
-                request.firebase_uid = None
-        else:
-            request.firebase_uid = None
-        return f(*args, **kwargs)
-    return decorated
-
-
 def firebase_auth_required(f):
     """
     Decorator: require a valid Firebase idToken.  Returns HTTP 401 if
     the token is missing or invalid.
 
-    Use this on NEW endpoints that are token-only from day one.
+    Sets ``request.firebase_uid`` on success.
     """
     from utils.response_utils import error as api_error
 
@@ -81,7 +41,7 @@ def firebase_auth_required(f):
             decoded = firebase_admin.auth.verify_id_token(token)
             request.firebase_uid = decoded["uid"]
             app_logger.debug(
-                "[auth] token verified (required) — uid=%s", request.firebase_uid
+                "[auth] token verified (required) -- uid=%s", request.firebase_uid
             )
         except firebase_admin.auth.ExpiredIdTokenError:
             return api_error("Authentication token expired", 401)
@@ -95,20 +55,38 @@ def firebase_auth_required(f):
     return decorated
 
 
+# Keep firebase_auth_optional as a transitional alias that still sets
+# firebase_uid when available but does NOT block unauthenticated requests.
+# This is only used during the transition period for backward compatibility
+# with old APK versions already in the wild.
+def firebase_auth_optional(f):
+    """
+    Decorator: verify Firebase idToken when present; fall back gracefully
+    if absent.  Sets ``request.firebase_uid`` (str | None).
+
+    DEPRECATED: New endpoints should use firebase_auth_required instead.
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = _extract_bearer_token()
+        if token:
+            try:
+                decoded = firebase_admin.auth.verify_id_token(token)
+                request.firebase_uid = decoded["uid"]
+            except Exception:
+                request.firebase_uid = None
+        else:
+            request.firebase_uid = None
+        return f(*args, **kwargs)
+    return decorated
+
+
 def get_user_id_from_request(data: dict | None = None) -> str | None:
     """
     Resolve the effective userId for the current request.
 
-    Priority:
-      1. request.firebase_uid  — set by firebase_auth_optional / required
-      2. data.get("userId")    — body param (old APK backward compat)
-      3. request.args.get("userId") — query param (GET endpoints)
+    Post-migration: ONLY uses the verified Firebase UID from the token.
+    Body/query param fallbacks have been REMOVED for security.
     """
     uid = getattr(request, "firebase_uid", None)
-    if uid:
-        return uid
-    if data:
-        uid = data.get("userId")
-        if uid:
-            return uid
-    return request.args.get("userId")
+    return uid

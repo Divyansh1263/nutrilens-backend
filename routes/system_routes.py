@@ -4,7 +4,7 @@ from utils.response_utils import success, error
 from repositories.user_repository import user_repo
 from utils.calorie_utils import get_or_calculate_user_targets, invalidate_user_target_cache
 from utils.date_utils import get_today_str
-from utils.auth_middleware import firebase_auth_optional, get_user_id_from_request
+from utils.auth_middleware import firebase_auth_required, get_user_id_from_request
 
 system_bp = Blueprint('system', __name__)
 
@@ -14,9 +14,9 @@ def health_check():
     return success({"status": "healthy"}, "NutriLens API is running")
 
 @system_bp.route("/daily-greeting", methods=["GET"])
-@firebase_auth_optional
+@firebase_auth_required
 def daily_greeting():
-    user_id = get_user_id_from_request()    # B5 FIX: token-first
+    user_id = get_user_id_from_request()
     if not user_id:
         return error("userId required")
 
@@ -31,15 +31,15 @@ def daily_greeting():
     cal = targets.get("calories", 2000)
 
     return success({
-        "message": f"Good Morning {name} 👋",
+        "message": f"Good Morning {name}!",
         "target_calories": cal
     })
 
 @system_bp.route("/calculate-target", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def calculate_target():
     data = request.get_json(force=True)
-    user_id = get_user_id_from_request(data)    # B5 FIX: token-first
+    user_id = get_user_id_from_request()
     if not user_id:
         return error("userId required")
 
@@ -56,10 +56,10 @@ def calculate_target():
     return success(targets, "Targets calculated")
 
 @system_bp.route("/submit-feedback", methods=["POST"])
-@firebase_auth_optional
+@firebase_auth_required
 def submit_feedback():
     data = request.get_json(force=True)
-    user_id = get_user_id_from_request(data)    # B5 FIX: token-first
+    user_id = get_user_id_from_request()
     message = data.get("message")
     rating  = data.get("rating")
 
@@ -83,7 +83,7 @@ def submit_feedback():
         return error(str(e), 500)
 
 
-# TASK 6 – Admin endpoint to force-reload the meals cache from Firestore
+# TASK 6 - Admin endpoint to force-reload the meals cache from Firestore
 @system_bp.route("/refresh-cache", methods=["POST"])
 def refresh_cache():
     """
