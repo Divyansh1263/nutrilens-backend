@@ -8,8 +8,8 @@ def validate_log_meal(data):
     quantity = data.get("quantity", 1)
     meal_type = data.get("mealType")
 
-    if not all([user_id, date_str, meal_name]):
-        return False, "userId, date, and mealName are required fields"
+    if not all([date_str, meal_name]):
+        return False, "date and mealName are required fields"
         
     try:
         qty = float(quantity)
@@ -51,9 +51,5 @@ def validate_delete_log(data):
     return True, ""
     
 def validate_generate_plan(data):
-    user_id = data.get("userId")
-    date_str = data.get("date") # Optional but good practice
-    
-    if not user_id:
-        return False, "userId is required"
+    # Payload can be empty, userId is extracted from Bearer token
     return True, ""

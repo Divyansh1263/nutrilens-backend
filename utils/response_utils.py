@@ -50,8 +50,39 @@ def success(data=None, message=""):
 
 def error(message, status_code=400):
     """
-    Standardize error API responses.
+    Standardize error API responses and provide structured error logging.
     """
+    from flask import request
+    import traceback
+    import sys
+    from utils.logger import app_logger
+
+    try:
+        route_name = request.path if request else "Unknown Route"
+        uid = getattr(request, "firebase_uid", "Unauthenticated") if request else "Unknown"
+        
+        # Capture exception info if there is an active exception
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        stack_trace = None
+        if exc_type is not None:
+            stack_trace = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        
+        log_payload = {
+            "type": "API_ERROR",
+            "route": route_name,
+            "uid": uid,
+            "status": status_code,
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+        if stack_trace:
+            log_payload["stack_trace"] = stack_trace
+            
+        import json
+        app_logger.error(f"[STRUCTURED ERROR] {json.dumps(log_payload)}")
+    except Exception as e:
+        app_logger.error(f"Failed to log structured error: {e}")
+
     return jsonify({
         "success": False,
         "message": message
