@@ -8,7 +8,72 @@ from ai.smart_swap_knn import SmartSwapKNN, get_knn_model
 from repositories.meal_repository import meal_repo
 import copy
 
+# ── Junk food keywords — never inject these into main meals ──────────────
+_JUNK_KEYWORDS = frozenset({
+    "biscuit", "cookie", "syrup", "popcorn", "chips", "soda",
+    "chocolate", "candy", "ice cream", "cake", "brownie", "wafer",
+    "pastry", "donut", "doughnut", "fudge", "jelly", "marshmallow",
+    "nachos", "fries", "cola", "pepsi", "sprite", "maggi", "noodle",
+})
+
+# ── Valid categories per slot ────────────────────────────────────────────
+_SLOT_ALLOWED_CATEGORIES = {
+    "breakfast": {"breakfast", "snack", "beverage", "main course", "side dish", ""},
+    "lunch":     {"lunch", "main course", "side dish", "curry", "dal", "rice", "roti", ""},
+    "snack":     {"snack", "beverage", "dessert", "light", "breakfast", ""},
+    "dinner":    {"dinner", "main course", "side dish", "curry", "dal", "rice", "roti", ""},
+}
+
+
 class MealGeneratorService:
+
+    # ── PHASE 1: Shared fuzzy meal matcher ────────────────────────────────
+    @staticmethod
+    def _find_meal_match(name, all_meals):
+        """
+        Robust 3-tier meal name matcher.
+        Returns the best-matching meal dict from all_meals, or None.
+        """
+        name_lower = name.lower().strip()
+        if not name_lower:
+            return None
+
+        # TIER 1: Exact normalized match
+        for m in all_meals:
+            if (m.get("mealName") or "").lower().strip() == name_lower:
+                return m
+
+        # TIER 2: db_name contained in template_name (FIXED direction)
+        # e.g. "omelette" found in "egg omelette", "dal" found in "moong dal"
+        best_sub, best_sub_len = None, 0
+        for m in all_meals:
+            db_name = (m.get("mealName") or "").lower().strip()
+            if len(db_name) >= 3 and db_name in name_lower:
+                # Prefer the longest matching db_name (most specific)
+                if len(db_name) > best_sub_len:
+                    best_sub = m
+                    best_sub_len = len(db_name)
+        if best_sub:
+            return best_sub
+
+        # TIER 3: Token-overlap scoring (≥50% of template words match)
+        _STOPWORDS = {"with", "and", "in", "of", "the", "a", "no", "less", "style", "based", "home"}
+        name_tokens = {w for w in name_lower.split() if w not in _STOPWORDS and len(w) >= 2}
+        if not name_tokens:
+            return None
+
+        best_match, best_score = None, 0.0
+        for m in all_meals:
+            db_tokens = {w for w in (m.get("mealName") or "").lower().split()
+                         if w not in _STOPWORDS and len(w) >= 2}
+            if not db_tokens:
+                continue
+            overlap = len(name_tokens & db_tokens)
+            score = overlap / len(name_tokens)
+            if score > best_score and score >= 0.5:
+                best_match, best_score = m, score
+
+        return best_match
     
     def _recompute_totals(self, plan):
         """STEP 1: Recompute totals from all meal items dynamically."""
@@ -149,15 +214,12 @@ class MealGeneratorService:
         if cal_diff > 0.05 or prot_diff > 0.10:
             app_logger.warning(f"[meal-plan] STEP 3: Final plan still out of bounds after loop. Cal error: {cal_diff:.1%}, Prot error: {prot_diff:.1%}")
 
-        # --- NEW CODE: Annotate items (explanations, servingSize) ---
+        # --- Annotate items (explanations, servingSize) using shared matcher ---
         from utils.diet_utils import annotate_plan_item
         for slot in ["breakfast", "lunch", "snack", "dinner"]:
             annotated_slot = []
             for item in final_plan.get("meals", {}).get(slot, []):
-                name = item.get("mealName", "").lower()
-                full_meal = next((m for m in all_meals if m.get("mealName", "").lower() == name), None)
-                if not full_meal:
-                    full_meal = next((m for m in all_meals if name in m.get("mealName", "").lower()), None)
+                full_meal = self._find_meal_match(item.get("mealName", ""), all_meals)
                 annotated = annotate_plan_item(item, full_meal if full_meal else item, profile)
                 annotated_slot.append(annotated)
             final_plan.setdefault("meals", {})[slot] = annotated_slot
@@ -200,10 +262,8 @@ class MealGeneratorService:
                 name = item.get("mealName", "").lower()
                 old_qty = float(item.get("quantity", 1.0))
                 
-                # Populate missing base macros using all_meals
-                full_meal = next((m for m in all_meals if m.get("mealName", "").lower() == name), None)
-                if not full_meal:
-                    full_meal = next((m for m in all_meals if name in m.get("mealName", "").lower()), None)
+                # PHASE 1: Use shared matcher (fixes broken substring direction)
+                full_meal = self._find_meal_match(item.get("mealName", ""), all_meals)
                     
                 if full_meal:
                     item["base_calories"] = float(full_meal.get("calories", 0))
@@ -211,10 +271,27 @@ class MealGeneratorService:
                     item["base_carbs"] = float(full_meal.get("carbs", 0))
                     item["base_fat"] = float(full_meal.get("fat", 0))
                 else:
-                    item["base_calories"] = float(item.get("calories", 0)) / old_qty if old_qty > 0 else 0
-                    item["base_protein"] = float(item.get("protein", 0)) / old_qty if old_qty > 0 else 0
-                    item["base_carbs"] = float(item.get("carbs", 0)) / old_qty if old_qty > 0 else 0
-                    item["base_fat"] = float(item.get("fat", 0)) / old_qty if old_qty > 0 else 0
+                    # PHASE 1.3: NEVER silently assign 0 macros to template items
+                    existing_cal = float(item.get("calories", 0))
+                    if existing_cal > 0:
+                        # Item has pre-populated macros — use them directly
+                        item["base_calories"] = existing_cal / old_qty if old_qty > 0 else existing_cal
+                        item["base_protein"] = float(item.get("protein", 0)) / old_qty if old_qty > 0 else 0
+                        item["base_carbs"] = float(item.get("carbs", 0)) / old_qty if old_qty > 0 else 0
+                        item["base_fat"] = float(item.get("fat", 0)) / old_qty if old_qty > 0 else 0
+                    else:
+                        # Truly unresolvable — find ANY similar-category meal as fallback
+                        app_logger.warning(
+                            "[hydration] UNRESOLVED template item '%s' in slot '%s' — "
+                            "assigning category fallback",
+                            item.get("mealName", "?"), slot
+                        )
+                        # Fallback: pick a safe average meal (~200 cal, ~8g prot)
+                        item["base_calories"] = 200.0
+                        item["base_protein"] = 8.0
+                        item["base_carbs"] = 25.0
+                        item["base_fat"] = 6.0
+                        item["_hydration_fallback"] = True
 
                 raw_new_qty = old_qty * ratio
                 new_qty = raw_new_qty
@@ -397,12 +474,16 @@ class MealGeneratorService:
         is_vegan = flags["is_vegan"]
         is_veg = flags["is_vegetarian"]
 
-        # Helper to get high protein candidates
+        # Helper to get high protein candidates — with junk filter (PHASE 2)
         high_protein_candidates = []
         for meal in meals_db:
             if not meal.get("is_high_protein"): continue
             if is_vegan and not meal.get("is_vegan"): continue
             if is_veg and not (meal.get("is_vegetarian") or meal.get("is_vegan")): continue
+            # PHASE 2.1: Block junk foods from protein correction
+            cand_name_lower = (meal.get("mealName") or "").lower()
+            if any(junk in cand_name_lower for junk in _JUNK_KEYWORDS):
+                continue
             high_protein_candidates.append(meal)
 
         def density(m):
@@ -460,6 +541,12 @@ class MealGeneratorService:
             for meal in high_protein_candidates:
                 valid_types = [t.lower() for t in meal.get("validMealTypes", [])] + [t.lower() for t in meal.get("meal_type", [])] + [meal.get("category", "").lower()]
                 if slot not in valid_types and "main course" not in valid_types:
+                    continue
+
+                # PHASE 2.2: Slot category guard — prevent snacks in lunch/dinner etc.
+                meal_cat = (meal.get("category") or "").lower().strip()
+                allowed_cats = _SLOT_ALLOWED_CATEGORIES.get(slot, set())
+                if meal_cat and meal_cat not in allowed_cats:
                     continue
 
                 cand_prot = float(meal.get("protein", 0))

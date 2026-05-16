@@ -104,10 +104,32 @@ def generate_meal_plan():
     if existing:
         existing = _normalize_plan_structure(existing)
         if not _is_plan_empty(existing):
-            app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
-            return _meal_plan_response(existing, "Meal plan retrieved")
+            # PHASE 3: Detect under-target cached plans (cache poisoning guard)
+            cached_cal = float(existing.get("total_calories")
+                               or existing.get("finalCalories")
+                               or existing.get("actual_calories") or 0)
+            cached_target = float(existing.get("target_calories") or 0)
+            cached_prot = float(existing.get("actual_protein")
+                                or existing.get("finalProtein") or 0)
+            cached_target_prot = float(
+                (existing.get("target_macros") or {}).get("protein", 0))
+
+            cal_ratio = cached_cal / cached_target if cached_target > 0 else 1.0
+            prot_ratio = (cached_prot / cached_target_prot
+                          if cached_target_prot > 0 else 1.0)
+
+            if cal_ratio < 0.70 or prot_ratio < 0.60:
+                app_logger.warning(
+                    "[meal-plan] CACHE POISONED: cal=%.0f/%.0f (%.0f%%), "
+                    "prot=%.0f/%.0f (%.0f%%) → forcing regeneration",
+                    cached_cal, cached_target, cal_ratio * 100,
+                    cached_prot, cached_target_prot, prot_ratio * 100,
+                )
+            else:
+                app_logger.info("[meal-plan] valid cached plan used for user=%s", user_id)
+                return _meal_plan_response(existing, "Meal plan retrieved")
         app_logger.warning(
-            "[meal-plan] cached plan empty → regenerating for user=%s date=%s",
+            "[meal-plan] cached plan empty/invalid → regenerating for user=%s date=%s",
             user_id, date_str
         )
 
