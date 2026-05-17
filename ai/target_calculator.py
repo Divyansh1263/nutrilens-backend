@@ -55,8 +55,13 @@ def compute_base_targets(profile):
         weight = safe_float(profile.get("weight"), 70)
         height = safe_float(profile.get("height"), 170)
         age = safe_float(profile.get("age"), 25)
+        sex = str(profile.get("sex") or profile.get("gender") or "male").lower().strip()
 
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+        if sex.startswith("f"):
+            bmr = 10 * weight + 6.25 * height - 5 * age - 161
+        else:
+            bmr = 10 * weight + 6.25 * height - 5 * age + 5
+
         if bmr <= 0:
             bmr = 1500
 
@@ -70,8 +75,10 @@ def compute_base_targets(profile):
             "sedentary": 1.2,
             "light": 1.375,
             "moderate": 1.55,
+            "moderately_active": 1.55,
             "Moderately Active": 1.55,
-            "active": 1.725
+            "active": 1.725,
+            "very_active": 1.9
         }
         multiplier = activity_map.get(activity, 1.2)
 
@@ -87,9 +94,52 @@ def compute_base_targets(profile):
         calories = max(1200, round(calories))
         print("CALCULATED CALORIES:", calories)
 
-        protein_g = round((0.25 * calories) / 4, 1)
-        carbs_g   = round((0.45 * calories) / 4, 1)
-        fat_g     = round((0.30 * calories) / 9, 1)
+        # Phase 2: Weight + Goal based protein logic
+        is_sedentary = multiplier <= 1.3
+        
+        if goal == "lose_weight":
+            base_prot_mult = 1.6 if is_sedentary else 1.8
+        elif goal == "gain_weight":
+            base_prot_mult = 1.4 if is_sedentary else 1.8
+        else: # maintain
+            base_prot_mult = 1.0 if is_sedentary else 1.4
+
+        if age >= 50:
+            base_prot_mult += 0.2
+            
+        protein_g = round(weight * base_prot_mult, 1)
+
+        # Cap protein to reasonable bounds (10% - 30% of calories) to prevent anomalies
+        protein_cals = protein_g * 4
+        if protein_cals > 0.30 * calories:
+            protein_g = round((0.30 * calories) / 4, 1)
+            protein_cals = protein_g * 4
+        elif protein_cals < 0.10 * calories:
+            protein_g = round((0.10 * calories) / 4, 1)
+            protein_cals = protein_g * 4
+
+        # Phase 3: Recalibrate Macro Splits
+        remaining_cals = calories - protein_cals
+        
+        # Check for diabetic flag
+        flags = profile.get("dietary_restrictions", [])
+        if isinstance(flags, str):
+            flags = [flags]
+        is_diabetic = any("diabetic" in str(r).lower() for r in flags)
+        
+        if is_diabetic:
+            carb_ratio = 0.45
+            fat_ratio = 0.55
+        elif goal == "lose_weight":
+            carb_ratio = 0.50
+            fat_ratio = 0.50
+        else:
+            # Standard Indian maintenance: higher carbs (50-60%), moderate fats
+            carb_ratio = 0.55
+            fat_ratio = 0.45
+            
+        carbs_g = round((remaining_cals * carb_ratio) / 4, 1)
+        fat_g = round((remaining_cals * fat_ratio) / 9, 1)
 
         return {
             "calories": calories,
